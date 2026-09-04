@@ -1,59 +1,24 @@
-# Status Codes
+# HTTP Status Codes (Reference)
 
-> Directory: `docs/reference/` · File: `02_status_codes.md` · Kind: **reference table**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_error_codes.md` · Next: `03_risk_levels.md`
+> This file maps HTTP status codes to their meaning in this system specifically — the
+> authoritative per-error mapping is `01_error_codes.md`; this file is the reverse index
+> (status code → which errors use it) for quick lookup.
 
-## Purpose
+| Status | Meaning here | Error codes using it |
+|---|---|---|
+| 200 | Success | — |
+| 204 | Success, no body (deletes, logout) | — |
+| 400 | Client sent an invalid request | `INVALID_REQUEST` |
+| 401 | Not authenticated | `AUTH_REQUIRED` |
+| 403 | Authenticated but not authorized | `POLICY_DENIED`, `TOOL_NOT_ALLOWED`, `FILE_CLASSIFICATION_DENIED`, `APPROVAL_REQUIRED`, `APPROVAL_REJECTED`, `NETWORK_EGRESS_BLOCKED`, `MODEL_NOT_APPROVED` |
+| 404 | Resource not found or not visible to caller | `FILE_NOT_FOUND` |
+| 409 | State conflict | `RESOURCE_CONFLICT` |
+| 429 | Rate limited | `RATE_LIMITED` |
+| 500 | Internal error | `INTERNAL_ERROR`, `TOOL_EXECUTION_FAILED`, `SANDBOX_LIMIT_EXCEEDED` |
+| 503 | Dependency unavailable | `MODEL_UNAVAILABLE`, `MODEL_RESOURCE_EXHAUSTED`, `RAG_INDEX_UNAVAILABLE`, `DEPENDENCY_UNAVAILABLE` |
+| 504 | Dependency timeout | `INFERENCE_TIMEOUT` |
 
-**Status Codes** documents a lookup table other documents point to for "status codes" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+## Rule
 
-## Definition
-
-- **What it is:** Status Codes is a named reference table within the `reference/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Status Codes at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Status Codes require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Status Codes is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Status Codes enforces the same rule set described here — a feature that reads
-   Status Codes differently than documented here is a bug in that feature, not a variant.
-3. Where Status Codes interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Status Codes interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/18_DOCUMENTATION_INDEX.md`
-
-## Acceptance criteria
-
-- [ ] Status Codes behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Status Codes contradicts a related document listed above.
-- [ ] Status Codes is covered by at least one test referenced from `docs/testing/`.
-- [ ] Status Codes requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Status Codes, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Status Codes that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Status Codes are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+A given error code always returns the same status code everywhere in the system — an
+endpoint never overrides this mapping (`api/26_error_contracts.md` rule 5).

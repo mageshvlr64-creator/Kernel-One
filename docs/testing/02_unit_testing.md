@@ -1,60 +1,17 @@
 # Unit Testing
 
-> Directory: `docs/testing/` · File: `02_unit_testing.md` · Kind: **test approach**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_testing_strategy.md` · Next: `03_integration_testing.md`
+> One test per function/failure-mode, no external dependencies (database, network, other
+> services) — mocked or stubbed per the adapter pattern in `integrations/01_integration_architecture.md`.
 
-## Purpose
+## Rule
 
-**Unit Testing** documents what must be covered and how pass/fail is judged for "unit testing" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Every failure mode listed in a `docs/failures/` file has at least one unit test asserting: the
+trigger condition produces exactly the documented error code, and no partial state is left
+behind. A failure mode with no corresponding unit test is a gap flagged in
+`08_BUILD_PHASES.md`'s phase exit review.
 
-## Definition
+## Scope boundary
 
-- **What it is:** Unit Testing is a named test approach within the `testing/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Unit Testing at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Unit Testing require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Unit Testing is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Unit Testing enforces the same rule set described here — a feature that reads
-   Unit Testing differently than documented here is a bug in that feature, not a variant.
-3. Where Unit Testing interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Unit Testing interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/testing/01_testing_strategy.md`
-- `docs/12_GLOBAL_ACCEPTANCE_CRITERIA.md`
-
-## Acceptance criteria
-
-- [ ] Unit Testing behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Unit Testing contradicts a related document listed above.
-- [ ] Unit Testing is covered by at least one test referenced from `docs/testing/`.
-- [ ] Unit Testing requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Unit Testing, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Unit Testing that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Unit Testing are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Unit tests never touch a real database, real object storage, or a real model runtime — those
+are integration tests (`03_integration_testing.md`). A "unit test" that spins up Docker or
+hits PostgreSQL is miscategorized and should be moved.

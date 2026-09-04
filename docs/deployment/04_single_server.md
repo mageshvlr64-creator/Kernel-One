@@ -1,60 +1,16 @@
-# Single Server
+# Single-Server Deployment
 
-> Directory: `docs/deployment/` · File: `04_single_server.md` · Kind: **deployment concern**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `03_docker_compose.md` · Next: `05_gpu_server.md`
+> The bare-metal/VM equivalent of `03_docker_compose.md`, for operators who prefer not to run
+> a container orchestrator distinct from Docker itself.
 
-## Purpose
+## Difference from `03_docker_compose.md`
 
-**Single Server** documents a topology or procedure for installing/running the system for "single server" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+None at the architecture level — `architecture/15_single_node_architecture.md` IS this
+deployment; this file exists to state explicitly that "single server" and "Docker Compose
+single-node" are the same target, not two different architectures, to avoid an operator
+assuming a heavier orchestrator (Kubernetes) is required for a single-server deployment.
 
-## Definition
+## Hardware mapping
 
-- **What it is:** Single Server is a named deployment concern within the `deployment/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Single Server at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Single Server require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Single Server is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Single Server enforces the same rule set described here — a feature that reads
-   Single Server differently than documented here is a bug in that feature, not a variant.
-3. Where Single Server interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Single Server interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`
-- `docs/deployment/01_deployment_overview.md`
-
-## Acceptance criteria
-
-- [ ] Single Server behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Single Server contradicts a related document listed above.
-- [ ] Single Server is covered by at least one test referenced from `docs/testing/`.
-- [ ] Single Server requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Single Server, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Single Server that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Single Server are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Directly maps to PROFILE-B (demo-committed) or PROFILE-C (production single-node) from
+`07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md` depending on the server's specs.

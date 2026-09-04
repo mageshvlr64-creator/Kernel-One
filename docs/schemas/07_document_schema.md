@@ -1,60 +1,82 @@
-# Document Schema
+# DocumentUpload / Document
 
-> Directory: `docs/schemas/` · File: `07_document_schema.md` · Kind: **schema**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `06_model_schema.md` · Next: `08_chunk_schema.md`
+> JSON Schema for the wire/storage contract of **DocumentUpload / Document**. Referenced by `docs/api/` and
+> `docs/domain/`; this file is the single source for the shape, not a duplicate of either.
 
-## Purpose
+## Document
 
-**Document Schema** documents the exact on-disk/on-wire field list, types, and constraints for "document schema" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+```json
+{
+  "$id": "document.json",
+  "title": "Document",
+  "type": "object",
+  "required": [
+    "id",
+    "filename",
+    "mime_type",
+    "classification",
+    "state"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "filename": {
+      "type": "string",
+      "maxLength": 512
+    },
+    "mime_type": {
+      "type": "string",
+      "enum": [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "text/plain",
+        "text/csv",
+        "image/png",
+        "image/jpeg"
+      ]
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 209715200
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "PUBLIC",
+        "INTERNAL",
+        "CONFIDENTIAL",
+        "RESTRICTED"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "UPLOADED",
+        "VALIDATING",
+        "EXTRACTING",
+        "OCR",
+        "INDEXING",
+        "READY",
+        "FAILED",
+        "DELETED"
+      ]
+    }
+  }
+}
+```
 
-## Definition
 
-- **What it is:** Document Schema is a named schema within the `schemas/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Document Schema at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Document Schema require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+## Validation behavior
 
-## Detail
-
-1. Document Schema is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Document Schema enforces the same rule set described here — a feature that reads
-   Document Schema differently than documented here is a bug in that feature, not a variant.
-3. Where Document Schema interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Document Schema interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/domain/01_domain_model.md`
-- `docs/api/01_api_overview.md`
-
-## Acceptance criteria
-
-- [ ] Document Schema behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Document Schema contradicts a related document listed above.
-- [ ] Document Schema is covered by at least one test referenced from `docs/testing/`.
-- [ ] Document Schema requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Document Schema, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Document Schema that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Document Schema are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+A request/object failing this schema is rejected with `INVALID_REQUEST`
+(`docs/reference/01_error_codes.md`), including the specific field-level validation error(s),
+before any business logic executes.

@@ -1,60 +1,64 @@
 # API Overview
 
-> Directory: `docs/api/` · File: `01_api_overview.md` · Kind: **API contract**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: _(first document in this directory)_ · Next: `02_authentication_api.md`
+> Canonical entry point for the API surface. Individual endpoint files (`02_authentication_api.md`
+> through `25_metrics_api.md`) are the source of truth for their own routes; this file defines
+> the conventions all of them share and the full route index.
 
-## Purpose
+## Version
 
-**API Overview** documents the exact HTTP/WS route(s), payloads, and status codes for "api overview" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+All application endpoints are under `/api/v1/`. `/healthz`, `/readyz`, and `/metrics` are
+unversioned infrastructure endpoints (no auth, no envelope — see `24_health_api.md`,
+`25_metrics_api.md`).
 
-## Definition
+## Authentication and authorization
 
-- **What it is:** API Overview is a named API contract within the `api/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for API Overview at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to API Overview require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Bearer token issued by `POST /api/v1/auth/login` (`02_authentication_api.md`). Every
+state-changing and classification-sensitive read passes through the policy engine
+(`features/21_policy_engine/`) before executing (REQ-SEC-001) — see
+`reference/05_permission_matrix.md` for the role table.
 
-## Detail
+## Envelope, pagination, errors
 
-1. API Overview is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of API Overview enforces the same rule set described here — a feature that reads
-   API Overview differently than documented here is a bug in that feature, not a variant.
-3. Where API Overview interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where API Overview interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+Defined once in `docs/schemas/02_api_schema.md`. Every endpoint below uses that envelope; no
+endpoint file redefines it.
 
-## Interfaces and related documents
+## Route index
 
-- **Related:**
-- `docs/schemas/02_api_schema.md`
-- `docs/api/26_error_contracts.md`
+| Category | File |
+|---|---|
+| Authentication | `02_authentication_api.md` |
+| Users | `03_users_api.md` |
+| Workspaces | `04_workspaces_api.md` |
+| Chat / Conversations | `05_chat_api.md` |
+| Tasks | `06_tasks_api.md` |
+| Execution | `07_execution_api.md` |
+| Models | `08_models_api.md` |
+| Model Registry | `09_model_registry_api.md` |
+| Model Router | `10_model_router_api.md` |
+| Documents | `11_documents_api.md` |
+| Knowledge / Indexing | `12_knowledge_api.md` |
+| Search / RAG | `13_search_api.md` |
+| Evidence | `14_evidence_api.md` |
+| Tools | `15_tools_api.md` |
+| Sandbox | `16_sandbox_api.md` |
+| Artifacts | `17_artifacts_api.md` |
+| Approvals | `18_approval_api.md` |
+| Audit | `19_audit_api.md` |
+| Policy | `20_policy_api.md` |
+| RBAC | `21_rbac_api.md` |
+| Network Sovereignty | `22_network_api.md` |
+| Admin | `23_admin_api.md` |
+| Health | `24_health_api.md` |
+| Metrics | `25_metrics_api.md` |
+| Error contracts | `26_error_contracts.md` |
 
-## Acceptance criteria
+## Idempotency
 
-- [ ] API Overview behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of API Overview contradicts a related document listed above.
-- [ ] API Overview is covered by at least one test referenced from `docs/testing/`.
-- [ ] API Overview requires no outbound network access to function correctly.
+State-changing endpoints marked idempotent in `docs/runtime/15_idempotency.md` accept an
+`Idempotency-Key` header; a retried request with the same key returns the original result
+rather than re-executing.
 
-## Implementation notes for AI agents
+## Rate limits
 
-Before changing anything related to API Overview, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of API Overview that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about API Overview are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+See `docs/schemas/02_api_schema.md` — 60 req/min per user for `interactive-*` operation
+classes (CONFIG DEFAULT), returning `429 RATE_LIMITED`.

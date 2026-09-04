@@ -1,60 +1,34 @@
-# Model Provider Model
+# Model, ModelDeployment, ModelCapability
 
-> Directory: `docs/domain/` · File: `08_model_provider_model.md` · Kind: **domain entity**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `07_knowledge_model.md` · Next: `09_agent_model.md`
+> Canonical field-level definition. `docs/schemas/` holds the matching JSON Schema for any
+> wire/storage representation of these fields; this file is the authoritative field list.
 
-## Purpose
+## Fields
 
-**Model Provider Model** documents a core entity's identity, fields, lifecycle, and relationships for "model provider model" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Field | Type | Required | Default | Constraints |
+|---|---|---|---|---|
+| `id` | text | yes | — | Model.id — human-stable slug, e.g. `general-reasoning-7b` |
+| `display_name` | text | yes | — | shown in UI model selector |
+| `provider` | enum(vllm,ollama,llamacpp) | yes | — | which inference gateway adapter serves this model |
+| `total_parameters_billions` | numeric | yes | — | REQ-AI-003: storage/VRAM sizing basis |
+| `active_parameters_billions` | numeric | no | null | null for dense models; set for MoE — compute sizing basis only, never storage |
+| `quantization` | text | yes | — | e.g. `4-bit-awq`, `fp16` |
+| `context_window` | integer | yes | — | max tokens |
+| `capabilities` | text[] | yes | — | subset of {coding, vision, tool_calling, structured_output, ocr_assist} |
+| `max_classification` | enum(PUBLIC,INTERNAL,CONFIDENTIAL,RESTRICTED) | yes | INTERNAL | highest classification this model is approved to process — REQ-DATA-001/`MODEL_NOT_APPROVED` |
+| `is_available` | boolean | yes | true | set false by health check when the backing runtime is unreachable |
 
-## Definition
+## Notes
 
-- **What it is:** Model Provider Model is a named domain entity within the `domain/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Model Provider Model at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Model Provider Model require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+ModelDeployment (not separately tabled in V1) is represented by `is_available` + a runtime health-check cache; a full deployment-history table is a V2 item (`later/`). ModelCapability is the `capabilities` array plus `max_classification` on the Model row itself — capabilities are not a separate join table in V1 given the small number of models expected (see `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md` reference registry).
 
-## Detail
+## Ownership
 
-1. Model Provider Model is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Model Provider Model enforces the same rule set described here — a feature that reads
-   Model Provider Model differently than documented here is a bug in that feature, not a variant.
-3. Where Model Provider Model interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Model Provider Model interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+This entity is owned and mutated only by the component named in its lifecycle description
+above. Every other component reads it through the API/internal interface defined in
+`docs/api/` and `docs/features/`, never by writing to its table directly.
 
-## Interfaces and related documents
+## Audit behavior
 
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/schemas/01_database_schema.md`
-
-## Acceptance criteria
-
-- [ ] Model Provider Model behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Model Provider Model contradicts a related document listed above.
-- [ ] Model Provider Model is covered by at least one test referenced from `docs/testing/`.
-- [ ] Model Provider Model requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Model Provider Model, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Model Provider Model that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Model Provider Model are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every insert/update/soft-delete on this entity's table produces a matching `AuditEvent`
+(`schemas/15_audit_event_schema.md`) in the same transaction, per REQ-AUD-001.

@@ -1,60 +1,31 @@
 # Router Failures
 
-> Directory: `docs/failures/` · File: `12_router_failures.md` · Kind: **failure mode**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `11_model_corruption.md` · Next: `13_agent_failures.md`
+> Failure mode entry. Referenced by the owning feature's "Failure modes" section
+> (`docs/features/`) rather than restated there.
 
-## Purpose
+## Trigger
 
-**Router Failures** documents a named failure, its detection signal, and system response for "router failures" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+No model satisfies the requested capability + classification + hardware-fit combination.
 
-## Definition
+## Detection
 
-- **What it is:** Router Failures is a named failure mode within the `failures/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Router Failures at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Router Failures require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Router's selection logic (features/02_model_router/) returns no candidate.
 
-## Detail
+## System response
 
-1. Router Failures is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Router Failures enforces the same rule set described here — a feature that reads
-   Router Failures differently than documented here is a bug in that feature, not a variant.
-3. Where Router Failures interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Router Failures interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+`MODEL_NOT_APPROVED` if a classification mismatch is the cause, `MODEL_UNAVAILABLE` if no healthy model exists for the capability at all.
 
-## Interfaces and related documents
+## Error code
 
-- **Related:**
-- `docs/failures/01_failure_handling_philosophy.md`
-- `docs/runtime/11_retry_policy.md`
+`MODEL_NOT_APPROVED / MODEL_UNAVAILABLE` (see `reference/01_error_codes.md` for HTTP status and full detail)
 
-## Acceptance criteria
+## Recovery
 
-- [ ] Router Failures behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Router Failures contradicts a related document listed above.
-- [ ] Router Failures is covered by at least one test referenced from `docs/testing/`.
-- [ ] Router Failures requires no outbound network access to function correctly.
+Operator registers an appropriate model or adjusts the requested classification/capability.
 
-## Implementation notes for AI agents
+## Audit requirement
 
-Before changing anything related to Router Failures, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Router Failures that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Router Failures are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every occurrence of this failure produces an `AuditEvent` with `result=error` and this
+failure's error code, per `schemas/15_audit_event_schema.md` — this applies even to failures
+that are ultimately the system behaving correctly (e.g. a correctly-blocked network attempt)
+since REQ-AUD-001 makes no exception for "expected" failures.

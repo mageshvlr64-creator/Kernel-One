@@ -1,60 +1,24 @@
 # Scaling Strategy
 
-> Directory: `docs/architecture/` · File: `14_scaling_strategy.md` · Kind: **structural view**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `13_failure_domains.md` · Next: `15_single_node_architecture.md`
+> How the system would scale beyond PROFILE-B, and which parts of V1's design already
+> anticipate this (per DEC-001's stated rationale).
 
-## Purpose
+## Scaling dimensions
 
-**Scaling Strategy** documents a cross-cutting view of how components, trust zones, and deployment topologies relate for "scaling strategy" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. **Concurrent users** — bounded in V1 by PROFILE-B's single-GPU inference throughput; scaling
+   this requires either more/bigger GPUs (PROFILE-C/D) or horizontal Inference Gateway
+   replicas (`later/08_multi_node_scaling.md`), gated on `REQ-PERF-002`'s pending decision.
+2. **Document corpus size** — pgvector's HNSW index scales into the millions of chunks
+   (DEC-002's stated assumption); beyond that, a dedicated vector database becomes worth
+   revisiting cost.
+3. **Concurrent tasks** — bounded by Tool Gateway/sandbox container capacity; horizontal
+   scaling of the Tool Gateway service is straightforward given its stateless design
+   (`06_service_boundaries.md`) — the sandbox containers themselves are the actual constrained
+   resource.
 
-## Definition
+## What does NOT need to scale differently
 
-- **What it is:** Scaling Strategy is a named structural view within the `architecture/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Scaling Strategy at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Scaling Strategy require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Scaling Strategy is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Scaling Strategy enforces the same rule set described here — a feature that reads
-   Scaling Strategy differently than documented here is a bug in that feature, not a variant.
-3. Where Scaling Strategy interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Scaling Strategy interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-
-## Acceptance criteria
-
-- [ ] Scaling Strategy behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Scaling Strategy contradicts a related document listed above.
-- [ ] Scaling Strategy is covered by at least one test referenced from `docs/testing/`.
-- [ ] Scaling Strategy requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Scaling Strategy, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Scaling Strategy that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Scaling Strategy are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+The trust layer (Identity, Policy Engine, Audit) is lightweight per-request
+(`runtime/11_retry_policy.md`'s `interactive-read` class, <10ms) and is not expected to be a
+bottleneck at any scale this project anticipates — scaling effort should focus on the
+capability layer, not the trust layer.

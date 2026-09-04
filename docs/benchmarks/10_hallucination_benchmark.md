@@ -1,60 +1,18 @@
 # Hallucination Benchmark
 
-> Directory: `docs/benchmarks/` · File: `10_hallucination_benchmark.md` · Kind: **benchmark**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `09_citation_benchmark.md` · Next: `11_latency_benchmark.md`
+> Measures the rate of unsupported/fabricated claims — the failure mode
+> `09_citation_benchmark.md` and REQ-FUNC-005 are both designed to catch, measured here as an
+> aggregate rate across a test set for model-selection purposes.
 
-## Purpose
+## Method
 
-**Hallucination Benchmark** documents what is measured and how it feeds the model router for "hallucination benchmark" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+A test set specifically designed to tempt fabrication (questions with no answer in the
+provided source, ambiguous questions, questions about details not present in the document);
+scored on: does the model correctly decline/hedge rather than confabulating an answer.
 
-## Definition
+## Why this is a separate benchmark from citation accuracy
 
-- **What it is:** Hallucination Benchmark is a named benchmark within the `benchmarks/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Hallucination Benchmark at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Hallucination Benchmark require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Hallucination Benchmark is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Hallucination Benchmark enforces the same rule set described here — a feature that reads
-   Hallucination Benchmark differently than documented here is a bug in that feature, not a variant.
-3. Where Hallucination Benchmark interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Hallucination Benchmark interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/features/02_model_router.md`
-- `docs/benchmarks/01_benchmark_overview.md`
-
-## Acceptance criteria
-
-- [ ] Hallucination Benchmark behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Hallucination Benchmark contradicts a related document listed above.
-- [ ] Hallucination Benchmark is covered by at least one test referenced from `docs/testing/`.
-- [ ] Hallucination Benchmark requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Hallucination Benchmark, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Hallucination Benchmark that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Hallucination Benchmark are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+`09_citation_benchmark.md` measures citation quality *given that the model answered*; this
+benchmark specifically measures whether the model recognizes when it should not answer at all
+— a model could theoretically cite well when it does answer but still fail this benchmark by
+answering confidently in cases it should have declined.

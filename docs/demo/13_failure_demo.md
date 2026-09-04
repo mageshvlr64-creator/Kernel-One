@@ -1,59 +1,19 @@
-# Failure Demo
+# Failure Demo (Live Recovery Script)
 
-> Directory: `docs/demo/` · File: `13_failure_demo.md` · Kind: **demo beat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `12_sovereignty_demo.md` · Next: `14_final_screen.md`
+> What to do if something goes wrong during the actual live demo — prepared in advance per
+> `demo/01_demo_overview.md`'s closing note, not improvised on the day.
 
-## Purpose
+## Pre-planned fallbacks
 
-**Failure Demo** documents one scripted moment in the jury walkthrough for "failure demo" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| If this fails live... | Do this |
+|---|---|
+| Document processing takes too long / hangs | Switch to a pre-processed document already at `READY` state from an earlier rehearsal, narrate "let me use one I prepared earlier to keep us on time" |
+| A model gives a poor/wrong answer | Have a second, verified-good question ready as a backup, move to it directly |
+| Network/hardware issue on the primary machine | Switch to the backup environment (`02_demo_environment.md`) — this is why it exists pre-configured, not spun up live |
+| Code execution demo's replanning doesn't trigger as expected | Have a pre-recorded screen capture of a successful run from rehearsal as a fallback to narrate over |
 
-## Definition
+## Rule
 
-- **What it is:** Failure Demo is a named demo beat within the `demo/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Failure Demo at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Failure Demo require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Failure Demo is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Failure Demo enforces the same rule set described here — a feature that reads
-   Failure Demo differently than documented here is a bug in that feature, not a variant.
-3. Where Failure Demo interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Failure Demo interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/demo/01_demo_overview.md`
-
-## Acceptance criteria
-
-- [ ] Failure Demo behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Failure Demo contradicts a related document listed above.
-- [ ] Failure Demo is covered by at least one test referenced from `docs/testing/`.
-- [ ] Failure Demo requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Failure Demo, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Failure Demo that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Failure Demo are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Never attempt to debug a live failure in front of the audience — switch to the prepared
+fallback immediately and keep the presentation moving; explain briefly and move on, don't
+apologize extensively.

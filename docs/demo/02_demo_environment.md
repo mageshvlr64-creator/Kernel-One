@@ -1,59 +1,25 @@
 # Demo Environment
 
-> Directory: `docs/demo/` · File: `02_demo_environment.md` · Kind: **demo beat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_demo_overview.md` · Next: `03_demo_data.md`
+> Concrete environment setup for the reference demo, extending `01_demo_overview.md`'s
+> hardware/network mode summary.
 
-## Purpose
+## Machine setup
 
-**Demo Environment** documents one scripted moment in the jury walkthrough for "demo environment" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+- PROFILE-B hardware (`07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`), freshly booted before the
+  demo to ensure no memory pressure from unrelated processes.
+- `deployment/03_docker_compose.md` stack already running and warmed (models loaded,
+  `/readyz` green) at least 10 minutes before the demo starts — cold-start latency is
+  excluded from the timed portion (`REQ-PERF-001`).
+- Physical network disconnected or firewalled per `architecture/17_air_gapped_architecture.md`'s
+  procedure, confirmed via the Network Sovereignty Panel before starting.
 
-## Definition
+## Browser/display setup
 
-- **What it is:** Demo Environment is a named demo beat within the `demo/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Demo Environment at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Demo Environment require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Workbench UI open in a browser window sized for projection/screen-share; the Network
+Sovereignty Panel (`ui/13_network_panel.md`) visible in the top bar throughout, per its
+"always ambient" design intent.
 
-## Detail
+## Backup environment
 
-1. Demo Environment is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Demo Environment enforces the same rule set described here — a feature that reads
-   Demo Environment differently than documented here is a bug in that feature, not a variant.
-3. Where Demo Environment interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Demo Environment interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/demo/01_demo_overview.md`
-
-## Acceptance criteria
-
-- [ ] Demo Environment behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Demo Environment contradicts a related document listed above.
-- [ ] Demo Environment is covered by at least one test referenced from `docs/testing/`.
-- [ ] Demo Environment requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Demo Environment, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Demo Environment that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Demo Environment are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+A second, identically-configured machine or VM snapshot, ready to swap to per
+`13_failure_demo.md` if the primary demo machine has a hardware issue on the day.

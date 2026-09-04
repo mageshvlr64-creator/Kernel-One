@@ -1,60 +1,31 @@
-# Workspace Model
+# Workspace
 
-> Directory: `docs/domain/` · File: `02_workspace_model.md` · Kind: **domain entity**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_domain_model.md` · Next: `03_organization_model.md`
+> Canonical field-level definition. `docs/schemas/` holds the matching JSON Schema for any
+> wire/storage representation of these fields; this file is the authoritative field list.
 
-## Purpose
+## Fields
 
-**Workspace Model** documents a core entity's identity, fields, lifecycle, and relationships for "workspace model" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Field | Type | Required | Default | Constraints |
+|---|---|---|---|---|
+| `id` | uuid | yes | generated | Primary key |
+| `name` | text | yes | — | 1–200 chars, unique per organization |
+| `organization_id` | uuid FK → Organization.id | yes | — | on delete restrict |
+| `default_classification` | enum(PUBLIC,INTERNAL,CONFIDENTIAL,RESTRICTED) | yes | INTERNAL | see reference/04_data_classification_levels.md |
+| `created_at` | timestamptz | yes | now() | immutable |
+| `updated_at` | timestamptz | yes | now() | auto-updated on write |
+| `deleted_at` | timestamptz | no | null | soft-delete marker; null = active |
 
-## Definition
+## Notes
 
-- **What it is:** Workspace Model is a named domain entity within the `domain/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Workspace Model at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Workspace Model require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+A Workspace scopes Tasks, Documents, and Artifacts for one team/project within an Organization. Lifecycle: created → active → (soft) deleted. Retention: soft-deleted for 30 days (CONFIG DEFAULT) before a background job purges dependent rows per `operations/07_storage_operations.md`.
 
-## Detail
+## Ownership
 
-1. Workspace Model is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Workspace Model enforces the same rule set described here — a feature that reads
-   Workspace Model differently than documented here is a bug in that feature, not a variant.
-3. Where Workspace Model interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Workspace Model interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+This entity is owned and mutated only by the component named in its lifecycle description
+above. Every other component reads it through the API/internal interface defined in
+`docs/api/` and `docs/features/`, never by writing to its table directly.
 
-## Interfaces and related documents
+## Audit behavior
 
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/schemas/01_database_schema.md`
-
-## Acceptance criteria
-
-- [ ] Workspace Model behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Workspace Model contradicts a related document listed above.
-- [ ] Workspace Model is covered by at least one test referenced from `docs/testing/`.
-- [ ] Workspace Model requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Workspace Model, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Workspace Model that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Workspace Model are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every insert/update/soft-delete on this entity's table produces a matching `AuditEvent`
+(`schemas/15_audit_event_schema.md`) in the same transaction, per REQ-AUD-001.

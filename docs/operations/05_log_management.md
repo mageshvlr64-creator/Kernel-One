@@ -1,60 +1,36 @@
 # Log Management
 
-> Directory: `docs/operations/` · File: `05_log_management.md` · Kind: **operator procedure**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `04_health_monitoring.md` · Next: `06_model_operations.md`
+> Concrete log handling procedure. Distinct from `features/17_audit/` (the tamper-evident
+> business-event trail) — this covers application/infrastructure logs (stdout/stderr,
+> structured debug/info/warn/error lines per `features/25_observability/02_structured_logging.md`).
 
-## Purpose
+## Retention
 
-**Log Management** documents a day-to-day runbook step for a human operator for "log management" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Log type | Retention | Storage |
+|---|---|---|
+| Application structured logs | 30 days (CONFIG DEFAULT) | Local disk, rotated daily, gzip after 1 day |
+| Audit events (`audit_events` table) | Indefinite — never auto-deleted | PostgreSQL, append-only |
+| Sandbox execution logs (stdout/stderr per `ToolInvocation`) | 7 days (CONFIG DEFAULT) | Object storage, keyed by `tool_invocation_id` |
 
-## Definition
+## Rotation procedure
 
-- **What it is:** Log Management is a named operator procedure within the `operations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Log Management at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Log Management require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+1. Application logs rotate daily via the container runtime's logging driver (`json-file` with
+   `max-size=100m, max-file=30`, or equivalent for the chosen orchestrator).
+2. A nightly job compresses logs older than 1 day and deletes logs older than the retention
+   window above — this job itself is auditable (`operations/08_backup_operations.md`-adjacent
+   job logging).
 
-## Detail
+## What must never appear in application logs
 
-1. Log Management is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Log Management enforces the same rule set described here — a feature that reads
-   Log Management differently than documented here is a bug in that feature, not a variant.
-3. Where Log Management interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Log Management interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
+- Raw `password_hash`, `JWT_SIGNING_KEY`, or any value marked `Secret? yes` in
+  `16_ENVIRONMENT_AND_CONFIGURATION.md`.
+- Full document content — logs may reference a `document_id`, never the extracted text.
+- Full tool-call payloads for `risk=high` tools — logs reference the `tool_invocation_id`;
+  the actual payload lives only in the database, access-controlled the same as any other
+  resource.
 
-## Interfaces and related documents
+## Integrity check
 
-- **Related:**
-- `docs/operations/01_operator_guide.md`
-- `docs/deployment/13_health_checks.md`
-
-## Acceptance criteria
-
-- [ ] Log Management behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Log Management contradicts a related document listed above.
-- [ ] Log Management is covered by at least one test referenced from `docs/testing/`.
-- [ ] Log Management requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Log Management, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Log Management that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Log Management are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+A separate scheduled job re-walks the `audit_events` hash chain (REQ-SEC-005) weekly and
+alerts if any link fails to verify — this is distinct from ordinary log rotation and is never
+skipped even under storage pressure.

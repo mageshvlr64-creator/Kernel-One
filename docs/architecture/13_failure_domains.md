@@ -1,60 +1,20 @@
 # Failure Domains
 
-> Directory: `docs/architecture/` · File: `13_failure_domains.md` · Kind: **structural view**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `12_storage_boundaries.md` · Next: `14_scaling_strategy.md`
+> Which components' failures are isolated from which others — the architectural basis for
+> `failures/44_partial_failure_recovery.md`'s "nothing left ambiguous" guarantee.
 
-## Purpose
+## Domains (V1, single-node)
 
-**Failure Domains** documents a cross-cutting view of how components, trust zones, and deployment topologies relate for "failure domains" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Failure domain | Isolated from | Shared fate with |
+|---|---|---|
+| Code Execution sandbox | Everything else — a sandbox crash/resource-exhaustion never affects the host or other tasks | Only the specific ToolInvocation/Task that triggered it |
+| Inference Gateway (per provider) | Other providers — if vLLM crashes, Ollama/llama.cpp-backed capability slots are unaffected | Any Task/request specifically routed to the failed provider's models |
+| Document Ingestion pipeline (per document) | Other documents — one document's OCR crash doesn't affect concurrent ingestion of others | Only that document's own state machine progress |
+| Database | Nothing — a database failure is a shared-fate event across nearly every component, since most components depend on it (`10_DEPENDENCY_GRAPH.md`) | Everything except the UI's ability to show a cached error state |
 
-## Definition
+## Why the database is a deliberately accepted single point of failure in V1
 
-- **What it is:** Failure Domains is a named structural view within the `architecture/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Failure Domains at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Failure Domains require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Failure Domains is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Failure Domains enforces the same rule set described here — a feature that reads
-   Failure Domains differently than documented here is a bug in that feature, not a variant.
-3. Where Failure Domains interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Failure Domains interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-
-## Acceptance criteria
-
-- [ ] Failure Domains behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Failure Domains contradicts a related document listed above.
-- [ ] Failure Domains is covered by at least one test referenced from `docs/testing/`.
-- [ ] Failure Domains requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Failure Domains, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Failure Domains that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Failure Domains are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Per DEC-001/DEC-002, V1 is single-node with a single PostgreSQL instance — this is a conscious
+tradeoff (simplicity over availability) documented here rather than hidden; V2 multi-node work
+(`later/08_multi_node_scaling.md`) would introduce database replication specifically to
+address this failure domain.

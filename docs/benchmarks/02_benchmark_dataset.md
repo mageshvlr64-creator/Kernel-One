@@ -1,60 +1,26 @@
 # Benchmark Dataset
 
-> Directory: `docs/benchmarks/` · File: `02_benchmark_dataset.md` · Kind: **benchmark**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_benchmark_overview.md` · Next: `03_reasoning_benchmark.md`
+> What data each benchmark dimension is evaluated against.
 
-## Purpose
+## Composition
 
-**Benchmark Dataset** documents what is measured and how it feeds the model router for "benchmark dataset" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Dataset | Used by | Source |
+|---|---|---|
+| Synthetic inspection-report corpus (same as `demo/03_demo_data.md`) | `04_document_benchmark.md`, `09_citation_benchmark.md` | Purpose-built, not real customer data (matches the demo's own no-proprietary-data constraint) |
+| A small coding-task set (e.g. "write and test function X") | `05_coding_benchmark.md` | Purpose-built |
+| A small spreadsheet-analysis set | `06_spreadsheet_benchmark.md` | Purpose-built |
+| A small labeled image set (equipment photos, drawings) | `07_visual_benchmark.md` | Purpose-built; would need expansion before P&ID-specific work (`later/02_pid_analysis.md`) |
+| A set of known tool-calling scenarios with expected tool sequences | `08_tool_use_benchmark.md` | Purpose-built |
 
-## Definition
+## Rule
 
-- **What it is:** Benchmark Dataset is a named benchmark within the `benchmarks/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Benchmark Dataset at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Benchmark Dataset require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+No benchmark dataset contains real, proprietary, or customer data — consistent with
+`demo/03_demo_data.md`'s constraint, applied here for the same reason (avoiding any
+sensitivity/licensing question in evaluation artifacts that might be shared or reviewed
+externally).
 
-## Detail
+## V2 expansion
 
-1. Benchmark Dataset is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Benchmark Dataset enforces the same rule set described here — a feature that reads
-   Benchmark Dataset differently than documented here is a bug in that feature, not a variant.
-3. Where Benchmark Dataset interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Benchmark Dataset interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/features/02_model_router.md`
-- `docs/benchmarks/01_benchmark_overview.md`
-
-## Acceptance criteria
-
-- [ ] Benchmark Dataset behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Benchmark Dataset contradicts a related document listed above.
-- [ ] Benchmark Dataset is covered by at least one test referenced from `docs/testing/`.
-- [ ] Benchmark Dataset requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Benchmark Dataset, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Benchmark Dataset that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Benchmark Dataset are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+`later/11_advanced_model_benchmarking.md` would expand this into a larger, versioned dataset
+with a formal train/eval split discipline — V1's dataset is intentionally small and manually
+curated, sufficient for informal comparison, not statistically rigorous evaluation.

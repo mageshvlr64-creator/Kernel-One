@@ -1,59 +1,15 @@
-# Release Matrix
+# Release Matrix (Reference)
 
-> Directory: `docs/reference/` · File: `14_release_matrix.md` · Kind: **reference table**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `13_test_matrix.md` · Next: _(last document in this directory)_
+> Which requirements/features must be true for a build to be called "V1 demo-ready" vs.
+> "V1 production-ready" vs. "V2."
 
-## Purpose
+| Milestone | Gate |
+|---|---|
+| **Demo-ready** | `08_BUILD_PHASES.md` Phase 10 exit criteria: full demo runbook (`demo/01_demo_overview.md`) passes 3x consecutively on PROFILE-B; all P0 requirements (`03_REQUIREMENTS.md`) implemented; DEC-006's two rehearsed roles work end-to-end |
+| **Production-ready** | All of the above, plus `deployment/14_production_hardening.md`'s full checklist, including DEC-013/DEC-014 resolved (benchmarked, not just labeled) and `REQ-PERF-002` answered |
+| **V2 candidate** | Any capability in `later/` — requires a new REQ-ID, a new decision log entry scoping it, and its own benchmark/evaluation gate before being presented as anything more than a caveated description (per `industrial/12_industrial_workflow_boundaries.md`'s pattern, generalized) |
 
-**Release Matrix** documents a lookup table other documents point to for "release matrix" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+## Rule
 
-## Definition
-
-- **What it is:** Release Matrix is a named reference table within the `reference/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Release Matrix at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Release Matrix require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Release Matrix is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Release Matrix enforces the same rule set described here — a feature that reads
-   Release Matrix differently than documented here is a bug in that feature, not a variant.
-3. Where Release Matrix interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Release Matrix interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/18_DOCUMENTATION_INDEX.md`
-
-## Acceptance criteria
-
-- [ ] Release Matrix behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Release Matrix contradicts a related document listed above.
-- [ ] Release Matrix is covered by at least one test referenced from `docs/testing/`.
-- [ ] Release Matrix requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Release Matrix, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Release Matrix that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Release Matrix are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+A build is never called "production-ready" on the strength of passing the demo alone — the
+demo gate and the production gate are deliberately different bars, per this table.

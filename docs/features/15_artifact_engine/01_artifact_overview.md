@@ -31,7 +31,7 @@ From the workbench UI, artifact overview is triggered by the corresponding actio
   "actor_id": "string (uuid, required)",
   "workspace_id": "string (uuid, required)",
   "resource_id": "string (uuid, optional — omitted on create)",
-  "payload": "object (required, shape defined in docs/schemas/ for this resource)",
+  "payload": "object (required; request envelope defined in `docs/schemas/02_api_schema.md`, entity-specific fields defined in the `docs/schemas/` file matching this feature group)",
   "idempotency_key": "string (optional, recommended for retryable calls)"
 }
 ```
@@ -43,7 +43,7 @@ From the workbench UI, artifact overview is triggered by the corresponding actio
 {
   "status": "ok | error",
   "resource_id": "string (uuid)",
-  "state": "string (see State transitions below)",
+  "state": "string — one of the states enumerated for this resource in `docs/runtime/_state_machines_canonical.md`",
   "audit_event_id": "string (uuid)",
   "timestamp": "ISO-8601 string"
 }
@@ -75,7 +75,10 @@ Artifact Overview moves its resource through the states defined in the relevant 
 
 ## 14. Dependencies
 
-Hard dependencies: `docs/integrations/10_libreoffice/`, `docs/features/14_evidence_and_provenance/`. If any hard dependency is unavailable, Artifact Overview fails closed per Failure modes — it does not silently degrade to an unsafe default.
+Hard dependencies: `docs/integrations/10_libreoffice.md`, `docs/features/14_evidence_and_provenance/`. If any hard dependency is unavailable, Artifact Overview fails closed per Failure modes — it does not silently degrade to an unsafe default.
+
+**Traceability:** not yet mapped to an individual REQ ID; covered under this feature group's general functional scope in `docs/02_SCOPE_AND_NON_GOALS.md` pending a future requirements-registry pass (see `docs/03_REQUIREMENTS.md` open items).
+
 
 ## 15. Security requirements
 
@@ -83,37 +86,32 @@ All input is treated as untrusted and validated against its schema before use. N
 
 ## 16. Permission requirements
 
-Risk level: **medium**.
+Resource: `Artifact` · Action: `read` · Risk level: **medium**.
 
-| Role | Access |
-|---|---|
-| `admin` | allow |
-| `operator` | allow |
-| `restricted` | deny |
+Role access for this resource/action pair is defined once, canonically, in `docs/reference/05_permission_matrix.md` — this file does not repeat that table. In addition to the base role check, the policy engine (`docs/features/21_policy_engine/`) evaluates the classification and workspace conditions documented in that same file.
 
-A denied call returns HTTP 403 with error code `AE-4030` and is logged to `docs/features/17_audit/` with the caller's role and the missing permission — never a silent no-op.
+A denied call returns `POLICY_DENIED` or `TOOL_NOT_ALLOWED` (see `docs/reference/01_error_codes.md`) and is logged to `docs/features/17_audit/` with the caller's role and the specific denying rule — never a silent no-op.
 
 ## 17. Failure modes
 
-| Code | HTTP status | Meaning |
-|---|---|---|
-| `AE-4001` | 400 | Request failed schema validation |
-| `AE-4030` | 403 | Caller's role/permission does not allow this operation |
-| `AE-4040` | 404 | Referenced resource does not exist or caller cannot see it |
-| `AE-4090` | 409 | Operation conflicts with current resource state |
-| `AE-5040` | 504 | Downstream dependency exceeded its timeout budget |
-| `AE-5030` | 503 | Required dependency is down or degraded |
-| `AE-5000` | 500 | Unexpected internal error; always paired with an audit event |
+This feature returns errors exclusively from the canonical registry in `docs/reference/01_error_codes.md`. The codes most relevant to this feature:
 
-Each row above maps to a named entry in `docs/failures/` for this subsystem; no failure produced by Artifact Overview is allowed to exist without a corresponding documented failure mode.
+| Error code (see registry for HTTP status, message, remediation) |
+|---|
+| `TOOL_EXECUTION_FAILED` |
+| `APPROVAL_REQUIRED` |
+| `DEPENDENCY_UNAVAILABLE` |
+| `INTERNAL_ERROR` (always possible; see registry) |
+
+No other error code may be returned by this feature without first being added to the registry. Each occurrence is a required audit event per `docs/schemas/15_audit_event_schema.md`.
 
 ## 18. Retry behavior
 
-Artifact Overview is treated as retryable: up to 3 attempt(s) with exponential backoff starting at 125ms, per `docs/runtime/11_retry_policy.md`. Retries are only issued for `503`/`504`-class failures, never for `400`/`403`/`409`.
+This feature's calls are classified **`artifact-generation`** operations. Exact timeout, retry count, backoff, and circuit-breaker thresholds for this class are defined once, canonically, in `docs/runtime/11_retry_policy.md` — this file does not restate those numbers. If this feature's actual behavior needs a different class than `artifact-generation`, that is a discrepancy to resolve in the canonical policy file, not a reason to define a local exception here.
 
 ## 19. Timeout behavior
 
-Maximum execution time: **35s**, enforced per `docs/runtime/12_timeout_policy.md`. On timeout, any in-flight subprocess, container, or DB transaction opened by Artifact Overview is terminated/rolled back and the caller receives the `504` error from the table above.
+See the **`artifact-generation`** row in `docs/runtime/11_retry_policy.md` for the exact timeout value and its provenance label (CONFIG DEFAULT / DESIGN LIMIT / BENCHMARKED). On timeout, this feature returns the timeout-class error code from `docs/reference/01_error_codes.md` (typically `INFERENCE_TIMEOUT` for model calls or `DEPENDENCY_UNAVAILABLE`/`SANDBOX_LIMIT_EXCEEDED` for tool/infra calls — see Failure modes above for this feature's specific set) and releases any resource it holds (subprocess, container, DB transaction, lock).
 
 ## 20. Recovery behavior
 
@@ -125,11 +123,11 @@ Emits one structured log line per invocation (`level`, `event=artifact_engine.ar
 
 ## 22. Audit requirements
 
-Every invocation, successful or not, produces one audit event of type `artifact_engine.artifact_overview` containing `actor_id`, `workspace_id`, `resource_id`, a hash of the payload (never the raw payload if it may contain sensitive content), and `outcome`, per `docs/features/17_audit/03_event_schema.md`.
+Every invocation, successful or not, produces exactly one `AuditEvent` of type `artifact_engine.artifact_overview` conforming to the canonical schema in `docs/schemas/15_audit_event_schema.md` — this file does not redefine the `AuditEvent` field set. `resource_type` is `Artifact`; `action` is `read`; `classification` is populated when the resource carries one (`docs/features/20_data_classification/`).
 
 ## 23. Performance requirements
 
-p95 < 6s to render a 10-page DOCX/PPTX artifact. Measured and enforced per `docs/performance/01_performance_requirements.md` on the reference hardware profile in `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`.
+p95 < 6s to render a 10-page DOCX/PPTX artifact. Measured and enforced per `docs/performance/01_performance_requirements.md` on the reference hardware profile in `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`. **Status: DESIGN LIMIT** — this budget is an engineering target chosen for demo usability on the reference hardware profile, not yet a benchmark-verified measurement (see `docs/20_DECISION_LOG.md` DEC-014 for the pending validation step). Treat it as a target to test against, not a guaranteed SLA, until DEC-014 is resolved.
 
 ## 24. Test requirements
 
@@ -157,7 +155,7 @@ Do not check `role` via a client-supplied field. Do not perform the `artifacts` 
 
 ## 29. Examples
 
-**Success:** `admin` calls `POST /api/v1/artifact-engine/artifact-overview` with a valid payload → `200 OK`, `{"status": "ok", "resource_id": "…", "state": "<next-state>"}`, one `artifact_engine.artifact_overview` audit event recorded.
+**Success:** `admin` calls `POST /api/v1/artifact-engine/artifact-overview` with a valid payload → `200 OK`, `{"status": "ok", "resource_id": "…", "state": "the resulting state (see `docs/runtime/_state_machines_canonical.md`)"}`, one `artifact_engine.artifact_overview` audit event recorded.
 
 **Denied:** `restricted` calls the same endpoint → `403`, `AE-4030`, audit event recorded with `outcome=denied`.
 

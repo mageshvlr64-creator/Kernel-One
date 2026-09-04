@@ -1,60 +1,23 @@
 # Task Lifecycle
 
-> Directory: `docs/runtime/` · File: `02_task_lifecycle.md` · Kind: **runtime rule**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_runtime_overview.md` · Next: `03_execution_lifecycle.md`
+> Narrative walkthrough of the Task state machine (`_state_machines_canonical.md#task`) — the
+> readable version; that file is the formal transition table.
 
-## Purpose
+## Walkthrough
 
-**Task Lifecycle** documents lifecycle, state-machine, or concurrency behavior for "task lifecycle" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+A Task is `CREATED` the moment a user's message or API call requests work. The Agent Kernel
+immediately begins `PLANNING` — generating a Plan via the Model Router/Inference Gateway. If
+any planned step is `risk=high` (`reference/03_risk_levels.md`), the Task pauses at
+`WAITING_APPROVAL` before a single step executes. Once cleared (or if nothing required
+approval), the Task enters `EXECUTING`, running Plan steps via the Step Scheduler
+(`features/04_agent_kernel/07_step_scheduler.md`) in dependency order. A step needing more
+information from the user moves the Task to `WAITING_INPUT`; receiving that input returns it
+to `PLANNING` (the plan may be revised given the new information). Successful completion of
+all steps moves the Task to `COMPLETED`; an unrecoverable failure at any stage moves it to
+`FAILED`; explicit user cancellation moves it to `CANCELLED` from any non-terminal state.
 
-## Definition
+## Why `WAITING_INPUT` returns to `PLANNING`, not directly to `EXECUTING`
 
-- **What it is:** Task Lifecycle is a named runtime rule within the `runtime/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Task Lifecycle at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Task Lifecycle require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Task Lifecycle is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Task Lifecycle enforces the same rule set described here — a feature that reads
-   Task Lifecycle differently than documented here is a bug in that feature, not a variant.
-3. Where Task Lifecycle interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Task Lifecycle interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/failures/01_failure_handling_philosophy.md`
-
-## Acceptance criteria
-
-- [ ] Task Lifecycle behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Task Lifecycle contradicts a related document listed above.
-- [ ] Task Lifecycle is covered by at least one test referenced from `docs/testing/`.
-- [ ] Task Lifecycle requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Task Lifecycle, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Task Lifecycle that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Task Lifecycle are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+New user input can change which steps are still relevant — re-planning (not just resuming) is
+the safer default, consistent with `features/04_agent_kernel/10_replanning.md`'s general
+philosophy of never blindly continuing a stale plan.

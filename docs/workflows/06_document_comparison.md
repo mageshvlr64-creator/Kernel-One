@@ -1,59 +1,18 @@
 # Document Comparison
 
-> Directory: `docs/workflows/` · File: `06_document_comparison.md` · Kind: **end-to-end workflow**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `05_document_qa.md` · Next: `07_report_generation.md`
+> End-to-end workflow specification. References the specific features involved rather than
+> restating their internal behavior.
 
-## Purpose
+## Requirements implemented
 
-**Document Comparison** documents a full user scenario crossing multiple features for "document comparison" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+features/industrial (comparison use case)
 
-## Definition
+## Steps
 
-- **What it is:** Document Comparison is a named end-to-end workflow within the `workflows/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Document Comparison at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Document Comparison require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+1. User selects two document versions or two related documents
+2. Agent retrieves relevant chunks from both, generates a structured diff of findings
+3. Each difference claim carries Evidence from both source documents
 
-## Detail
+## Notes
 
-1. Document Comparison is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Document Comparison enforces the same rule set described here — a feature that reads
-   Document Comparison differently than documented here is a bug in that feature, not a variant.
-3. Where Document Comparison interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Document Comparison interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/demo/01_demo_overview.md`
-
-## Acceptance criteria
-
-- [ ] Document Comparison behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Document Comparison contradicts a related document listed above.
-- [ ] Document Comparison is covered by at least one test referenced from `docs/testing/`.
-- [ ] Document Comparison requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Document Comparison, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Document Comparison that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Document Comparison are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+—

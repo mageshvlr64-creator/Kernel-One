@@ -1,60 +1,35 @@
 # Security Architecture
 
-> Directory: `docs/security/` · File: `01_security_architecture.md` · Kind: **threat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: _(first document in this directory)_ · Next: `02_threat_model.md`
+> Canonical overview. Individual threat files (`05_prompt_injection.md` through
+> `24_data_in_transit.md`) are the source of truth for their own threat; this file defines the
+> shared defense-in-depth principle and the layer model all of them follow.
 
-## Purpose
+## Defense-in-depth layers
 
-**Security Architecture** documents a specific threat, where it can occur, and its mitigation for "security architecture" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. **Perimeter:** Authentication (`features/19_identity_and_rbac/02_authentication.md`),
+   network mode enforcement (`features/18_network_sovereignty/`).
+2. **Authorization:** Policy Engine evaluated on every state-changing/classification-sensitive
+   call (`features/21_policy_engine/`, REQ-SEC-001) — never bypassed for convenience.
+3. **Isolation:** Sandbox for code execution (`features/09_code_execution/`), workspace-scoped
+   filesystem access (`features/06_filesystem_tool/`).
+4. **Detection:** Append-only, hash-chained audit trail (`features/17_audit/`, REQ-SEC-005) —
+   every layer above produces an audit event on both allow and deny.
+5. **Response:** Incident procedures (`operations/10_incident_response.md`,
+   `11_security_incidents.md`, `12_network_incidents.md`).
 
-## Definition
+## Principle: fail closed
 
-- **What it is:** Security Architecture is a named threat within the `security/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Security Architecture at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Security Architecture require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Every check in every layer above fails closed — if the Policy Engine is unreachable, the
+default is deny, not allow (REQ-SEC-001). No feature document may specify a fail-open
+exception to this rule.
 
-## Detail
+## Principle: no security-by-obscurity
 
-1. Security Architecture is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Security Architecture enforces the same rule set described here — a feature that reads
-   Security Architecture differently than documented here is a bug in that feature, not a variant.
-3. Where Security Architecture interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Security Architecture interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+This entire specification, including exact enforcement mechanisms, is written down and
+distributed to every AI implementation agent working on the codebase — security here rests on
+correct enforcement, not on secrecy of design.
 
-## Interfaces and related documents
+## Threat catalog
 
-- **Related:**
-- `docs/security/01_security_architecture.md`
-- `docs/features/19_identity_and_rbac.md`
-
-## Acceptance criteria
-
-- [ ] Security Architecture behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Security Architecture contradicts a related document listed above.
-- [ ] Security Architecture is covered by at least one test referenced from `docs/testing/`.
-- [ ] Security Architecture requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Security Architecture, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Security Architecture that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Security Architecture are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+See the individual files in this directory for each named threat's description, occurrence
+surface, mitigation, and traceability. `02_threat_model.md` provides the consolidated table.

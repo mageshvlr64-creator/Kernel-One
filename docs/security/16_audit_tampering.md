@@ -1,60 +1,28 @@
 # Audit Tampering
 
-> Directory: `docs/security/` · File: `16_audit_tampering.md` · Kind: **threat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `15_approval_bypass.md` · Next: `17_malicious_documents.md`
+> Threat entry. Format follows `01_security_architecture.md`'s convention: threat description,
+> where it can occur, mitigation, and traceability to requirements/tests.
 
-## Purpose
+## Threat
 
-**Audit Tampering** documents a specific threat, where it can occur, and its mitigation for "audit tampering" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+An attempt to modify or delete a past audit event to hide an action.
 
-## Definition
+## Where it can occur
 
-- **What it is:** Audit Tampering is a named threat within the `security/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Audit Tampering at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Audit Tampering require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Audit Service (features/17_audit/), direct database access.
 
-## Detail
+## Mitigation
 
-1. Audit Tampering is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Audit Tampering enforces the same rule set described here — a feature that reads
-   Audit Tampering differently than documented here is a bug in that feature, not a variant.
-3. Where Audit Tampering interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Audit Tampering interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+`audit_events` table has `UPDATE`/`DELETE` revoked for all application roles at the database level (REQ-SEC-005); a hash chain makes any out-of-band tampering (e.g. via a superuser DB connection) detectable by the integrity job (operations/05_log_management.md).
 
-## Interfaces and related documents
+## Traceability
 
-- **Related:**
-- `docs/security/01_security_architecture.md`
-- `docs/features/19_identity_and_rbac.md`
+- Requirements: `REQ-SEC-005`
+- Tests: `TEST-AUDIT-002`
 
-## Acceptance criteria
+## Residual risk
 
-- [ ] Audit Tampering behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Audit Tampering contradicts a related document listed above.
-- [ ] Audit Tampering is covered by at least one test referenced from `docs/testing/`.
-- [ ] Audit Tampering requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Audit Tampering, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Audit Tampering that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Audit Tampering are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every mitigation above reduces but does not claim to eliminate risk to zero — where a
+mitigation is preventive (e.g. container isolation), a detective control (audit logging) is
+also in place so a successful bypass is still discoverable after the fact, per
+`security/01_security_architecture.md`'s defense-in-depth principle.

@@ -1,59 +1,47 @@
-# Error Codes
+# Error Registry (Canonical)
 
-> Directory: `docs/reference/` · File: `01_error_codes.md` · Kind: **reference table**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: _(first document in this directory)_ · Next: `02_status_codes.md`
+> **Canonical owner** of every error code in the system. Feature documents MUST reference an
+> error code from this table by name; they MUST NOT invent a new code inline. If a feature
+> needs an error not listed here, add it here first, in the same change.
 
-## Purpose
+## Format
 
-**Error Codes** documents a lookup table other documents point to for "error codes" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+`ERROR_CODE` · HTTP status · Category · Meaning · Retryable · User-visible message ·
+Operator detail · Remediation · Audit requirement.
 
-## Definition
+## Registry
 
-- **What it is:** Error Codes is a named reference table within the `reference/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Error Codes at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Error Codes require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+| Error code | HTTP | Category | Meaning | Retryable | User message | Operator detail | Remediation | Audit? |
+|---|---|---|---|---|---|---|---|---|
+| `INVALID_REQUEST` | 400 | Validation | Request body/params failed schema validation | No | "Your request couldn't be processed — check the highlighted fields." | Field-level validation errors from the schema validator | Fix request per schema in `docs/schemas/` | Yes |
+| `AUTH_REQUIRED` | 401 | Auth | No valid session/token presented | No | "Please sign in to continue." | Missing/expired bearer token | Re-authenticate | Yes |
+| `POLICY_DENIED` | 403 | AuthZ | Policy engine denied the action for this actor/resource/action combination | No | "You don't have permission to do this." | Denying policy rule ID from `features/21_policy_engine` | Request role change or approval | Yes |
+| `TOOL_NOT_ALLOWED` | 403 | AuthZ | Caller's role/policy does not permit invoking this tool | No | "This action isn't available for your role." | Tool ID + denying rule | Request elevated role | Yes |
+| `FILE_CLASSIFICATION_DENIED` | 403 | AuthZ | Caller's clearance is below the file/document's classification level | No | "You don't have access to this document." | Document classification vs. caller clearance | Request access grant | Yes |
+| `APPROVAL_REQUIRED` | 403 | AuthZ | Action is high-risk and awaiting approval; not yet denied, just blocked | No | "This action needs approval before it can run." | Approval record ID (pending) | Approver reviews `features/16_human_approval` request | Yes |
+| `APPROVAL_REJECTED` | 403 | AuthZ | An approver explicitly rejected the pending action | No | "This action was not approved." | Approval record ID + rejection reason | Revise and resubmit, or escalate | Yes |
+| `NETWORK_EGRESS_BLOCKED` | 403 | Sovereignty | Code/tool attempted an outbound connection not permitted by the active network mode | No | "This operation attempted a network connection that isn't allowed in this deployment." | Target host:port, active `NETWORK_MODE` | N/A — this is the system working correctly | Yes |
+| `FILE_NOT_FOUND` | 404 | Resource | Referenced file/document/resource does not exist or is not visible to caller | No | "That item couldn't be found." | Resource ID | Verify ID / re-upload | No |
+| `RESOURCE_CONFLICT` | 409 | State | Operation conflicts with the resource's current state (e.g. double-approve) | No | "This item was already updated by someone else." | Current state vs. expected state | Refresh and retry with current state | Yes |
+| `MODEL_NOT_APPROVED` | 403 | Policy | Selected/requested model is not approved for the request's classification level | No | "This request requires a model that isn't approved for this data's classification." | Model ID, required classification, model's approved classification ceiling | Use an approved model or reclassify | Yes |
+| `MODEL_UNAVAILABLE` | 503 | Dependency | Target model runtime is not currently loaded/reachable | Yes | "The AI model is temporarily unavailable — retrying." | Model ID, runtime health check result | Router falls back per `features/02_model_router/09_fallback_routing.md` | Yes |
+| `MODEL_RESOURCE_EXHAUSTED` | 503 | Dependency | GPU/VRAM/CPU budget exceeded for requested model | Yes (after backoff) | "The system is at capacity — please try again shortly." | VRAM/CPU utilization at time of request | Wait, or router falls back to a smaller model | Yes |
+| `INFERENCE_TIMEOUT` | 504 | Dependency | Inference call exceeded its timeout budget (see `runtime/12_timeout_policy.md`) | Yes | "The AI model took too long to respond." | Model ID, elapsed time, configured timeout | Retry once per retry policy, then surface to user | Yes |
+| `TOOL_EXECUTION_FAILED` | 500 | Execution | Tool ran but returned a failure result | Depends on tool (see tool's own doc) | "One of the steps in this task failed." | Tool ID, tool's own error payload | Agent kernel replans or surfaces to user | Yes |
+| `SANDBOX_LIMIT_EXCEEDED` | 500 | Execution | Code execution exceeded CPU/memory/time/output-size limit | No | "The code execution was stopped for exceeding resource limits." | Which limit, configured value, observed value | Reduce workload or request limit review | Yes |
+| `RAG_INDEX_UNAVAILABLE` | 503 | Dependency | Vector or keyword index is unreachable | Yes | "Search is temporarily unavailable." | Which index (pgvector/tsvector), health check result | Retry per retry policy | Yes |
+| `DEPENDENCY_UNAVAILABLE` | 503 | Dependency | Generic: a required internal service (DB, object storage, queue) is unreachable | Yes | "A required service is temporarily unavailable." | Service name, health check result | Retry per retry policy; operator paged if sustained | Yes |
+| `RATE_LIMITED` | 429 | Throttling | Caller exceeded the per-user rate limit for this operation class (`schemas/02_api_schema.md`) | Yes (after `Retry-After` delay) | "You're doing that too quickly — please wait a moment." | Operation class, limit, current count | Wait for `Retry-After` header value | No (high volume; sampled logging instead, see `features/25_observability/`) |
+| `INTERNAL_ERROR` | 500 | Internal | Unhandled/unexpected error | No (unless caller sets idempotency key and it's known-safe) | "Something went wrong on our end." | Stack trace / exception, correlation ID | File a bug; never silently retried without idempotency key | Yes — always |
 
-## Detail
+## Rules for using this registry
 
-1. Error Codes is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Error Codes enforces the same rule set described here — a feature that reads
-   Error Codes differently than documented here is a bug in that feature, not a variant.
-3. Where Error Codes interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Error Codes interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/18_DOCUMENTATION_INDEX.md`
-
-## Acceptance criteria
-
-- [ ] Error Codes behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Error Codes contradicts a related document listed above.
-- [ ] Error Codes is covered by at least one test referenced from `docs/testing/`.
-- [ ] Error Codes requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Error Codes, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Error Codes that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Error Codes are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+1. Every failure surfaced to a caller (API response, tool result, agent-visible error) MUST use
+   exactly one code from this table.
+2. If a feature genuinely needs a code not listed here, it is added to this table — not
+   invented locally — in the same pull request that introduces the need.
+3. `Audit?` = Yes means: every occurrence of this error MUST produce an `AuditEvent`
+   (`schemas/15_audit_event_schema.md`) with `result=error`, `error_code=<code>`.
+4. Feature documents reference this table as: "On failure, returns one of:
+   `CODE_A`, `CODE_B` (see `reference/01_error_codes.md`)" — they do not redefine status
+   codes or messages inline.

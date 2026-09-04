@@ -1,60 +1,36 @@
 # Design System
 
-> Directory: `docs/ui/` · File: `02_design_system.md` · Kind: **UI surface**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_ui_architecture.md` · Next: `03_navigation.md`
+> Canonical shared visual/interaction primitives. Screen files reference these; they do not
+> define their own colors, spacing, or component variants.
 
-## Purpose
+## Tokens
 
-**Design System** documents layout, states, and interaction rules for one screen or panel for "design system" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Token | Value | Usage |
+|---|---|---|
+| `color.status.success` | green | Sovereignty panel "blocked" (external) rows, SUCCEEDED states |
+| `color.status.warning` | amber | WAITING_APPROVAL, WAITING_INPUT states |
+| `color.status.danger` | red | FAILED, TIMEOUT, POLICY_DENIED, network monitor unreachable |
+| `color.classification.public` | gray | Classification badge |
+| `color.classification.internal` | blue | Classification badge |
+| `color.classification.confidential` | orange | Classification badge |
+| `color.classification.restricted` | red | Classification badge |
+| `spacing.unit` | 8px | Base spacing grid |
+| `radius.default` | 6px | Cards, buttons |
 
-## Definition
+## Shared components
 
-- **What it is:** Design System is a named UI surface within the `ui/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Design System at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Design System require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+- **StateBadge** — renders any of the canonical state-machine values
+  (`runtime/_state_machines_canonical.md`) with consistent color mapping.
+- **ClassificationBadge** — renders `PUBLIC`/`INTERNAL`/`CONFIDENTIAL`/`RESTRICTED` with the
+  classification color tokens above; used identically on Document, Artifact, and Task rows.
+- **ErrorBanner** — renders an error using the exact `code`/`message` pair from
+  `reference/01_error_codes.md`; never freeform error text.
+- **CitationChip** — renders one Citation (`domain/13_evidence_model.md`), click-through to
+  the Evidence Panel.
+- **ApprovalGate** — wraps any control tied to a `risk=high` action; renders disabled with an
+  "Approval required" tooltip until an `Approval.state=APPROVED` record exists.
 
-## Detail
+## Rule
 
-1. Design System is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Design System enforces the same rule set described here — a feature that reads
-   Design System differently than documented here is a bug in that feature, not a variant.
-3. Where Design System interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Design System interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-- `docs/ui/01_ui_architecture.md`
-
-## Acceptance criteria
-
-- [ ] Design System behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Design System contradicts a related document listed above.
-- [ ] Design System is covered by at least one test referenced from `docs/testing/`.
-- [ ] Design System requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Design System, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Design System that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Design System are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+No screen file introduces a new color, spacing value, or one-off component variant without
+adding it to this file first.

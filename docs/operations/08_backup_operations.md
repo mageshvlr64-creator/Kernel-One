@@ -1,60 +1,31 @@
 # Backup Operations
 
-> Directory: `docs/operations/` · File: `08_backup_operations.md` · Kind: **operator procedure**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `07_storage_operations.md` · Next: `09_restore_operations.md`
+> Concrete backup procedure. See `26_backup_recovery` feature group for the system's own
+> backup-triggering behavior; this file is the operator-facing runbook for verifying and
+> managing those backups.
 
-## Purpose
+## What is backed up
 
-**Backup Operations** documents a day-to-day runbook step for a human operator for "backup operations" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Component | Method | Frequency | Retention |
+|---|---|---|---|
+| PostgreSQL (all tables incl. `audit_events`) | `pg_dump` (or WAL archiving for point-in-time recovery, if configured) | Nightly full + continuous WAL archiving | 30 days (CONFIG DEFAULT) |
+| Object storage (Documents, Artifacts) | Bucket replication/snapshot to a separate on-prem volume — never a cloud target (REQ-NET-001) | Nightly | 30 days |
+| Model registry configuration | Included in PostgreSQL dump (the `models` table) | Nightly | 30 days |
+| Policy configuration | Included in PostgreSQL dump (the `policies` table) | Nightly | 30 days |
 
-## Definition
+## Verification procedure (required, not optional)
 
-- **What it is:** Backup Operations is a named operator procedure within the `operations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Backup Operations at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Backup Operations require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+1. After each nightly backup, run an automated restore into a scratch/staging database.
+2. Verify row counts on `tasks`, `documents`, `audit_events` match the source within an
+   acceptable delta (accounting for activity during the backup window).
+3. Verify the `audit_events` hash chain still validates in the restored copy (REQ-SEC-005) —
+   a backup that fails hash-chain verification is flagged as **corrupt**, not silently kept as
+   the latest good backup.
+4. Alert the operator if verification fails; do not silently retain a backup that failed
+   verification as if it were valid.
 
-## Detail
+## Target completion time
 
-1. Backup Operations is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Backup Operations enforces the same rule set described here — a feature that reads
-   Backup Operations differently than documented here is a bug in that feature, not a variant.
-3. Where Backup Operations interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Backup Operations interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/operations/01_operator_guide.md`
-- `docs/deployment/13_health_checks.md`
-
-## Acceptance criteria
-
-- [ ] Backup Operations behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Backup Operations contradicts a related document listed above.
-- [ ] Backup Operations is covered by at least one test referenced from `docs/testing/`.
-- [ ] Backup Operations requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Backup Operations, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Backup Operations that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Backup Operations are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Full backup of a 50GB deployment completes within 30 minutes (`07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`
+background-job operation class) — **CONFIG DEFAULT**, not yet benchmarked against a production
+corpus (tracked alongside DEC-014).

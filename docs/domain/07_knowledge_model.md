@@ -1,60 +1,33 @@
-# Knowledge Model
+# DocumentChunk
 
-> Directory: `docs/domain/` · File: `07_knowledge_model.md` · Kind: **domain entity**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `06_document_model.md` · Next: `08_model_provider_model.md`
+> Canonical field-level definition. `docs/schemas/` holds the matching JSON Schema for any
+> wire/storage representation of these fields; this file is the authoritative field list.
 
-## Purpose
+## Fields
 
-**Knowledge Model** documents a core entity's identity, fields, lifecycle, and relationships for "knowledge model" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Field | Type | Required | Default | Constraints |
+|---|---|---|---|---|
+| `id` | uuid | yes | generated | Primary key |
+| `document_id` | uuid FK → Document.id | yes | — | on delete cascade |
+| `chunk_index` | integer | yes | — | 0-based order within document |
+| `page_number` | integer | no | null | null for non-paginated formats (e.g. CSV) |
+| `bbox` | jsonb | no | null | bounding box `[x0,y0,x1,y1]` for native PDFs; null if unavailable (e.g. OCR without layout) |
+| `text` | text | yes | — | chunk content, 200–800 tokens (CONFIG DEFAULT chunking window, `features/13_knowledge_fabric/04_chunking.md`) |
+| `embedding` | vector(768) | yes | — | pgvector column; dimension fixed by the configured embedding model |
+| `ocr_confidence` | real | no | null | 0.0–1.0; null if not OCR-derived |
+| `created_at` | timestamptz | yes | now() | immutable |
 
-## Definition
+## Notes
 
-- **What it is:** Knowledge Model is a named domain entity within the `domain/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Knowledge Model at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Knowledge Model require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Created during Document INDEXING. Indexed by both an HNSW vector index (pgvector) and a PostgreSQL `tsvector` GIN index for hybrid search (`features/13_knowledge_fabric/09_hybrid_search.md`). Inherits its parent Document's classification for retrieval filtering (REQ-FUNC-004) — never queried without that filter applied.
 
-## Detail
+## Ownership
 
-1. Knowledge Model is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Knowledge Model enforces the same rule set described here — a feature that reads
-   Knowledge Model differently than documented here is a bug in that feature, not a variant.
-3. Where Knowledge Model interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Knowledge Model interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+This entity is owned and mutated only by the component named in its lifecycle description
+above. Every other component reads it through the API/internal interface defined in
+`docs/api/` and `docs/features/`, never by writing to its table directly.
 
-## Interfaces and related documents
+## Audit behavior
 
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/schemas/01_database_schema.md`
-
-## Acceptance criteria
-
-- [ ] Knowledge Model behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Knowledge Model contradicts a related document listed above.
-- [ ] Knowledge Model is covered by at least one test referenced from `docs/testing/`.
-- [ ] Knowledge Model requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Knowledge Model, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Knowledge Model that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Knowledge Model are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every insert/update/soft-delete on this entity's table produces a matching `AuditEvent`
+(`schemas/15_audit_event_schema.md`) in the same transaction, per REQ-AUD-001.

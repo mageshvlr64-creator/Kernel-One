@@ -1,60 +1,31 @@
-# Audit Failures
+# Audit Write Failures
 
-> Directory: `docs/failures/` · File: `40_audit_failures.md` · Kind: **failure mode**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `39_observability_failures.md` · Next: `41_approval_failures.md`
+> Failure mode entry. Referenced by the owning feature's "Failure modes" section
+> (`docs/features/`) rather than restated there.
 
-## Purpose
+## Trigger
 
-**Audit Failures** documents a named failure, its detection signal, and system response for "audit failures" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+The audit event insert fails (e.g. database unavailable) at the moment a state-changing action occurs.
 
-## Definition
+## Detection
 
-- **What it is:** Audit Failures is a named failure mode within the `failures/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Audit Failures at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Audit Failures require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Transaction wrapping both the primary write and the audit write (REQ-AUD-001).
 
-## Detail
+## System response
 
-1. Audit Failures is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Audit Failures enforces the same rule set described here — a feature that reads
-   Audit Failures differently than documented here is a bug in that feature, not a variant.
-3. Where Audit Failures interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Audit Failures interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+The **entire transaction rolls back** — the primary action does not take effect if its audit event cannot be recorded. This is a deliberate, strict choice: an unaudited state change is treated as worse than a failed action.
 
-## Interfaces and related documents
+## Error code
 
-- **Related:**
-- `docs/failures/01_failure_handling_philosophy.md`
-- `docs/runtime/11_retry_policy.md`
+`DEPENDENCY_UNAVAILABLE (surfaced as the action's own failure)` (see `reference/01_error_codes.md` for HTTP status and full detail)
 
-## Acceptance criteria
+## Recovery
 
-- [ ] Audit Failures behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Audit Failures contradicts a related document listed above.
-- [ ] Audit Failures is covered by at least one test referenced from `docs/testing/`.
-- [ ] Audit Failures requires no outbound network access to function correctly.
+User retries once the database is healthy again; no state was silently changed without a trail.
 
-## Implementation notes for AI agents
+## Audit requirement
 
-Before changing anything related to Audit Failures, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Audit Failures that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Audit Failures are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every occurrence of this failure produces an `AuditEvent` with `result=error` and this
+failure's error code, per `schemas/15_audit_event_schema.md` — this applies even to failures
+that are ultimately the system behaving correctly (e.g. a correctly-blocked network attempt)
+since REQ-AUD-001 makes no exception for "expected" failures.

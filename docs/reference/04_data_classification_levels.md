@@ -1,59 +1,24 @@
-# Data Classification Levels
+# Data Classification Levels (Reference)
 
-> Directory: `docs/reference/` · File: `04_data_classification_levels.md` · Kind: **reference table**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `03_risk_levels.md` · Next: `05_permission_matrix.md`
+> Canonical definition, referenced by `features/20_data_classification/` and every entity
+> carrying a `classification` field (`domain/`).
 
-## Purpose
+| Level | Definition | Who can access (role clearance) | Model restriction | Export restriction |
+|---|---|---|---|---|
+| `PUBLIC` | No sensitivity; safe for any audience | All roles | Any approved model | No restriction |
+| `INTERNAL` | Default level; organization-internal, not sensitive | All roles (default clearance) | Any model with `max_classification >= INTERNAL` | No restriction |
+| `CONFIDENTIAL` | Sensitive; limited distribution within the organization | Clearance `CONFIDENTIAL` or `RESTRICTED` only | Only models explicitly approved to `CONFIDENTIAL` (`schemas/06_model_schema.md` `max_classification`) | Requires Approval (REQ-FUNC-003) |
+| `RESTRICTED` | Highest sensitivity; named-individual access only | Clearance `RESTRICTED` only | Only models explicitly approved to `RESTRICTED` | Requires Approval; export logged with heightened audit detail |
 
-**Data Classification Levels** documents a lookup table other documents point to for "data classification levels" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+## Ordering
 
-## Definition
+`PUBLIC` < `INTERNAL` < `CONFIDENTIAL` < `RESTRICTED` — a user's clearance must be greater than
+or equal to a resource's classification to read it; this comparison is the entirety of the
+classification check (combined with the workspace/role conditions in
+`reference/05_permission_matrix.md`).
 
-- **What it is:** Data Classification Levels is a named reference table within the `reference/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Data Classification Levels at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Data Classification Levels require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+## Propagation
 
-## Detail
-
-1. Data Classification Levels is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Data Classification Levels enforces the same rule set described here — a feature that reads
-   Data Classification Levels differently than documented here is a bug in that feature, not a variant.
-3. Where Data Classification Levels interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Data Classification Levels interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/18_DOCUMENTATION_INDEX.md`
-
-## Acceptance criteria
-
-- [ ] Data Classification Levels behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Data Classification Levels contradicts a related document listed above.
-- [ ] Data Classification Levels is covered by at least one test referenced from `docs/testing/`.
-- [ ] Data Classification Levels requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Data Classification Levels, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Data Classification Levels that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Data Classification Levels are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+See `domain/01_domain_model.md` cross-cutting rule 1 and REQ-DATA-001 — classification only
+ever propagates upward (a derived entity's classification is never lower than any of its
+sources').

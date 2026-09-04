@@ -1,60 +1,21 @@
 # Engineering Documents
 
-> Directory: `docs/industrial/` · File: `07_engineering_documents.md` · Kind: **industrial capability**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `06_change_detection.md` · Next: `08_p_and_id_intelligence.md`
+> Domain-specific handling for engineering drawings, specs, and datasheets — the document
+> types feeding `08_p_and_id_intelligence.md`, `09_drawing_understanding.md`, and
+> `10_engineering_calculations.md`.
 
-## Purpose
+## Ingestion notes specific to this document type
 
-**Engineering Documents** documents a domain-specific capability built on the core platform for "engineering documents" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Engineering documents frequently mix dense tabular data (spec tables), diagrams, and small
+annotation text — `features/10_document_ingestion/08_table_extraction.md` and
+`09_image_extraction.md` are both exercised more heavily here than for prose-only documents
+like general reports. Table extraction accuracy is the primary quality gate for this document
+type — a mis-parsed spec table (e.g. a shifted column) silently produces wrong "spec" values
+in every downstream finding, so `10_engineering_calculations.md` treats table-derived values
+as **lower-confidence by default** than directly-stated prose values, pending explicit
+verification (`11_calculation_verification.md`).
 
-## Definition
+## V1 scope note
 
-- **What it is:** Engineering Documents is a named industrial capability within the `industrial/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Engineering Documents at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Engineering Documents require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Engineering Documents is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Engineering Documents enforces the same rule set described here — a feature that reads
-   Engineering Documents differently than documented here is a bug in that feature, not a variant.
-3. Where Engineering Documents interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Engineering Documents interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/industrial/01_industrial_intelligence_overview.md`
-- `docs/features/14_evidence_and_provenance.md`
-
-## Acceptance criteria
-
-- [ ] Engineering Documents behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Engineering Documents contradicts a related document listed above.
-- [ ] Engineering Documents is covered by at least one test referenced from `docs/testing/`.
-- [ ] Engineering Documents requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Engineering Documents, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Engineering Documents that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Engineering Documents are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Full diagram/schematic understanding (P&ID symbol recognition, drawing dimension extraction)
+is V1-aspirational, not V1-committed — see `12_industrial_workflow_boundaries.md`.

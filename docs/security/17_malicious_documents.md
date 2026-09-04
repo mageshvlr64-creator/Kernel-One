@@ -1,60 +1,28 @@
 # Malicious Documents
 
-> Directory: `docs/security/` · File: `17_malicious_documents.md` · Kind: **threat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `16_audit_tampering.md` · Next: `18_malicious_code.md`
+> Threat entry. Format follows `01_security_architecture.md`'s convention: threat description,
+> where it can occur, mitigation, and traceability to requirements/tests.
 
-## Purpose
+## Threat
 
-**Malicious Documents** documents a specific threat, where it can occur, and its mitigation for "malicious documents" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+An uploaded file is crafted to exploit a parser vulnerability (e.g. a malformed PDF triggering a buffer overflow in a parsing library) or contains an embedded macro/script.
 
-## Definition
+## Where it can occur
 
-- **What it is:** Malicious Documents is a named threat within the `security/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Malicious Documents at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Malicious Documents require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Document Ingestion (features/10_document_ingestion/02_upload_validation.md).
 
-## Detail
+## Mitigation
 
-1. Malicious Documents is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Malicious Documents enforces the same rule set described here — a feature that reads
-   Malicious Documents differently than documented here is a bug in that feature, not a variant.
-3. Where Malicious Documents interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Malicious Documents interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+File type is detected server-side (not trusted from client-supplied MIME header), size-capped, and parsed with libraries kept current per dependency-security scanning (20_dependency_security.md); Office documents' macro content is stripped/ignored, never executed.
 
-## Interfaces and related documents
+## Traceability
 
-- **Related:**
-- `docs/security/01_security_architecture.md`
-- `docs/features/19_identity_and_rbac.md`
+- Requirements: not yet mapped to a specific REQ-ID
+- Tests: `SEC-TEST-DOC-001 (add to testing/10_document_pipeline_testing.md if not already present)`
 
-## Acceptance criteria
+## Residual risk
 
-- [ ] Malicious Documents behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Malicious Documents contradicts a related document listed above.
-- [ ] Malicious Documents is covered by at least one test referenced from `docs/testing/`.
-- [ ] Malicious Documents requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Malicious Documents, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Malicious Documents that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Malicious Documents are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every mitigation above reduces but does not claim to eliminate risk to zero — where a
+mitigation is preventive (e.g. container isolation), a detective control (audit logging) is
+also in place so a successful bypass is still discoverable after the fact, per
+`security/01_security_architecture.md`'s defense-in-depth principle.

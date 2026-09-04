@@ -1,60 +1,63 @@
-# API Schema
+# API Envelope Schema (Canonical)
 
-> Directory: `docs/schemas/` · File: `02_api_schema.md` · Kind: **schema**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_database_schema.md` · Next: `03_task_schema.md`
+> Canonical request/response envelope and error shape used by every endpoint in `docs/api/`.
+> Individual endpoints reference this file for the envelope and their own entity schema
+> (`docs/schemas/03_task_schema.md` etc.) for the payload — they do not redefine either.
 
-## Purpose
+## Success envelope
 
-**API Schema** documents the exact on-disk/on-wire field list, types, and constraints for "api schema" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+```json
+{
+  "$id": "api-success-envelope.json",
+  "title": "ApiSuccessEnvelope",
+  "type": "object",
+  "required": ["data"],
+  "properties": {
+    "data": { "description": "Endpoint-specific payload; see the matching docs/schemas/ file" },
+    "pagination": {
+      "type": "object",
+      "properties": {
+        "next_cursor": { "type": ["string", "null"] },
+        "limit": { "type": "integer" }
+      }
+    }
+  }
+}
+```
 
-## Definition
+## Error envelope
 
-- **What it is:** API Schema is a named schema within the `schemas/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for API Schema at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to API Schema require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+```json
+{
+  "$id": "api-error-envelope.json",
+  "title": "ApiErrorEnvelope",
+  "type": "object",
+  "required": ["error"],
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "description": "One of docs/reference/01_error_codes.md" },
+        "message": { "type": "string", "description": "User-visible message from the registry" },
+        "details": { "type": ["object", "null"], "description": "Field-level validation errors, present only for INVALID_REQUEST" },
+        "correlation_id": { "type": "string", "format": "uuid" }
+      }
+    }
+  }
+}
+```
 
-## Detail
+## Conventions
 
-1. API Schema is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of API Schema enforces the same rule set described here — a feature that reads
-   API Schema differently than documented here is a bug in that feature, not a variant.
-3. Where API Schema interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where API Schema interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/domain/01_domain_model.md`
-- `docs/api/01_api_overview.md`
-
-## Acceptance criteria
-
-- [ ] API Schema behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of API Schema contradicts a related document listed above.
-- [ ] API Schema is covered by at least one test referenced from `docs/testing/`.
-- [ ] API Schema requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to API Schema, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of API Schema that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about API Schema are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+- All endpoints are versioned under `/api/v1/`.
+- All state-changing endpoints accept an optional `Idempotency-Key` header; behavior when
+  supplied is defined per-endpoint in `docs/api/`, defaulting to "safe to retry with the same
+  key returns the original result" for endpoints marked idempotent in `docs/runtime/15_idempotency.md`.
+- Pagination: cursor-based (`?cursor=...&limit=...`), default `limit=50`, max `limit=200`.
+- Filtering/sorting: `?filter[field]=value`, `?sort=field` / `?sort=-field` (descending).
+- Streaming endpoints (inference) use Server-Sent Events; see `docs/api/07_execution_api.md`
+  and `docs/features/03_inference_gateway/07_streaming.md`.
+- Rate limits: `interactive-read`/`interactive-write` operation classes are limited per-user
+  at 60 requests/minute (CONFIG DEFAULT); exceeding this returns `429 RATE_LIMITED` with a `Retry-After`
+  header, per `docs/reference/01_error_codes.md`.

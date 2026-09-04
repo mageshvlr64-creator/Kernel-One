@@ -1,59 +1,23 @@
-# Kubernetes
+# Kubernetes Deployment (V2+)
 
-> Directory: `docs/later/` · File: `09_kubernetes.md` · Kind: **deferred capability**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `08_multi_node_scaling.md` · Next: `10_enterprise_identity_integration.md`
+> A specific realization of `08_multi_node_scaling.md` using Kubernetes as the orchestrator,
+> as opposed to the Docker Compose-based single-node deployment used for V1
+> (`deployment/03_docker_compose.md`).
 
-## Purpose
+## Why not V1
 
-**Kubernetes** documents a V2+ idea explicitly out of V1 scope for "kubernetes" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+`deployment/03_docker_compose.md` already meets PROFILE-B's single-node target with
+substantially less operational complexity than a Kubernetes cluster — introducing Kubernetes
+for a single-workstation demo would be disproportionate engineering cost with no V1 benefit,
+consistent with the reasoning in `20_DECISION_LOG.md` DEC-001.
 
-## Definition
+## What this would need when scheduled
 
-- **What it is:** Kubernetes is a named deferred capability within the `later/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Kubernetes at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Kubernetes require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Kubernetes is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Kubernetes enforces the same rule set described here — a feature that reads
-   Kubernetes differently than documented here is a bug in that feature, not a variant.
-3. Where Kubernetes interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Kubernetes interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/02_SCOPE_AND_NON_GOALS.md`
-
-## Acceptance criteria
-
-- [ ] Kubernetes behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Kubernetes contradicts a related document listed above.
-- [ ] Kubernetes is covered by at least one test referenced from `docs/testing/`.
-- [ ] Kubernetes requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Kubernetes, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Kubernetes that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Kubernetes are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+- Helm charts (or equivalent) mirroring the service boundaries in
+  `15_CODEBASE_TARGET_STRUCTURE.md`.
+- A decision on whether GPU scheduling uses the Kubernetes device plugin model directly or a
+  higher-level scheduler (e.g. for fractional GPU sharing across smaller models) —
+  `DECISION REQUIRED` when this work begins.
+- Network policy definitions that enforce the same `NETWORK_MODE` guarantees
+  (`features/18_network_sovereignty/`) at the Kubernetes NetworkPolicy layer, not just the
+  application layer — REQ-NET-001 must hold regardless of orchestrator.

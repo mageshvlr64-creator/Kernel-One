@@ -1,60 +1,35 @@
 # Health Checks
 
-> Directory: `docs/deployment/` · File: `13_health_checks.md` · Kind: **deployment concern**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `12_rollback_procedure.md` · Next: `14_production_hardening.md`
+> The concrete implementation behind `api/24_health_api.md`'s `/healthz`/`/readyz` contract,
+> referenced by `operations/02_startup.md`, `04_health_monitoring.md`, and every deployment
+> file above.
 
-## Purpose
+## Liveness (`/healthz`)
 
-**Health Checks** documents a topology or procedure for installing/running the system for "health checks" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Returns 200 if the process itself is running and its event loop is responsive — does NOT
+check downstream dependencies. A liveness failure means "restart this specific process,"
+nothing more. Checked every 10s; 3 consecutive failures triggers a container restart.
 
-## Definition
+## Readiness (`/readyz`)
 
-- **What it is:** Health Checks is a named deployment concern within the `deployment/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Health Checks at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Health Checks require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Returns 200 only if every hard dependency listed in `10_DEPENDENCY_GRAPH.md` for that service
+is reachable and responding within its own health-check timeout:
 
-## Detail
+| Dependency | Check | Timeout |
+|---|---|---|
+| Database | `SELECT 1` | 2s |
+| Object Storage | `HEAD` on a known bucket | 2s |
+| Configured Model(s) | Provider-specific lightweight ping (e.g. vLLM's `/health`) | 5s |
+| Policy Engine (for services that depend on it) | In-process call, no network hop in V1 | N/A |
 
-1. Health Checks is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Health Checks enforces the same rule set described here — a feature that reads
-   Health Checks differently than documented here is a bug in that feature, not a variant.
-3. Where Health Checks interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Health Checks interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
+A readiness failure removes the instance from load-balancing (or, in V1 single-node, surfaces
+as a degraded state on the Admin Console health dashboard, `ui/16_admin_console_ui.md`) without
+restarting the process — the distinction from liveness matters because a database outage
+should not trigger endless container restarts of every dependent service.
 
-## Interfaces and related documents
+## Per-service health composition
 
-- **Related:**
-- `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`
-- `docs/deployment/01_deployment_overview.md`
-
-## Acceptance criteria
-
-- [ ] Health Checks behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Health Checks contradicts a related document listed above.
-- [ ] Health Checks is covered by at least one test referenced from `docs/testing/`.
-- [ ] Health Checks requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Health Checks, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Health Checks that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Health Checks are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Each service's `/readyz` only checks *its own* direct dependencies (per `10_DEPENDENCY_GRAPH.md`),
+not the full transitive graph — the Admin Console's dashboard composes all services' individual
+readiness into one overall system-health view, rather than each service redundantly checking
+everything.

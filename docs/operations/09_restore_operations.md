@@ -1,60 +1,32 @@
 # Restore Operations
 
-> Directory: `docs/operations/` · File: `09_restore_operations.md` · Kind: **operator procedure**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `08_backup_operations.md` · Next: `10_incident_response.md`
+> Concrete restore procedure, used both for verification (`08_backup_operations.md`) and for
+> actual disaster recovery (`13_disaster_recovery.md`).
 
-## Purpose
+## Procedure
 
-**Restore Operations** documents a day-to-day runbook step for a human operator for "restore operations" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. Stop all application services (`03_shutdown.md`) — a restore against a live database risks
+   inconsistent state.
+2. Restore the PostgreSQL dump/WAL archive to the target point in time.
+3. Restore the object storage snapshot to the same or a later point in time than the database
+   restore (object storage may lag slightly behind the database without harm, since a
+   `storage_uri` referencing a not-yet-restored object simply fails a subsequent read with
+   `DEPENDENCY_UNAVAILABLE` rather than corrupting anything).
+4. Verify the `audit_events` hash chain validates end-to-end on the restored database
+   (REQ-SEC-005) before resuming service.
+5. Run `02_startup.md`.
+6. Spot-check: log in as a known test user, open a known Task, confirm its Evidence/Artifact
+   links still resolve.
 
-## Definition
+## Point-in-time restore
 
-- **What it is:** Restore Operations is a named operator procedure within the `operations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Restore Operations at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Restore Operations require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+If WAL archiving is configured, restore to any point within the retention window, not only to
+the nightly snapshot boundary — required for incident scenarios where the exact moment of
+corruption/compromise is known (`10_incident_response.md`).
 
-## Detail
+## Post-restore audit entry
 
-1. Restore Operations is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Restore Operations enforces the same rule set described here — a feature that reads
-   Restore Operations differently than documented here is a bug in that feature, not a variant.
-3. Where Restore Operations interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Restore Operations interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/operations/01_operator_guide.md`
-- `docs/deployment/13_health_checks.md`
-
-## Acceptance criteria
-
-- [ ] Restore Operations behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Restore Operations contradicts a related document listed above.
-- [ ] Restore Operations is covered by at least one test referenced from `docs/testing/`.
-- [ ] Restore Operations requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Restore Operations, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Restore Operations that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Restore Operations are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every restore operation is itself logged as an operational event (not an `AuditEvent` in the
+application sense, since the application wasn't running — logged in `05_log_management.md`'s
+infrastructure log instead) with: who performed it, why, source backup timestamp, and
+verification result.

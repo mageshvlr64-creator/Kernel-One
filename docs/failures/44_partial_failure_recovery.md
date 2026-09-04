@@ -1,60 +1,31 @@
-# Partial Failure Recovery
+# Partial Failure Recovery (cross-cutting)
 
-> Directory: `docs/failures/` · File: `44_partial_failure_recovery.md` · Kind: **failure mode**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `43_recovery_failures.md` · Next: _(last document in this directory)_
+> Failure mode entry. Referenced by the owning feature's "Failure modes" section
+> (`docs/features/`) rather than restated there.
 
-## Purpose
+## Trigger
 
-**Partial Failure Recovery** documents a named failure, its detection signal, and system response for "partial failure recovery" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Any multi-step operation (a Task's Plan, a multi-file artifact generation, a multi-document ingestion batch) fails partway through.
 
-## Definition
+## Detection
 
-- **What it is:** Partial Failure Recovery is a named failure mode within the `failures/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Partial Failure Recovery at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Partial Failure Recovery require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Each step's own state machine tracks completion independently (runtime/_state_machines_canonical.md) — there is no single 'overall operation' row whose partial state is ambiguous.
 
-## Detail
+## System response
 
-1. Partial Failure Recovery is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Partial Failure Recovery enforces the same rule set described here — a feature that reads
-   Partial Failure Recovery differently than documented here is a bug in that feature, not a variant.
-3. Where Partial Failure Recovery interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Partial Failure Recovery interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+Completed steps' state changes stand (they were each individually transactional and audited); the failed step and anything depending on it are marked `FAILED`/`CANCELLED`; nothing is left in an indeterminate state.
 
-## Interfaces and related documents
+## Error code
 
-- **Related:**
-- `docs/failures/01_failure_handling_philosophy.md`
-- `docs/runtime/11_retry_policy.md`
+`Varies by which step failed — see that step's own failure file` (see `reference/01_error_codes.md` for HTTP status and full detail)
 
-## Acceptance criteria
+## Recovery
 
-- [ ] Partial Failure Recovery behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Partial Failure Recovery contradicts a related document listed above.
-- [ ] Partial Failure Recovery is covered by at least one test referenced from `docs/testing/`.
-- [ ] Partial Failure Recovery requires no outbound network access to function correctly.
+The Agent Kernel's replanning logic (features/04_agent_kernel/10_replanning.md) decides whether to resume from the failure point or restart — this is the general pattern every other 'stuck partway' failure in this directory follows.
 
-## Implementation notes for AI agents
+## Audit requirement
 
-Before changing anything related to Partial Failure Recovery, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Partial Failure Recovery that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Partial Failure Recovery are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every occurrence of this failure produces an `AuditEvent` with `result=error` and this
+failure's error code, per `schemas/15_audit_event_schema.md` — this applies even to failures
+that are ultimately the system behaving correctly (e.g. a correctly-blocked network attempt)
+since REQ-AUD-001 makes no exception for "expected" failures.

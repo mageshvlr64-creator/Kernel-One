@@ -1,60 +1,31 @@
 # Citation Failures
 
-> Directory: `docs/failures/` · File: `27_citation_failures.md` · Kind: **failure mode**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `26_reranker_failures.md` · Next: `28_evidence_failures.md`
+> Failure mode entry. Referenced by the owning feature's "Failure modes" section
+> (`docs/features/`) rather than restated there.
 
-## Purpose
+## Trigger
 
-**Citation Failures** documents a named failure, its detection signal, and system response for "citation failures" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+An Evidence record references a chunk_id or document that no longer exists (e.g. the source document was deleted after the answer was generated).
 
-## Definition
+## Detection
 
-- **What it is:** Citation Failures is a named failure mode within the `failures/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Citation Failures at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Citation Failures require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Evidence resolution at display time (api/14_evidence_api.md).
 
-## Detail
+## System response
 
-1. Citation Failures is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Citation Failures enforces the same rule set described here — a feature that reads
-   Citation Failures differently than documented here is a bug in that feature, not a variant.
-3. Where Citation Failures interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Citation Failures interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+UI shows 'Source unavailable' distinctly from a broken citation (ui/09_evidence_panel.md) — the claim itself is not retracted, but its verifiability is now degraded and shown as such.
 
-## Interfaces and related documents
+## Error code
 
-- **Related:**
-- `docs/failures/01_failure_handling_philosophy.md`
-- `docs/runtime/11_retry_policy.md`
+`FILE_NOT_FOUND` (see `reference/01_error_codes.md` for HTTP status and full detail)
 
-## Acceptance criteria
+## Recovery
 
-- [ ] Citation Failures behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Citation Failures contradicts a related document listed above.
-- [ ] Citation Failures is covered by at least one test referenced from `docs/testing/`.
-- [ ] Citation Failures requires no outbound network access to function correctly.
+Not automatically recoverable once the source is deleted; this is why Document deletion is intentionally soft-delete with a retention window, not immediate hard delete.
 
-## Implementation notes for AI agents
+## Audit requirement
 
-Before changing anything related to Citation Failures, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Citation Failures that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Citation Failures are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every occurrence of this failure produces an `AuditEvent` with `result=error` and this
+failure's error code, per `schemas/15_audit_event_schema.md` — this applies even to failures
+that are ultimately the system behaving correctly (e.g. a correctly-blocked network attempt)
+since REQ-AUD-001 makes no exception for "expected" failures.

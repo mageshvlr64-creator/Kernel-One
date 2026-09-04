@@ -1,60 +1,17 @@
 # Performance Testing
 
-> Directory: `docs/testing/` · File: `24_performance_testing.md` · Kind: **test approach**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `23_failure_injection.md` · Next: `25_load_testing.md`
+> Verifies the budgets in `docs/performance/` against real measurements — the mechanism that
+> eventually resolves DEC-014's pending benchmark validation.
 
-## Purpose
+## Method
 
-**Performance Testing** documents what must be covered and how pass/fail is judged for "performance testing" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Automated load-generation scripts exercise each operation class (`runtime/11_retry_policy.md`)
+at realistic volumes on the target hardware profile, recording p50/p95/p99 latency and
+comparing against `performance/02_latency_budgets.md`'s targets.
 
-## Definition
+## Rule
 
-- **What it is:** Performance Testing is a named test approach within the `testing/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Performance Testing at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Performance Testing require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Performance Testing is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Performance Testing enforces the same rule set described here — a feature that reads
-   Performance Testing differently than documented here is a bug in that feature, not a variant.
-3. Where Performance Testing interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Performance Testing interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/testing/01_testing_strategy.md`
-- `docs/12_GLOBAL_ACCEPTANCE_CRITERIA.md`
-
-## Acceptance criteria
-
-- [ ] Performance Testing behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Performance Testing contradicts a related document listed above.
-- [ ] Performance Testing is covered by at least one test referenced from `docs/testing/`.
-- [ ] Performance Testing requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Performance Testing, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Performance Testing that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Performance Testing are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+A performance regression (p95 exceeding budget by more than 20%, CONFIG DEFAULT threshold) is
+treated as a build-blocking defect in `08_BUILD_PHASES.md` Phase 9/10, not a "known slow"
+acceptable state — unless the budget itself is revised (with a `20_DECISION_LOG.md` entry
+explaining why).

@@ -1,60 +1,31 @@
 # Model Corruption
 
-> Directory: `docs/failures/` · File: `11_model_corruption.md` · Kind: **failure mode**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `10_model_unavailable.md` · Next: `12_router_failures.md`
+> Failure mode entry. Referenced by the owning feature's "Failure modes" section
+> (`docs/features/`) rather than restated there.
 
-## Purpose
+## Trigger
 
-**Model Corruption** documents a named failure, its detection signal, and system response for "model corruption" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+A model checkpoint fails its checksum verification at load time (security/22_supply_chain_security.md), or produces systematically degraded output.
 
-## Definition
+## Detection
 
-- **What it is:** Model Corruption is a named failure mode within the `failures/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Model Corruption at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Model Corruption require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Checksum check at registration (features/01_model_management/05_model_installation.md); output-quality regression caught by benchmarking (later/11_advanced_model_benchmarking.md, V2) or manual report in V1.
 
-## Detail
+## System response
 
-1. Model Corruption is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Model Corruption enforces the same rule set described here — a feature that reads
-   Model Corruption differently than documented here is a bug in that feature, not a variant.
-3. Where Model Corruption interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Model Corruption interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+Registration is refused (`MODEL_NOT_APPROVED`-adjacent failure) if checksum fails; `is_available=false` is set manually by an Operator if quality degradation is reported.
 
-## Interfaces and related documents
+## Error code
 
-- **Related:**
-- `docs/failures/01_failure_handling_philosophy.md`
-- `docs/runtime/11_retry_policy.md`
+`MODEL_NOT_APPROVED` (see `reference/01_error_codes.md` for HTTP status and full detail)
 
-## Acceptance criteria
+## Recovery
 
-- [ ] Model Corruption behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Model Corruption contradicts a related document listed above.
-- [ ] Model Corruption is covered by at least one test referenced from `docs/testing/`.
-- [ ] Model Corruption requires no outbound network access to function correctly.
+Operator re-downloads/re-verifies the checkpoint from a trusted source before re-registering.
 
-## Implementation notes for AI agents
+## Audit requirement
 
-Before changing anything related to Model Corruption, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Model Corruption that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Model Corruption are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every occurrence of this failure produces an `AuditEvent` with `result=error` and this
+failure's error code, per `schemas/15_audit_event_schema.md` — this applies even to failures
+that are ultimately the system behaving correctly (e.g. a correctly-blocked network attempt)
+since REQ-AUD-001 makes no exception for "expected" failures.

@@ -1,60 +1,24 @@
 # Network Boundaries
 
-> Directory: `docs/architecture/` · File: `11_network_boundaries.md` · Kind: **structural view**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `10_privilege_boundaries.md` · Next: `12_storage_boundaries.md`
+> The network-layer realization of the trust and privilege boundaries above, and the direct
+> architectural backing for REQ-NET-001/002.
 
-## Purpose
+## Boundaries by network mode
 
-**Network Boundaries** documents a cross-cutting view of how components, trust zones, and deployment topologies relate for "network boundaries" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Mode | Boundary |
+|---|---|
+| `air_gapped` | No route out of the deployment's own container network at all — not even DNS resolution succeeds for a non-`localhost`/internal address. |
+| `restricted` | Route out permitted only to hosts explicitly listed in `RESTRICTED_MODE_ALLOWLIST` (`16_ENVIRONMENT_AND_CONFIGURATION.md`); everything else blocked identically to `air_gapped`. |
+| `on_premise` | Route out permitted within the organization's own network (e.g. an internal package mirror, an internal LDAP server if `later/10_enterprise_identity_integration.md` is ever built) but never to the public internet. |
 
-## Definition
+## Internal network segmentation (all modes)
 
-- **What it is:** Network Boundaries is a named structural view within the `architecture/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Network Boundaries at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Network Boundaries require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+The Code Execution sandbox has its own network boundary *inside* the deployment — even in
+`on_premise` mode where other internal services might reach the organization's LAN, the
+sandbox container specifically gets `--network=none` (DEC-005) regardless of the deployment's
+overall network mode, since REQ-SEC-002 is independent of REQ-NET-002's mode selection.
 
-## Detail
+## Enforcement layer
 
-1. Network Boundaries is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Network Boundaries enforces the same rule set described here — a feature that reads
-   Network Boundaries differently than documented here is a bug in that feature, not a variant.
-3. Where Network Boundaries interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Network Boundaries interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-
-## Acceptance criteria
-
-- [ ] Network Boundaries behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Network Boundaries contradicts a related document listed above.
-- [ ] Network Boundaries is covered by at least one test referenced from `docs/testing/`.
-- [ ] Network Boundaries requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Network Boundaries, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Network Boundaries that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Network Boundaries are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Enforced at the container/OS network layer (iptables/network namespaces), not application
+code — see `security/14_network_bypass.md` for why this layering matters.

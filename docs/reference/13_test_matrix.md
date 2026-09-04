@@ -1,59 +1,22 @@
-# Test Matrix
+# Test Matrix (Reference)
 
-> Directory: `docs/reference/` · File: `13_test_matrix.md` · Kind: **reference table**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `12_failure_matrix.md` · Next: `14_release_matrix.md`
+> Consolidated list of every named test ID referenced across this specification, with its
+> owning file — cross-checked against `17_SOURCE_TRACEABILITY.md`'s requirement mapping.
 
-## Purpose
+| Test ID | Defined in | Covers |
+|---|---|---|
+| `TEST-NET-001`, `002`, `003` | `testing/18_network_testing.md` (via `security/02_threat_model.md` references) | REQ-NET-001/002/003 |
+| `SEC-TEST-001` through `008` | `testing/21_security_testing.md` | REQ-SEC-*, REQ-FUNC-004 |
+| `TEST-E2E-001`, `002` | `demo/` scenario acceptance | REQ-FUNC-001, REQ-FUNC-002 |
+| `TEST-APPROVAL-001` | `features/16_human_approval/` test requirements | REQ-FUNC-003 |
+| `TEST-ROUTER-004`, `005` | `features/02_model_router/` test requirements | REQ-AI-001, REQ-AI-003 |
+| `TEST-OCR-001` | `features/11_ocr/` test requirements | REQ-AI-002 |
+| `TEST-EVIDENCE-001` | `features/14_evidence_and_provenance/` test requirements | REQ-FUNC-005 |
+| `TEST-CLASS-001` | `features/20_data_classification/` test requirements | REQ-DATA-001 |
+| `TEST-AUDIT-001`, `002` | `features/17_audit/` test requirements | REQ-AUD-001, REQ-SEC-005 |
+| `TEST-PERF-001` | `performance/` budget files | REQ-PERF-001 |
 
-**Test Matrix** documents a lookup table other documents point to for "test matrix" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+## Rule
 
-## Definition
-
-- **What it is:** Test Matrix is a named reference table within the `reference/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Test Matrix at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Test Matrix require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Test Matrix is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Test Matrix enforces the same rule set described here — a feature that reads
-   Test Matrix differently than documented here is a bug in that feature, not a variant.
-3. Where Test Matrix interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Test Matrix interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/18_DOCUMENTATION_INDEX.md`
-
-## Acceptance criteria
-
-- [ ] Test Matrix behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Test Matrix contradicts a related document listed above.
-- [ ] Test Matrix is covered by at least one test referenced from `docs/testing/`.
-- [ ] Test Matrix requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Test Matrix, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Test Matrix that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Test Matrix are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every test ID appearing anywhere in this specification must appear in this table — an
+untracked test ID mentioned in a feature file but absent here is a documentation gap to close.

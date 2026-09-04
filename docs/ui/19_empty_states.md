@@ -1,60 +1,23 @@
 # Empty States
 
-> Directory: `docs/ui/` · File: `19_empty_states.md` · Kind: **UI surface**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `18_loading_states.md` · Next: `20_permission_denied_states.md`
+> Canonical empty-state copy and behavior, referenced by each screen's own "States" section
+> rather than redefined per screen.
 
-## Purpose
+## Rule
 
-**Empty States** documents layout, states, and interaction rules for one screen or panel for "empty states" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Every list/collection view distinguishes:
 
-## Definition
+1. **Genuinely empty** (e.g. "No tasks yet") — friendly copy plus a primary action to create
+   the first item, per screen.
+2. **Empty due to filtering** (e.g. classification filter hides all results) — copy states the
+   filter is active and offers to clear it, distinct from "there is nothing here at all."
+3. **Empty due to permission** (e.g. a Restricted User sees zero tools in the tool list) — this
+   is not framed as an error; it renders the same as case 1 but without a "create" affordance
+   the user isn't permitted to use.
 
-- **What it is:** Empty States is a named UI surface within the `ui/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Empty States at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Empty States require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+## Notable case — Evidence Panel (REQ-FUNC-005)
 
-## Detail
-
-1. Empty States is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Empty States enforces the same rule set described here — a feature that reads
-   Empty States differently than documented here is a bug in that feature, not a variant.
-3. Where Empty States interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Empty States interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-- `docs/ui/01_ui_architecture.md`
-
-## Acceptance criteria
-
-- [ ] Empty States behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Empty States contradicts a related document listed above.
-- [ ] Empty States is covered by at least one test referenced from `docs/testing/`.
-- [ ] Empty States requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Empty States, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Empty States that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Empty States are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+An agent answer with zero attached Evidence is not a normal empty state — it should not occur
+under REQ-FUNC-005's "no unsupported claims" rule, so this specific empty state renders with a
+distinct visual flag (not danger-red, but not the friendly neutral empty state either) and is
+worth investigating if seen in production, per `features/14_evidence_and_provenance/09_unsupported_claim_detection.md`.

@@ -1,60 +1,41 @@
 # UI Architecture
 
-> Directory: `docs/ui/` · File: `01_ui_architecture.md` · Kind: **UI surface**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: _(first document in this directory)_ · Next: `02_design_system.md`
+> Canonical structural overview. Individual screen files (`05_workbench_screen.md` onward)
+> implement this structure; they do not redefine it.
 
-## Purpose
+## Stack
 
-**UI Architecture** documents layout, states, and interaction rules for one screen or panel for "ui architecture" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+React SPA (`06_TECHNOLOGY_STACK.md`), served as static assets by the API layer's reverse
+proxy in `air_gapped`/`on_premise` deployments — no CDN dependency (every asset, font, and
+icon bundled locally, since a CDN fetch would itself violate REQ-NET-001).
 
-## Definition
+## Layering
 
-- **What it is:** UI Architecture is a named UI surface within the `ui/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for UI Architecture at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to UI Architecture require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+```
+Screens (ui/05_..16_*.md)          -- one file per routed view
+  └─ Panels (evidence, artifact, approval, network, security, model)
+       └─ Shared components (design system, 02_design_system.md)
+            └─ API client layer -- one function per docs/api/ endpoint, no ad hoc fetch() calls
+```
 
-## Detail
+## State management
 
-1. UI Architecture is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of UI Architecture enforces the same rule set described here — a feature that reads
-   UI Architecture differently than documented here is a bug in that feature, not a variant.
-3. Where UI Architecture interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where UI Architecture interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+- Server state (Tasks, Documents, Models, Approvals, etc.) is never duplicated into client-side
+  global state beyond a short-lived cache — the UI always re-fetches or subscribes rather than
+  trusting a stale local copy for anything permission- or state-machine-relevant.
+- Real-time updates (Task state, Plan step status, Network Panel) use the streaming endpoint
+  defined in `api/07_execution_api.md` / `api/22_network_api.md`, not polling, except where a
+  file explicitly says otherwise (e.g. Network Panel polls at ≤5s per REQ-NET-003 as a
+  documented exception since it's simpler and meets the latency bar).
 
-## Interfaces and related documents
+## Permission-aware rendering
 
-- **Related:**
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-- `docs/ui/01_ui_architecture.md`
+The UI calls `POST /api/v1/rbac/check` (`api/21_rbac_api.md`) to decide whether to render a
+control at all — but the corresponding server-side check on the actual action endpoint is
+always the authoritative gate (`reference/05_permission_matrix.md`). The UI check is a
+convenience to avoid showing controls that will predictably fail, never a security boundary.
 
-## Acceptance criteria
+## Routing
 
-- [ ] UI Architecture behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of UI Architecture contradicts a related document listed above.
-- [ ] UI Architecture is covered by at least one test referenced from `docs/testing/`.
-- [ ] UI Architecture requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to UI Architecture, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of UI Architecture that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about UI Architecture are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+One route per screen file under `ui/05_..16_*.md`; route guards redirect to `20_permission_denied_states.md`'s
+403 page rather than rendering a broken/partial screen when the RBAC check fails.

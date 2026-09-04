@@ -1,60 +1,22 @@
-# Backup Deployment
+# Backup Infrastructure Deployment
 
-> Directory: `docs/deployment/` · File: `10_backup_deployment.md` · Kind: **deployment concern**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `09_on_premise_deployment.md` · Next: `11_upgrade_procedure.md`
+> Deploying the backup mechanism itself (distinct from `operations/08_backup_operations.md`'s
+> day-to-day procedure).
 
-## Purpose
+## Components
 
-**Backup Deployment** documents a topology or procedure for installing/running the system for "backup deployment" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+- A backup target volume/host, physically or logically separate from the primary
+  Database/Object Storage volumes (a backup on the same disk as the primary data protects
+  against nothing).
+- A scheduled job runner (cron, or the orchestrator's native scheduling) triggering
+  `pg_dump`/WAL archiving and object storage replication per `operations/08_backup_operations.md`'s
+  schedule.
+- The restore-verification scratch environment (`operations/08_backup_operations.md`
+  verification procedure) — this should be provisioned as part of initial deployment, not
+  added later, so verification is exercised from the very first backup.
 
-## Definition
+## Sovereignty constraint
 
-- **What it is:** Backup Deployment is a named deployment concern within the `deployment/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Backup Deployment at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Backup Deployment require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Backup Deployment is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Backup Deployment enforces the same rule set described here — a feature that reads
-   Backup Deployment differently than documented here is a bug in that feature, not a variant.
-3. Where Backup Deployment interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Backup Deployment interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`
-- `docs/deployment/01_deployment_overview.md`
-
-## Acceptance criteria
-
-- [ ] Backup Deployment behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Backup Deployment contradicts a related document listed above.
-- [ ] Backup Deployment is covered by at least one test referenced from `docs/testing/`.
-- [ ] Backup Deployment requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Backup Deployment, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Backup Deployment that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Backup Deployment are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+The backup target must itself be within the deployment's permitted network boundary — a cloud
+backup target is categorically excluded for `air_gapped`/`restricted`/`on_premise`
+deployments, same as any other external service (REQ-NET-001/002).

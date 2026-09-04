@@ -1,59 +1,26 @@
-# Enterprise Identity Integration
+# Enterprise Identity Integration (V2+)
 
-> Directory: `docs/later/` · File: `10_enterprise_identity_integration.md` · Kind: **deferred capability**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `09_kubernetes.md` · Next: `11_advanced_model_benchmarking.md`
+> Integrating with an external identity provider (LDAP/Active Directory, SAML, or OIDC)
+> instead of V1's self-contained `users` table (`schemas/01_database_schema.md`).
 
-## Purpose
+## Why not V1
 
-**Enterprise Identity Integration** documents a V2+ idea explicitly out of V1 scope for "enterprise identity integration" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+V1's six-role model (`reference/05_permission_matrix.md`) with locally-managed users is
+sufficient for the demo and for a single-organization on-prem deployment; enterprise SSO adds
+a real external dependency (the identity provider itself) that would need its own
+sovereignty/availability analysis before being anything but optional.
 
-## Definition
+## Design constraint this must satisfy if built
 
-- **What it is:** Enterprise Identity Integration is a named deferred capability within the `later/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Enterprise Identity Integration at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Enterprise Identity Integration require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Any external identity integration MUST NOT weaken REQ-NET-001/002 — an on-premise LDAP/AD
+integration is compatible (internal network only), but a cloud-hosted SSO provider (e.g. a
+SaaS OIDC provider) is **categorically excluded** for `air_gapped`/`on_premise` deployments,
+and would need explicit gating to `restricted` mode only, with the provider's endpoint added to
+the operator's allowlist (`16_ENVIRONMENT_AND_CONFIGURATION.md` `RESTRICTED_MODE_ALLOWLIST`).
 
-## Detail
+## Migration path
 
-1. Enterprise Identity Integration is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Enterprise Identity Integration enforces the same rule set described here — a feature that reads
-   Enterprise Identity Integration differently than documented here is a bug in that feature, not a variant.
-3. Where Enterprise Identity Integration interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Enterprise Identity Integration interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/02_SCOPE_AND_NON_GOALS.md`
-
-## Acceptance criteria
-
-- [ ] Enterprise Identity Integration behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Enterprise Identity Integration contradicts a related document listed above.
-- [ ] Enterprise Identity Integration is covered by at least one test referenced from `docs/testing/`.
-- [ ] Enterprise Identity Integration requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Enterprise Identity Integration, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Enterprise Identity Integration that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Enterprise Identity Integration are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+The `users.role` enum (`schemas/01_database_schema.md`) would need to map to
+externally-provided group claims — this mapping itself becomes a new `Policy`-like
+configuration object, following the same operator-configured, centrally-defined pattern as
+`domain/16_policy_model.md`, not a one-off integration-specific config format.

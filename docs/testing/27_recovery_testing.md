@@ -1,60 +1,13 @@
 # Recovery Testing
 
-> Directory: `docs/testing/` · File: `27_recovery_testing.md` · Kind: **test approach**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `26_resource_testing.md` · Next: `28_air_gap_testing.md`
+> Verifies `operations/09_restore_operations.md` and `13_disaster_recovery.md` actually work,
+> beyond the automated nightly verification in `08_backup_operations.md`.
 
-## Purpose
+## Required tests
 
-**Recovery Testing** documents what must be covered and how pass/fail is judged for "recovery testing" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
-
-## Definition
-
-- **What it is:** Recovery Testing is a named test approach within the `testing/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Recovery Testing at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Recovery Testing require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Recovery Testing is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Recovery Testing enforces the same rule set described here — a feature that reads
-   Recovery Testing differently than documented here is a bug in that feature, not a variant.
-3. Where Recovery Testing interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Recovery Testing interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/testing/01_testing_strategy.md`
-- `docs/12_GLOBAL_ACCEPTANCE_CRITERIA.md`
-
-## Acceptance criteria
-
-- [ ] Recovery Testing behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Recovery Testing contradicts a related document listed above.
-- [ ] Recovery Testing is covered by at least one test referenced from `docs/testing/`.
-- [ ] Recovery Testing requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Recovery Testing, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Recovery Testing that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Recovery Testing are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+- Full disaster-recovery drill (per `13_disaster_recovery.md`'s "required drill"): restore a
+  backup to a scratch environment, run the demo smoke test against it, confirm success.
+- Point-in-time restore (if WAL archiving is configured): restore to a specific timestamp,
+  verify data matches expectations as of that exact time.
+- Audit hash-chain verification on the restored copy — a restore is not considered "passed"
+  if the chain doesn't validate (REQ-SEC-005).

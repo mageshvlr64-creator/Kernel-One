@@ -1,60 +1,25 @@
 # Error Taxonomy
 
-> Directory: `docs/failures/` · File: `02_error_taxonomy.md` · Kind: **failure mode**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_failure_handling_philosophy.md` · Next: `03_user_errors.md`
+> How every failure in this directory maps onto the canonical error registry
+> (`reference/01_error_codes.md`) and the HTTP status classes.
 
-## Purpose
+## Taxonomy
 
-**Error Taxonomy** documents a named failure, its detection signal, and system response for "error taxonomy" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Category | HTTP class | Example files in this directory | Retryable by default? |
+|---|---|---|---|
+| **User/input error** | 4xx (400) | `03_user_errors.md` | No |
+| **Auth/authorization error** | 4xx (401/403) | `05_authentication_failures.md`, `06_authorization_failures.md`, `17_tool_permission_denied.md` | No |
+| **Resource state conflict** | 4xx (404/409) | `27_citation_failures.md`, `41_approval_failures.md` | No (requires a new request, not a retry of the same one) |
+| **Dependency unavailable** | 5xx (503) | `10_model_unavailable.md`, `19_database_failures.md`, `25_retrieval_failures.md`, `35_container_failures.md`, `37_storage_failures.md` | Yes, per `runtime/11_retry_policy.md` operation class |
+| **Timeout** | 5xx (504) | `08_model_timeout.md`, `16_tool_timeout.md` | Depends on operation class (lightweight: yes; heavyweight: no) |
+| **Resource exhaustion** | 5xx (503) | `09_model_oom.md` | Yes, via fallback routing rather than blind retry |
+| **Internal/unexpected error** | 5xx (500) | Uncategorized exceptions across any component | No (unless idempotency key supplied) |
+| **Configuration error** | N/A (process-level, pre-request) | `04_configuration_errors.md` | N/A — requires operator fix, not a request retry |
+| **Operational failure** | N/A (not an API error) | `42_backup_failures.md`, `43_recovery_failures.md` | Per operational procedure, not the API retry policy |
 
-## Definition
+## Rule
 
-- **What it is:** Error Taxonomy is a named failure mode within the `failures/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Error Taxonomy at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Error Taxonomy require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Error Taxonomy is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Error Taxonomy enforces the same rule set described here — a feature that reads
-   Error Taxonomy differently than documented here is a bug in that feature, not a variant.
-3. Where Error Taxonomy interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Error Taxonomy interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/failures/01_failure_handling_philosophy.md`
-- `docs/runtime/11_retry_policy.md`
-
-## Acceptance criteria
-
-- [ ] Error Taxonomy behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Error Taxonomy contradicts a related document listed above.
-- [ ] Error Taxonomy is covered by at least one test referenced from `docs/testing/`.
-- [ ] Error Taxonomy requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Error Taxonomy, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Error Taxonomy that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Error Taxonomy are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every failure file in this directory is classified into exactly one row above, and its stated
+error code must belong to that row's HTTP class in `reference/01_error_codes.md` — a mismatch
+between a failure file's claimed error code and its taxonomy row is a specification defect to
+fix, not a valid variance.

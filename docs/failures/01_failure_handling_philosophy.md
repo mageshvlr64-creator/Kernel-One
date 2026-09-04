@@ -1,60 +1,30 @@
 # Failure Handling Philosophy
 
-> Directory: `docs/failures/` · File: `01_failure_handling_philosophy.md` · Kind: **failure mode**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: _(first document in this directory)_ · Next: `02_error_taxonomy.md`
+> Canonical principles every file in this directory follows. Individual failure files
+> (`03_user_errors.md` onward) apply these principles to a specific trigger; they do not
+> restate the principles themselves.
 
-## Purpose
+## Principles
 
-**Failure Handling Philosophy** documents a named failure, its detection signal, and system response for "failure handling philosophy" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. **Fail loud, never silent.** Every failure surfaces a specific error code
+   (`reference/01_error_codes.md`) to the caller and an `AuditEvent` to the trail
+   (REQ-AUD-001) — a caught-and-ignored exception is always a defect.
+2. **Fail closed on authorization ambiguity.** If it's unclear whether an action is permitted
+   (e.g. the Policy Engine is unreachable), the default is deny (REQ-SEC-001).
+3. **No unaudited state change, ever** — including on the failure path
+   (`failures/40_audit_failures.md`'s "transaction rolls back if audit can't be written" rule
+   is the strictest expression of this).
+4. **Distinguish user error from system failure.** A `400`-class error (caller's mistake) is
+   never retried automatically and never treated as an incident; a `5xx`-class error may be
+   retried per `runtime/11_retry_policy.md` and may be an incident if sustained.
+5. **Partial completion is explicit, never implicit.** A multi-step operation's completed steps
+   stand; failed/blocked steps are clearly marked — nothing is left in an ambiguous
+   in-between state (`44_partial_failure_recovery.md`).
+6. **Refuse over fabricate.** Where correctness can't be established (e.g. no evidence for a
+   claim, REQ-FUNC-005), the system declines to state the claim rather than guessing.
 
-## Definition
+## How to use this directory
 
-- **What it is:** Failure Handling Philosophy is a named failure mode within the `failures/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Failure Handling Philosophy at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Failure Handling Philosophy require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Failure Handling Philosophy is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Failure Handling Philosophy enforces the same rule set described here — a feature that reads
-   Failure Handling Philosophy differently than documented here is a bug in that feature, not a variant.
-3. Where Failure Handling Philosophy interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Failure Handling Philosophy interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/failures/01_failure_handling_philosophy.md`
-- `docs/runtime/11_retry_policy.md`
-
-## Acceptance criteria
-
-- [ ] Failure Handling Philosophy behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Failure Handling Philosophy contradicts a related document listed above.
-- [ ] Failure Handling Philosophy is covered by at least one test referenced from `docs/testing/`.
-- [ ] Failure Handling Philosophy requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Failure Handling Philosophy, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Failure Handling Philosophy that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Failure Handling Philosophy are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Each file below names one failure class: its trigger, detection mechanism, system response,
+canonical error code, and recovery path. A feature document's own "Failure modes" section
+references the relevant file(s) here rather than re-describing the failure.

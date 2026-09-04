@@ -1,60 +1,24 @@
 # Local Development
 
-> Directory: `docs/deployment/` · File: `02_local_development.md` · Kind: **deployment concern**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_deployment_overview.md` · Next: `03_docker_compose.md`
+> PROFILE-A setup, for engineers/agents building against this specification.
 
-## Purpose
+## Steps
 
-**Local Development** documents a topology or procedure for installing/running the system for "local development" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. Clone the repository (`15_CODEBASE_TARGET_STRUCTURE.md`).
+2. Copy `.env.example` to `.env.development`; set `NETWORK_MODE=restricted` temporarily to
+   allow pulling base images and packages (switch to `air_gapped` before any sovereignty-
+   related testing).
+3. `docker compose -f infra/compose/docker-compose.dev.yml up -d` — starts Database, Object
+   Storage, and a single lightweight model (the `cpu-fallback` capability slot,
+   `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`) for fast local iteration without requiring a
+   GPU.
+4. Run migrations (`schemas/01_database_schema.md`).
+5. Seed a development Administrator user and a Restricted User (matching DEC-006's two
+   demo-rehearsed roles) via the seed script.
+6. `GET /readyz` should return 200 once all dependencies are healthy.
 
-## Definition
+## Development-only allowances
 
-- **What it is:** Local Development is a named deployment concern within the `deployment/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Local Development at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Local Development require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Local Development is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Local Development enforces the same rule set described here — a feature that reads
-   Local Development differently than documented here is a bug in that feature, not a variant.
-3. Where Local Development interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Local Development interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`
-- `docs/deployment/01_deployment_overview.md`
-
-## Acceptance criteria
-
-- [ ] Local Development behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Local Development contradicts a related document listed above.
-- [ ] Local Development is covered by at least one test referenced from `docs/testing/`.
-- [ ] Local Development requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Local Development, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Local Development that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Local Development are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+`.env.development` may set `NETWORK_MODE=restricted` — this is the **one** environment where
+that's acceptable outside an explicit `restricted`-mode production deployment, and only for
+initial setup (pulling dependencies), never left on during actual feature testing.

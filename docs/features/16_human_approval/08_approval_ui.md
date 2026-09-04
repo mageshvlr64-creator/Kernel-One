@@ -31,7 +31,7 @@ From the workbench UI, approval ui is triggered by the corresponding action in t
   "actor_id": "string (uuid, required)",
   "workspace_id": "string (uuid, required)",
   "resource_id": "string (uuid, optional — omitted on create)",
-  "payload": "object (required, shape defined in docs/schemas/ for this resource)",
+  "payload": "object (required; request envelope defined in `docs/schemas/02_api_schema.md`, entity-specific fields defined in the `docs/schemas/` file matching this feature group)",
   "idempotency_key": "string (optional, recommended for retryable calls)"
 }
 ```
@@ -43,7 +43,7 @@ From the workbench UI, approval ui is triggered by the corresponding action in t
 {
   "status": "ok | error",
   "resource_id": "string (uuid)",
-  "state": "string (see State transitions below)",
+  "state": "string — one of the states enumerated for this resource in `docs/runtime/_state_machines_canonical.md`",
   "audit_event_id": "string (uuid)",
   "timestamp": "ISO-8601 string"
 }
@@ -77,43 +77,41 @@ Approval UI moves its resource through the states defined in the relevant `docs/
 
 Hard dependencies: `docs/features/05_tool_gateway/`, `docs/features/21_policy_engine/`, `docs/features/17_audit/`. If any hard dependency is unavailable, Approval UI fails closed per Failure modes — it does not silently degrade to an unsafe default.
 
+**Traceability:** this feature implements `REQ-FUNC-003` (see `docs/03_REQUIREMENTS.md`).
+
+
 ## 15. Security requirements
 
 All input is treated as untrusted and validated against its schema before use. No input is interpolated into a shell command, SQL string, or filesystem path without going through the sanitization described in `docs/security/09_path_traversal.md` and `docs/security/17_malicious_documents.md` where relevant. If approval ui processes agent- or model-generated content, it is treated as untrusted per `docs/security/05_prompt_injection.md`.
 
 ## 16. Permission requirements
 
-Risk level: **high**.
+Resource: `Approval` · Action: `approve` · Risk level: **high**.
 
-| Role | Access |
-|---|---|
-| `admin` | allow, requires approval |
-| `operator` | deny |
-| `restricted` | deny |
+Role access for this resource/action pair is defined once, canonically, in `docs/reference/05_permission_matrix.md` — this file does not repeat that table. In addition to the base role check, the policy engine (`docs/features/21_policy_engine/`) evaluates the classification and workspace conditions documented in that same file, and — because this action is risk=high — the approval condition (an `Approval` record with `decision=approved` must exist before this action executes, per `docs/features/16_human_approval/`).
 
-A denied call returns HTTP 403 with error code `HA-4030` and is logged to `docs/features/17_audit/` with the caller's role and the missing permission — never a silent no-op.
+A denied call returns `POLICY_DENIED` or `TOOL_NOT_ALLOWED` (see `docs/reference/01_error_codes.md`) and is logged to `docs/features/17_audit/` with the caller's role and the specific denying rule — never a silent no-op.
 
 ## 17. Failure modes
 
-| Code | HTTP status | Meaning |
-|---|---|---|
-| `HA-4001` | 400 | Request failed schema validation |
-| `HA-4030` | 403 | Caller's role/permission does not allow this operation |
-| `HA-4040` | 404 | Referenced resource does not exist or caller cannot see it |
-| `HA-4090` | 409 | Operation conflicts with current resource state |
-| `HA-5040` | 504 | Downstream dependency exceeded its timeout budget |
-| `HA-5030` | 503 | Required dependency is down or degraded |
-| `HA-5000` | 500 | Unexpected internal error; always paired with an audit event |
+This feature returns errors exclusively from the canonical registry in `docs/reference/01_error_codes.md`. The codes most relevant to this feature:
 
-Each row above maps to a named entry in `docs/failures/` for this subsystem; no failure produced by Approval UI is allowed to exist without a corresponding documented failure mode.
+| Error code (see registry for HTTP status, message, remediation) |
+|---|
+| `APPROVAL_REJECTED` |
+| `RESOURCE_CONFLICT` |
+| `POLICY_DENIED` |
+| `INTERNAL_ERROR` (always possible; see registry) |
+
+No other error code may be returned by this feature without first being added to the registry. Each occurrence is a required audit event per `docs/schemas/15_audit_event_schema.md`.
 
 ## 18. Retry behavior
 
-Approval UI is classified high-risk and is **not** automatically retried — a failed attempt surfaces to the caller (or the agent kernel's replanning step, `docs/features/04_agent_kernel/10_replanning.md`) for an explicit new decision, per `docs/runtime/11_retry_policy.md`.
+This feature's calls are classified **`interactive-write`** operations. Exact timeout, retry count, backoff, and circuit-breaker thresholds for this class are defined once, canonically, in `docs/runtime/11_retry_policy.md` — this file does not restate those numbers. If this feature's actual behavior needs a different class than `interactive-write`, that is a discrepancy to resolve in the canonical policy file, not a reason to define a local exception here.
 
 ## 19. Timeout behavior
 
-Maximum execution time: **34s**, enforced per `docs/runtime/12_timeout_policy.md`. On timeout, any in-flight subprocess, container, or DB transaction opened by Approval UI is terminated/rolled back and the caller receives the `504` error from the table above.
+See the **`interactive-write`** row in `docs/runtime/11_retry_policy.md` for the exact timeout value and its provenance label (CONFIG DEFAULT / DESIGN LIMIT / BENCHMARKED). On timeout, this feature returns the timeout-class error code from `docs/reference/01_error_codes.md` (typically `INFERENCE_TIMEOUT` for model calls or `DEPENDENCY_UNAVAILABLE`/`SANDBOX_LIMIT_EXCEEDED` for tool/infra calls — see Failure modes above for this feature's specific set) and releases any resource it holds (subprocess, container, DB transaction, lock).
 
 ## 20. Recovery behavior
 
@@ -125,11 +123,11 @@ Emits one structured log line per invocation (`level`, `event=human_approval.app
 
 ## 22. Audit requirements
 
-Every invocation, successful or not, produces one audit event of type `human_approval.approval_ui` containing `actor_id`, `workspace_id`, `resource_id`, a hash of the payload (never the raw payload if it may contain sensitive content), and `outcome`, per `docs/features/17_audit/03_event_schema.md`.
+Every invocation, successful or not, produces exactly one `AuditEvent` of type `human_approval.approval_ui` conforming to the canonical schema in `docs/schemas/15_audit_event_schema.md` — this file does not redefine the `AuditEvent` field set. `resource_type` is `Approval`; `action` is `approve`; `classification` is populated when the resource carries one (`docs/features/20_data_classification/`).
 
 ## 23. Performance requirements
 
-approval prompt delivered to UI p95 < 500ms after risk classification. Measured and enforced per `docs/performance/01_performance_requirements.md` on the reference hardware profile in `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`.
+approval prompt delivered to UI p95 < 500ms after risk classification. Measured and enforced per `docs/performance/01_performance_requirements.md` on the reference hardware profile in `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`. **Status: DESIGN LIMIT** — this budget is an engineering target chosen for demo usability on the reference hardware profile, not yet a benchmark-verified measurement (see `docs/20_DECISION_LOG.md` DEC-014 for the pending validation step). Treat it as a target to test against, not a guaranteed SLA, until DEC-014 is resolved.
 
 ## 24. Test requirements
 
@@ -157,7 +155,7 @@ Do not check `role` via a client-supplied field. Do not perform the `approvals` 
 
 ## 29. Examples
 
-**Success:** `admin` calls `POST /api/v1/human-approval/approval-ui` with a valid payload → `200 OK`, `{"status": "ok", "resource_id": "…", "state": "<next-state>"}`, one `human_approval.approval_ui` audit event recorded.
+**Success:** `admin` calls `POST /api/v1/human-approval/approval-ui` with a valid payload → `200 OK`, `{"status": "ok", "resource_id": "…", "state": "the resulting state (see `docs/runtime/_state_machines_canonical.md`)"}`, one `human_approval.approval_ui` audit event recorded.
 
 **Denied:** `restricted` calls the same endpoint → `403`, `HA-4030`, audit event recorded with `outcome=denied`.
 

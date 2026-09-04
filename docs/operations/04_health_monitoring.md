@@ -1,60 +1,17 @@
 # Health Monitoring
 
-> Directory: `docs/operations/` · File: `04_health_monitoring.md` · Kind: **operator procedure**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `03_shutdown.md` · Next: `05_log_management.md`
+> Operational runbook. Concrete, ordered steps — not a description of what the feature does
+> (see the relevant `docs/features/` file for that).
 
-## Purpose
+## Procedure
 
-**Health Monitoring** documents a day-to-day runbook step for a human operator for "health monitoring" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. `/healthz` (liveness) checked every 10s by the orchestrator; 3 consecutive failures triggers a restart.
+2. `/readyz` (readiness) checked every 5s; failure removes the instance from load balancing without restarting it.
+3. Dashboard (`features/25_observability/`) surfaces per-dependency health: Database, Object Storage, each configured Model, Vector index.
+4. Alert thresholds: any dependency unhealthy for > 60s pages the on-call operator (`11_alerting.md`).
 
-## Definition
+## Related
 
-- **What it is:** Health Monitoring is a named operator procedure within the `operations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Health Monitoring at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Health Monitoring require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Health Monitoring is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Health Monitoring enforces the same rule set described here — a feature that reads
-   Health Monitoring differently than documented here is a bug in that feature, not a variant.
-3. Where Health Monitoring interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Health Monitoring interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/operations/01_operator_guide.md`
 - `docs/deployment/13_health_checks.md`
-
-## Acceptance criteria
-
-- [ ] Health Monitoring behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Health Monitoring contradicts a related document listed above.
-- [ ] Health Monitoring is covered by at least one test referenced from `docs/testing/`.
-- [ ] Health Monitoring requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Health Monitoring, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Health Monitoring that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Health Monitoring are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+- `docs/09_BUILD_ORDER.md`
+- `docs/operations/01_operator_guide.md`

@@ -1,60 +1,24 @@
 # Change Detection
 
-> Directory: `docs/industrial/` · File: `06_change_detection.md` · Kind: **industrial capability**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `05_document_comparison.md` · Next: `07_engineering_documents.md`
+> The specific matching heuristic `05_document_comparison.md` uses to decide whether two
+> findings across documents refer to the "same" underlying item.
 
-## Purpose
+## Matching heuristic
 
-**Change Detection** documents a domain-specific capability built on the core platform for "change detection" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Two findings match if they share the same normalized `parameter` name (case/whitespace
+normalized, common synonym list applied — e.g. "torque" and "tightening force" treated as
+equivalent only if an explicit synonym mapping exists, never inferred by the model at
+comparison time) AND the same `location reference` (e.g. "Flange B") if present in both.
 
-## Definition
+## Ambiguous matches
 
-- **What it is:** Change Detection is a named industrial capability within the `industrial/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Change Detection at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Change Detection require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+If a finding in Document B has no clear match in Document A (different parameter name, no
+synonym mapping, but plausibly related), it is reported as **added**, not silently matched to
+the nearest candidate — a false match that hides a genuinely new finding is a worse failure
+mode than an extra "added" entry a human reviewer can dismiss.
 
-## Detail
+## Confidence in the diff
 
-1. Change Detection is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Change Detection enforces the same rule set described here — a feature that reads
-   Change Detection differently than documented here is a bug in that feature, not a variant.
-3. Where Change Detection interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Change Detection interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/industrial/01_industrial_intelligence_overview.md`
-- `docs/features/14_evidence_and_provenance.md`
-
-## Acceptance criteria
-
-- [ ] Change Detection behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Change Detection contradicts a related document listed above.
-- [ ] Change Detection is covered by at least one test referenced from `docs/testing/`.
-- [ ] Change Detection requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Change Detection, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Change Detection that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Change Detection are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Each diff entry carries the confidence of its underlying retrieval (`domain/13_evidence_model.md`
+`confidence` field, inherited from each side's Evidence) — a low-confidence match is flagged
+distinctly in the UI rather than presented with the same certainty as a high-confidence one.

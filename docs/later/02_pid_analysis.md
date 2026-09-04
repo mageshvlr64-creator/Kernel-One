@@ -1,59 +1,30 @@
-# Pid Analysis
+# P&ID Analysis (V2+)
 
-> Directory: `docs/later/` · File: `02_pid_analysis.md` · Kind: **deferred capability**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_advanced_industrial_intelligence.md` · Next: `03_engineering_calculation_engine.md`
+> Structured successor to `industrial/08_p_and_id_intelligence.md`'s V1-aspirational
+> description-only capability.
 
-## Purpose
+## What this would add over V1
 
-**Pid Analysis** documents a V2+ idea explicitly out of V1 scope for "pid analysis" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+- A symbol library (valves, pumps, instruments, line types) the vision pipeline matches
+  against, producing a structured `{symbol_type, tag, location}` list rather than free-text
+  description.
+- Cross-referencing extracted tags against an equipment/tag database (would require a new
+  domain entity, e.g. `EquipmentTag`, not currently in `domain/`).
+- Consistency checking (e.g. a valve referenced in text but not found on the diagram, or vice
+  versa) — genuinely useful, but requires the structured extraction above to exist first.
 
-## Definition
+## Concrete prerequisites
 
-- **What it is:** Pid Analysis is a named deferred capability within the `later/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Pid Analysis at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Pid Analysis require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+1. A labeled P&ID symbol dataset for evaluation (`benchmarks/07_visual_benchmark.md` extension).
+2. A decision on symbol library scope (industry-standard ISA symbols vs. a custom/reduced set)
+   — this is a `DECISION REQUIRED` item to be added to `20_DECISION_LOG.md` when V2 planning
+   begins, not decided speculatively here.
+3. A new domain entity and schema for extracted symbols/tags, added to `domain/` and
+   `schemas/` following the same field-level rigor as every V1 entity — not a jsonb blob
+   bolted onto an existing table.
 
-## Detail
+## Explicitly not a V1 stretch goal
 
-1. Pid Analysis is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Pid Analysis enforces the same rule set described here — a feature that reads
-   Pid Analysis differently than documented here is a bug in that feature, not a variant.
-3. Where Pid Analysis interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Pid Analysis interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/02_SCOPE_AND_NON_GOALS.md`
-
-## Acceptance criteria
-
-- [ ] Pid Analysis behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Pid Analysis contradicts a related document listed above.
-- [ ] Pid Analysis is covered by at least one test referenced from `docs/testing/`.
-- [ ] Pid Analysis requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Pid Analysis, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Pid Analysis that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Pid Analysis are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Even if time permits during V1, this capability is not attempted — the risk of a
+partially-working symbol extraction being mistaken for a reliable one outweighs the demo value,
+per the same reasoning in `industrial/12_industrial_workflow_boundaries.md`.

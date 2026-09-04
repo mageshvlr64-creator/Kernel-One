@@ -1,60 +1,24 @@
-# On Premise Deployment
+# On-Premise Deployment
 
-> Directory: `docs/deployment/` · File: `09_on_premise_deployment.md` · Kind: **deployment concern**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `08_restricted_network_deployment.md` · Next: `10_backup_deployment.md`
+> Concrete deployment procedure for `NETWORK_MODE=on_premise`
+> (`architecture/19_on_premise_architecture.md`).
 
-## Purpose
+## Procedure
 
-**On Premise Deployment** documents a topology or procedure for installing/running the system for "on premise deployment" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. Deploy within the organization's internal network, with outbound firewall rules permitting
+   traffic only to other internal hosts/subnets (never a public-internet route) — this is
+   typically an existing organizational network policy the deployment integrates with, rather
+   than a bespoke allowlist per `08_restricted_network_deployment.md`.
+2. If integrating with internal services (log aggregation, LDAP — the latter only if
+   `later/10_enterprise_identity_integration.md` is eventually built), document each
+   integration's specific network requirement explicitly.
+3. Set `NETWORK_MODE=on_premise`, run `02_startup.md`.
+4. Verify via the Network Sovereignty Panel that public-internet reachability specifically is
+   blocked, distinct from verifying zero reachability entirely (which would be incorrect for
+   this mode).
 
-## Definition
+## Distinction to communicate to the operator
 
-- **What it is:** On Premise Deployment is a named deployment concern within the `deployment/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for On Premise Deployment at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to On Premise Deployment require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. On Premise Deployment is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of On Premise Deployment enforces the same rule set described here — a feature that reads
-   On Premise Deployment differently than documented here is a bug in that feature, not a variant.
-3. Where On Premise Deployment interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where On Premise Deployment interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`
-- `docs/deployment/01_deployment_overview.md`
-
-## Acceptance criteria
-
-- [ ] On Premise Deployment behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of On Premise Deployment contradicts a related document listed above.
-- [ ] On Premise Deployment is covered by at least one test referenced from `docs/testing/`.
-- [ ] On Premise Deployment requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to On Premise Deployment, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of On Premise Deployment that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about On Premise Deployment are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+This mode is the least restrictive of the three, but still has a hard, verified guarantee: no
+public internet egress, ever — this should be stated plainly in any deployment sign-off
+documentation so "on-premise" isn't mistaken for "no sovereignty guarantee at all."

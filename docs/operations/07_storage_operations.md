@@ -1,60 +1,29 @@
 # Storage Operations
 
-> Directory: `docs/operations/` · File: `07_storage_operations.md` · Kind: **operator procedure**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `06_model_operations.md` · Next: `08_backup_operations.md`
+> Concrete procedures for the two storage systems: PostgreSQL (relational + vector) and
+> object storage (MinIO/S3-compatible, DEC-003).
 
-## Purpose
+## Capacity monitoring
 
-**Storage Operations** documents a day-to-day runbook step for a human operator for "storage operations" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+- Alert at 80% disk utilization on the PostgreSQL volume; hard-stop new writes (return
+  `DEPENDENCY_UNAVAILABLE`, never silently corrupt) at 95%.
+- Object storage: alert at 80% of the configured bucket quota; document uploads return
+  `INVALID_REQUEST` with a specific "storage full" reason rather than a generic failure once
+  the quota is reached.
 
-## Definition
+## Routine maintenance
 
-- **What it is:** Storage Operations is a named operator procedure within the `operations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Storage Operations at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Storage Operations require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+1. Weekly `VACUUM ANALYZE` on `document_chunks`, `audit_events`, `tool_invocations` (highest
+   write-volume tables).
+2. Monthly review of the `pgvector` HNSW index size vs. corpus growth; reindex if query
+   latency in `features/13_knowledge_fabric/` degrades beyond its performance budget
+   (`runtime/11_retry_policy.md` operation class `interactive-read`).
+3. Object storage: verify lifecycle policy correctly transitions soft-deleted Document/Artifact
+   blobs to a "pending purge" state after the 30-day retention window (`domain/02_workspace_model.md`
+   soft-delete note), then confirm actual deletion after the purge job runs.
 
-## Detail
+## Adding storage capacity
 
-1. Storage Operations is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Storage Operations enforces the same rule set described here — a feature that reads
-   Storage Operations differently than documented here is a bug in that feature, not a variant.
-3. Where Storage Operations interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Storage Operations interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/operations/01_operator_guide.md`
-- `docs/deployment/13_health_checks.md`
-
-## Acceptance criteria
-
-- [ ] Storage Operations behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Storage Operations contradicts a related document listed above.
-- [ ] Storage Operations is covered by at least one test referenced from `docs/testing/`.
-- [ ] Storage Operations requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Storage Operations, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Storage Operations that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Storage Operations are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Expanding the PostgreSQL volume or object storage bucket is a deployment-level change
+(`deployment/`), not an application config change — no `16_ENVIRONMENT_AND_CONFIGURATION.md`
+key controls storage size directly.

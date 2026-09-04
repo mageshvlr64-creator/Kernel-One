@@ -1,60 +1,27 @@
 # Logical Architecture
 
-> Directory: `docs/architecture/` · File: `02_logical_architecture.md` · Kind: **structural view**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `01_system_context.md` · Next: `03_runtime_architecture.md`
+> The five-layer logical view referenced by `04_SYSTEM_ARCHITECTURE.md`, expanded here with
+> the specific responsibility of each layer and what it explicitly does not do.
 
-## Purpose
+## Layers and responsibilities
 
-**Logical Architecture** documents a cross-cutting view of how components, trust zones, and deployment topologies relate for "logical architecture" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. **UI layer** (`ui/`) — rendering and user interaction only; contains no authorization logic
+   of its own (calls `POST /api/v1/rbac/check` for UX convenience, but never enforces).
+2. **API layer** (`api/`) — request validation, authentication, and routing to the correct
+   internal service; the first and last point where the `ApiSuccessEnvelope`/`ApiErrorEnvelope`
+   (`schemas/02_api_schema.md`) shape is applied.
+3. **Agent kernel layer** (`features/04_agent_kernel/`) — planning and orchestration only; does
+   not itself implement any tool's logic or any model's inference.
+4. **Capability layer** (Model Router, Inference Gateway, Tool Gateway + tools, Knowledge
+   Fabric, Artifact Engine) — does the actual work each capability is named for; has no
+   authority to bypass the trust layer below.
+5. **Trust layer** (Identity, Policy Engine, Audit, Network Sovereignty) — horizontal, called
+   by every layer above it, never the reverse.
 
-## Definition
+## What logical layering does NOT mean
 
-- **What it is:** Logical Architecture is a named structural view within the `architecture/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Logical Architecture at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Logical Architecture require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Logical Architecture is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Logical Architecture enforces the same rule set described here — a feature that reads
-   Logical Architecture differently than documented here is a bug in that feature, not a variant.
-3. Where Logical Architecture interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Logical Architecture interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-
-## Acceptance criteria
-
-- [ ] Logical Architecture behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Logical Architecture contradicts a related document listed above.
-- [ ] Logical Architecture is covered by at least one test referenced from `docs/testing/`.
-- [ ] Logical Architecture requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Logical Architecture, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Logical Architecture that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Logical Architecture are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Layers are a logical/dependency-direction concept, not necessarily separate physical
+processes in V1 (`architecture/15_single_node_architecture.md`) — several logical layers may
+run in the same container for V1's single-node deployment while still respecting the
+dependency direction, which is what makes later physical separation
+(`architecture/16_multi_node_architecture.md`) possible without a rewrite.

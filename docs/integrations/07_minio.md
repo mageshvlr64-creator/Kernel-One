@@ -1,60 +1,20 @@
-# Minio
+# MinIO Integration
 
-> Directory: `docs/integrations/` · File: `07_minio.md` · Kind: **integration**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `06_pgvector.md` · Next: `08_paddleocr.md`
+> S3-compatible object storage (DEC-003) for Documents and Artifacts.
 
-## Purpose
+## Contract
 
-**Minio** documents the contract with a specific third-party component for "minio" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Adapter uses the S3 API surface (`PutObject`, `GetObject`, `HeadObject`, lifecycle policies)
+— chosen specifically so a future migration to a different S3-compatible store, or to genuine
+AWS S3 for a cloud-permitted deployment variant (not currently in scope, would need its own
+`DECISION REQUIRED` entry), requires only a configuration change, not an adapter rewrite.
 
-## Definition
+## Bucket layout
 
-- **What it is:** Minio is a named integration within the `integrations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Minio at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Minio require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+One bucket per Workspace (or a prefix-per-workspace scheme within a single bucket — an
+implementation choice not yet fixed; whichever is chosen, workspace isolation at the storage
+layer is enforced by the adapter, not left to convention).
 
-## Detail
+## Health check
 
-1. Minio is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Minio enforces the same rule set described here — a feature that reads
-   Minio differently than documented here is a bug in that feature, not a variant.
-3. Where Minio interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Minio interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/integrations/01_integration_architecture.md`
-- `docs/06_TECHNOLOGY_STACK.md`
-
-## Acceptance criteria
-
-- [ ] Minio behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Minio contradicts a related document listed above.
-- [ ] Minio is covered by at least one test referenced from `docs/testing/`.
-- [ ] Minio requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Minio, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Minio that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Minio are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+`HEAD` on a known bucket, per `deployment/13_health_checks.md`.

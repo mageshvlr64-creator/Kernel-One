@@ -1,60 +1,25 @@
 # Concurrency
 
-> Directory: `docs/runtime/` · File: `16_concurrency.md` · Kind: **runtime rule**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `15_idempotency.md` · Next: `17_queueing.md`
+> How many things happen at once, and what isolates them from each other — the runtime
+> realization of `performance/07_concurrency_limits.md`'s budgets and
+> `architecture/13_failure_domains.md`'s isolation boundaries.
 
-## Purpose
+## Concurrency model
 
-**Concurrency** documents lifecycle, state-machine, or concurrency behavior for "concurrency" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+- **Across Tasks:** fully concurrent, up to the resource limits in
+  `performance/07_concurrency_limits.md` — one Task's execution never blocks another's.
+- **Within a single Task's Plan:** steps execute in dependency order
+  (`features/04_agent_kernel/07_step_scheduler.md`); independent steps (no dependency edge
+  between them) MAY execute concurrently if the scheduler chooses to (an implementation
+  optimization, not a correctness requirement — sequential-within-a-task execution is always
+  also correct, just potentially slower).
+- **Database:** row-level locking on `UPDATE`s to shared resources (e.g. two concurrent
+  approval-decision attempts on the same Approval row) — the second concurrent writer observes
+  the lock and receives `RESOURCE_CONFLICT` rather than silently overwriting the first.
 
-## Definition
+## Isolation
 
-- **What it is:** Concurrency is a named runtime rule within the `runtime/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Concurrency at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Concurrency require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Concurrency is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Concurrency enforces the same rule set described here — a feature that reads
-   Concurrency differently than documented here is a bug in that feature, not a variant.
-3. Where Concurrency interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Concurrency interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/failures/01_failure_handling_philosophy.md`
-
-## Acceptance criteria
-
-- [ ] Concurrency behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Concurrency contradicts a related document listed above.
-- [ ] Concurrency is covered by at least one test referenced from `docs/testing/`.
-- [ ] Concurrency requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Concurrency, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Concurrency that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Concurrency are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Concurrent Tasks share no mutable state except through the database (with the locking above)
+and the Model Router's queue (`performance/07_concurrency_limits.md`) — there is no shared
+in-memory state between concurrent Task executions that could cause one Task's bug to corrupt
+another's.

@@ -1,60 +1,23 @@
 # Accessibility
 
-> Directory: `docs/ui/` · File: `21_accessibility.md` · Kind: **UI surface**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `20_permission_denied_states.md` · Next: `22_responsive_behavior.md`
+> Canonical accessibility requirements, applying to every screen file.
 
-## Purpose
+## Requirements
 
-**Accessibility** documents layout, states, and interaction rules for one screen or panel for "accessibility" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. All interactive elements reachable via keyboard alone, in a logical tab order matching
+   visual layout (`04_layout.md`).
+2. All `StateBadge` and `ClassificationBadge` components (`02_design_system.md`) convey their
+   meaning via text label, not color alone — color-blind users must be able to distinguish
+   FAILED from SUCCEEDED without relying on red/green.
+3. All images/diagrams (evidence source previews, execution graph nodes) have text
+   alternatives sufficient to understand the state being conveyed, even if not the full visual
+   detail.
+4. Minimum contrast ratio 4.5:1 for body text, 3:1 for large text/icons, per WCAG 2.1 AA.
+5. Screen-reader announcements for state transitions that happen without user action (e.g. a
+   Task moving to WAITING_APPROVAL while the user is reading something else) use ARIA live
+   regions with `polite` priority — not `assertive`, to avoid interrupting reading.
 
-## Definition
+## Test requirement
 
-- **What it is:** Accessibility is a named UI surface within the `ui/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Accessibility at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Accessibility require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Accessibility is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Accessibility enforces the same rule set described here — a feature that reads
-   Accessibility differently than documented here is a bug in that feature, not a variant.
-3. Where Accessibility interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Accessibility interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-- `docs/ui/01_ui_architecture.md`
-
-## Acceptance criteria
-
-- [ ] Accessibility behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Accessibility contradicts a related document listed above.
-- [ ] Accessibility is covered by at least one test referenced from `docs/testing/`.
-- [ ] Accessibility requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Accessibility, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Accessibility that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Accessibility are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Each screen file's "Test requirements" (where present) includes at least one automated
+accessibility check (axe-core or equivalent) as part of `testing/06_frontend_testing.md`.

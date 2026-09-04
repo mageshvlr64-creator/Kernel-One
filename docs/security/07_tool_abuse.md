@@ -1,60 +1,28 @@
 # Tool Abuse
 
-> Directory: `docs/security/` · File: `07_tool_abuse.md` · Kind: **threat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `06_data_exfiltration.md` · Next: `08_sandbox_escape.md`
+> Threat entry. Format follows `01_security_architecture.md`'s convention: threat description,
+> where it can occur, mitigation, and traceability to requirements/tests.
 
-## Purpose
+## Threat
 
-**Tool Abuse** documents a specific threat, where it can occur, and its mitigation for "tool abuse" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+A model-generated plan attempts to invoke a tool outside its authorized risk/role band, or chains low-risk tools to achieve a high-risk effect.
 
-## Definition
+## Where it can occur
 
-- **What it is:** Tool Abuse is a named threat within the `security/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Tool Abuse at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Tool Abuse require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Tool Gateway, Agent Kernel planning.
 
-## Detail
+## Mitigation
 
-1. Tool Abuse is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Tool Abuse enforces the same rule set described here — a feature that reads
-   Tool Abuse differently than documented here is a bug in that feature, not a variant.
-3. Where Tool Abuse interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Tool Abuse interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+Every tool invocation is independently authorized at call time, not just at plan-generation time (features/05_tool_gateway/04_tool_permissions.md) — a chain of low-risk calls does not inherit a higher authorization than each individual call earns.
 
-## Interfaces and related documents
+## Traceability
 
-- **Related:**
-- `docs/security/01_security_architecture.md`
-- `docs/features/19_identity_and_rbac.md`
+- Requirements: `REQ-SEC-001`
+- Tests: `SEC-TEST-002`, `SEC-TEST-007`
 
-## Acceptance criteria
+## Residual risk
 
-- [ ] Tool Abuse behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Tool Abuse contradicts a related document listed above.
-- [ ] Tool Abuse is covered by at least one test referenced from `docs/testing/`.
-- [ ] Tool Abuse requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Tool Abuse, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Tool Abuse that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Tool Abuse are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every mitigation above reduces but does not claim to eliminate risk to zero — where a
+mitigation is preventive (e.g. container isolation), a detective control (audit logging) is
+also in place so a successful bypass is still discoverable after the fact, per
+`security/01_security_architecture.md`'s defense-in-depth principle.

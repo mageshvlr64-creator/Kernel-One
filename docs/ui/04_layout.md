@@ -1,60 +1,27 @@
 # Layout
 
-> Directory: `docs/ui/` · File: `04_layout.md` · Kind: **UI surface**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `03_navigation.md` · Next: `05_workbench_screen.md`
+> Canonical page-frame structure every screen uses.
 
-## Purpose
+## Frame
 
-**Layout** documents layout, states, and interaction rules for one screen or panel for "layout" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+```
++----------------------------------------------------------+
+| Top bar: workspace selector | user menu | network status  |
++--------+---------------------------------------------------+
+| Side   | Screen content (see ui/03_navigation.md route map)|
+| nav    |                                                    |
+|        |                                                    |
++--------+---------------------------------------------------+
+```
 
-## Definition
+- **Top bar** always shows a compact Network Sovereignty indicator (green/red dot, linking to
+  the full `13_network_panel.md`) — visible from every screen, per REQ-NET-003's intent that
+  sovereignty proof should be ambient, not something the user has to navigate to find.
+- **Side nav** collapses to icons only below 1024px viewport width (`22_responsive_behavior.md`).
+- **Content area** never exceeds 1200px max-width on large screens (readability), left-aligned,
+  not centered with large empty margins.
 
-- **What it is:** Layout is a named UI surface within the `ui/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Layout at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Layout require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+## Responsive breakpoints
 
-## Detail
-
-1. Layout is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Layout enforces the same rule set described here — a feature that reads
-   Layout differently than documented here is a bug in that feature, not a variant.
-3. Where Layout interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Layout interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-- `docs/ui/01_ui_architecture.md`
-
-## Acceptance criteria
-
-- [ ] Layout behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Layout contradicts a related document listed above.
-- [ ] Layout is covered by at least one test referenced from `docs/testing/`.
-- [ ] Layout requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Layout, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Layout that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Layout are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Defined once here: `mobile` < 640px, `tablet` 640–1024px, `desktop` > 1024px. Every screen
+file's layout notes reference these three names rather than raw pixel values.

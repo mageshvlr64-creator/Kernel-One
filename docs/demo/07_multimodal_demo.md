@@ -1,59 +1,12 @@
-# Multimodal Demo
+# Multimodal Demo (Detailed Script)
 
-> Directory: `docs/demo/` · File: `07_multimodal_demo.md` · Kind: **demo beat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `06_coding_agent_demo.md` · Next: `08_spreadsheet_demo.md`
+> Detailed script for the secondary scenario referenced in `01_demo_overview.md`.
 
-## Purpose
+## Script
 
-**Multimodal Demo** documents one scripted moment in the jury walkthrough for "multimodal demo" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
-
-## Definition
-
-- **What it is:** Multimodal Demo is a named demo beat within the `demo/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Multimodal Demo at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Multimodal Demo require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Multimodal Demo is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Multimodal Demo enforces the same rule set described here — a feature that reads
-   Multimodal Demo differently than documented here is a bug in that feature, not a variant.
-3. Where Multimodal Demo interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Multimodal Demo interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/demo/01_demo_overview.md`
-
-## Acceptance criteria
-
-- [ ] Multimodal Demo behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Multimodal Demo contradicts a related document listed above.
-- [ ] Multimodal Demo is covered by at least one test referenced from `docs/testing/`.
-- [ ] Multimodal Demo requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Multimodal Demo, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Multimodal Demo that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Multimodal Demo are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+1. **(Say)** "It can also reason about images, with appropriate caution." **(Do)** Upload
+   `03_demo_data.md`'s equipment photograph.
+2. **(Do)** Ask a descriptive question about the image.
+3. **(Say)** "Notice it states its confidence, not false precision." **(Do)** Point out the
+   caveat language in the response (`industrial/09_drawing_understanding.md`'s required
+   pattern), framing this as a deliberate design choice, not a limitation being hidden.

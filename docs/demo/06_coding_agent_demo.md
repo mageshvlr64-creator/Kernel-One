@@ -1,59 +1,20 @@
-# Coding Agent Demo
+# Coding Agent Demo (Detailed Script)
 
-> Directory: `docs/demo/` · File: `06_coding_agent_demo.md` · Kind: **demo beat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `05_inspection_report_demo.md` · Next: `07_multimodal_demo.md`
+> Detailed script for the secondary scenario referenced in `01_demo_overview.md`.
 
-## Purpose
+## Script
 
-**Coding Agent Demo** documents one scripted moment in the jury walkthrough for "coding agent demo" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. **(Say)** "Now a different kind of task — writing and running code, safely." **(Do)** Give
+   the agent `03_demo_data.md`'s coding task prompt.
+2. **(Say)** "This runs in an isolated sandbox with no network access." **(Do)** Show the
+   Execution Graph (`ui/08_execution_graph_ui.md`) as the agent plans and executes steps.
+3. **(Do)** If the first attempt has a test failure (can be seeded deliberately for the demo
+   to show resilience), let the agent replan and self-correct — narrate this as
+   `features/04_agent_kernel/10_replanning.md` in action.
+4. **(Do)** Show the final passing test output and the generated code Artifact.
 
-## Definition
+## Optional resilience beat
 
-- **What it is:** Coding Agent Demo is a named demo beat within the `demo/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Coding Agent Demo at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Coding Agent Demo require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Coding Agent Demo is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Coding Agent Demo enforces the same rule set described here — a feature that reads
-   Coding Agent Demo differently than documented here is a bug in that feature, not a variant.
-3. Where Coding Agent Demo interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Coding Agent Demo interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/demo/01_demo_overview.md`
-
-## Acceptance criteria
-
-- [ ] Coding Agent Demo behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Coding Agent Demo contradicts a related document listed above.
-- [ ] Coding Agent Demo is covered by at least one test referenced from `docs/testing/`.
-- [ ] Coding Agent Demo requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Coding Agent Demo, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Coding Agent Demo that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Coding Agent Demo are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Deliberately seed a subtle bug in the task prompt's expected first attempt to *show* the
+replanning loop working live, rather than hoping for a naturally-occurring failure — this
+makes the demo's most interesting behavior (self-correction) reliably reproducible.

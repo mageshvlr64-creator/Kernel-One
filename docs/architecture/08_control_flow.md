@@ -1,60 +1,28 @@
 # Control Flow
 
-> Directory: `docs/architecture/` · File: `08_control_flow.md` · Kind: **structural view**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `07_data_flow.md` · Next: `09_trust_boundaries.md`
+> Authorization and decision-making flow, complementing `07_data_flow.md`'s data movement view.
 
-## Purpose
+## Every state-changing request's control flow
 
-**Control Flow** documents a cross-cutting view of how components, trust zones, and deployment topologies relate for "control flow" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+```
+Request -> API (authn) -> Policy Engine (authz decision) -> [DENIED: return error, audit, stop]
+                                                          -> [ALLOWED: proceed to owning service]
+Owning service -> [risk=high? -> Human Approval gate -> wait for decision] -> execute -> Audit
+```
 
-## Definition
+## Agent planning control flow
 
-- **What it is:** Control Flow is a named structural view within the `architecture/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Control Flow at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Control Flow require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+```
+Task created -> Agent Kernel requests a Plan from the Model Router/Inference Gateway
+  -> Plan validated (features/04_agent_kernel/05_plan_validation.md)
+  -> [INVALID: replan or fail] -> [VALID: Step Scheduler executes steps in dependency order]
+  -> each step's tool call re-enters the "every state-changing request" control flow above
+     (a plan step does not inherit blanket authorization from the plan having been validated)
+```
 
-## Detail
+## Key architectural point
 
-1. Control Flow is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Control Flow enforces the same rule set described here — a feature that reads
-   Control Flow differently than documented here is a bug in that feature, not a variant.
-3. Where Control Flow interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Control Flow interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-
-## Acceptance criteria
-
-- [ ] Control Flow behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Control Flow contradicts a related document listed above.
-- [ ] Control Flow is covered by at least one test referenced from `docs/testing/`.
-- [ ] Control Flow requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Control Flow, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Control Flow that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Control Flow are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Plan validation checks *structure* (valid tool IDs, valid dependency graph); it does NOT grant
+authorization for any step — each step is authorized independently at execution time, which is
+why `security/07_tool_abuse.md`'s mitigation ("no chained privilege") is architecturally true,
+not just a policy statement.

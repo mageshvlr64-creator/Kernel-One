@@ -1,60 +1,21 @@
 # Drawing Understanding
 
-> Directory: `docs/industrial/` · File: `09_drawing_understanding.md` · Kind: **industrial capability**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `08_p_and_id_intelligence.md` · Next: `10_engineering_calculations.md`
+> General engineering-drawing (non-P&ID) visual understanding — **V1-aspirational**, same
+> status as `08_p_and_id_intelligence.md`. See `later/04_drawing_intelligence.md` for the V2
+> treatment.
 
-## Purpose
+## V1 scope
 
-**Drawing Understanding** documents a domain-specific capability built on the core platform for "drawing understanding" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Same constraint as P&ID: `features/12_multimodal/` can describe a drawing in general visual
+terms via a vision-capable model, explicitly caveated as a description rather than a
+dimension/tolerance extraction. Numeric dimensions read off a drawing by the vision model are
+treated as **unverified OCR-adjacent extraction**, not a calculator-verified value
+(`features/07_calculator_tool/05_deterministic_verification.md` applies only to values the
+Calculator Tool has actually computed or checked, not to values a vision model merely read off
+an image).
 
-## Definition
+## Required user-facing caveat
 
-- **What it is:** Drawing Understanding is a named industrial capability within the `industrial/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Drawing Understanding at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Drawing Understanding require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Drawing Understanding is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Drawing Understanding enforces the same rule set described here — a feature that reads
-   Drawing Understanding differently than documented here is a bug in that feature, not a variant.
-3. Where Drawing Understanding interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Drawing Understanding interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/industrial/01_industrial_intelligence_overview.md`
-- `docs/features/14_evidence_and_provenance.md`
-
-## Acceptance criteria
-
-- [ ] Drawing Understanding behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Drawing Understanding contradicts a related document listed above.
-- [ ] Drawing Understanding is covered by at least one test referenced from `docs/testing/`.
-- [ ] Drawing Understanding requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Drawing Understanding, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Drawing Understanding that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Drawing Understanding are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Any dimension or tolerance value stated by the agent from a drawing image includes: "read from
+the drawing image, not independently verified — confirm against the source before acting on
+this number."

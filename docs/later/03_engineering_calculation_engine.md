@@ -1,59 +1,26 @@
-# Engineering Calculation Engine
+# Engineering Calculation Engine (V2+)
 
-> Directory: `docs/later/` · File: `03_engineering_calculation_engine.md` · Kind: **deferred capability**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `02_pid_analysis.md` · Next: `04_drawing_intelligence.md`
+> Structured successor to `industrial/10_engineering_calculations.md`'s V1 pattern (ad hoc
+> Calculator Tool invocations per finding).
 
-## Purpose
+## What this would add over V1
 
-**Engineering Calculation Engine** documents a V2+ idea explicitly out of V1 scope for "engineering calculation engine" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+A formula/standards library (e.g. specific torque-spec formulas per bolt class and standard)
+that the agent selects from explicitly, rather than the model choosing an ad hoc formula per
+question. This directly addresses the gap named in
+`industrial/11_calculation_verification.md`: "the system does not verify formula selection" —
+a proper engine would make formula selection itself an auditable, versioned choice
+(`{standard_id, formula_id}` recorded per calculation, not just the numeric inputs/output).
 
-## Definition
+## Why this is a real engineering effort, not a config addition
 
-- **What it is:** Engineering Calculation Engine is a named deferred capability within the `later/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Engineering Calculation Engine at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Engineering Calculation Engine require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Each formula/standard entry needs: the formula itself, its applicability conditions (e.g.
+material, size range), a citation to the actual standard document, and a review/approval
+process for adding new entries (this is exactly the kind of "policy" data that should go
+through the same rigor as `domain/16_policy_model.md`, not be hardcoded).
 
-## Detail
+## Prerequisite
 
-1. Engineering Calculation Engine is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Engineering Calculation Engine enforces the same rule set described here — a feature that reads
-   Engineering Calculation Engine differently than documented here is a bug in that feature, not a variant.
-3. Where Engineering Calculation Engine interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Engineering Calculation Engine interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/02_SCOPE_AND_NON_GOALS.md`
-
-## Acceptance criteria
-
-- [ ] Engineering Calculation Engine behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Engineering Calculation Engine contradicts a related document listed above.
-- [ ] Engineering Calculation Engine is covered by at least one test referenced from `docs/testing/`.
-- [ ] Engineering Calculation Engine requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Engineering Calculation Engine, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Engineering Calculation Engine that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Engineering Calculation Engine are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+A named domain expert or standards body input is required to seed the initial formula library
+correctly — this is explicitly not something to auto-generate from model output, since a
+wrong formula silently presented as verified is worse than no automation at all.

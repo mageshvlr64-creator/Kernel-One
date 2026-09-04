@@ -1,59 +1,23 @@
-# Risk Levels
+# Risk Levels (Reference)
 
-> Directory: `docs/reference/` · File: `03_risk_levels.md` · Kind: **reference table**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `02_status_codes.md` · Next: `04_data_classification_levels.md`
+> Canonical definition of `low`/`medium`/`high` as used throughout `features/`,
+> `reference/05_permission_matrix.md`, and `features/16_human_approval/`.
 
-## Purpose
+| Level | Definition | Example actions | Approval required? |
+|---|---|---|---|
+| `low` | Read-only or fully reversible, no data leaves its current scope | Chat, document read, search, calculator | No |
+| `medium` | Writes data or has a limited, contained effect; reversible with effort | Document upload, artifact generation (non-export), most tool invocations | No, but subject to role/classification checks |
+| `high` | Irreversible, exports data beyond its current boundary, or executes arbitrary code | Code execution, artifact export at CONFIDENTIAL+, destructive file operations, privileged config change | **Yes** — REQ-FUNC-003 |
 
-**Risk Levels** documents a lookup table other documents point to for "risk levels" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+## Assignment rule
 
-## Definition
+A feature's risk level is assigned once, in its own `features/` file (see each file's
+"Permission requirements" section), and referenced everywhere else (this table, the
+permission matrix, the demo script) — never reassigned ad hoc per invocation.
 
-- **What it is:** Risk Levels is a named reference table within the `reference/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Risk Levels at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Risk Levels require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+## Escalation
 
-## Detail
-
-1. Risk Levels is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Risk Levels enforces the same rule set described here — a feature that reads
-   Risk Levels differently than documented here is a bug in that feature, not a variant.
-3. Where Risk Levels interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Risk Levels interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/18_DOCUMENTATION_INDEX.md`
-
-## Acceptance criteria
-
-- [ ] Risk Levels behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Risk Levels contradicts a related document listed above.
-- [ ] Risk Levels is covered by at least one test referenced from `docs/testing/`.
-- [ ] Risk Levels requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Risk Levels, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Risk Levels that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Risk Levels are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+An otherwise-`medium` action escalates to `high` if its target resource's classification is
+`CONFIDENTIAL` or above (e.g. artifact export, per `workflows/07_report_generation.md`) — risk
+level is a function of both the action type and the resource's classification, not the action
+type alone.

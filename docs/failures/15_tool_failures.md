@@ -1,60 +1,31 @@
-# Tool Failures
+# Tool Failures (general)
 
-> Directory: `docs/failures/` · File: `15_tool_failures.md` · Kind: **failure mode**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `14_planning_failures.md` · Next: `16_tool_timeout.md`
+> Failure mode entry. Referenced by the owning feature's "Failure modes" section
+> (`docs/features/`) rather than restated there.
 
-## Purpose
+## Trigger
 
-**Tool Failures** documents a named failure, its detection signal, and system response for "tool failures" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+A ToolInvocation returns a failure result or raises an exception.
 
-## Definition
+## Detection
 
-- **What it is:** Tool Failures is a named failure mode within the `failures/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Tool Failures at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Tool Failures require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Tool Gateway's result handling (features/05_tool_gateway/12_tool_failure_modes.md).
 
-## Detail
+## System response
 
-1. Tool Failures is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Tool Failures enforces the same rule set described here — a feature that reads
-   Tool Failures differently than documented here is a bug in that feature, not a variant.
-3. Where Tool Failures interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Tool Failures interacts with risk or exposure, treat it as **high**-sensitivity by
-   default unless a specific feature file states otherwise.
+ToolInvocation state → `FAILED`; specific error code depends on the tool (see the tool's own failure-modes section).
 
-## Interfaces and related documents
+## Error code
 
-- **Related:**
-- `docs/failures/01_failure_handling_philosophy.md`
-- `docs/runtime/11_retry_policy.md`
+`TOOL_EXECUTION_FAILED` (see `reference/01_error_codes.md` for HTTP status and full detail)
 
-## Acceptance criteria
+## Recovery
 
-- [ ] Tool Failures behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Tool Failures contradicts a related document listed above.
-- [ ] Tool Failures is covered by at least one test referenced from `docs/testing/`.
-- [ ] Tool Failures requires no outbound network access to function correctly.
+Agent kernel replans (retry, substitute, or surface) per features/04_agent_kernel/10_replanning.md.
 
-## Implementation notes for AI agents
+## Audit requirement
 
-Before changing anything related to Tool Failures, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Tool Failures that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Tool Failures are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every occurrence of this failure produces an `AuditEvent` with `result=error` and this
+failure's error code, per `schemas/15_audit_event_schema.md` — this applies even to failures
+that are ultimately the system behaving correctly (e.g. a correctly-blocked network attempt)
+since REQ-AUD-001 makes no exception for "expected" failures.

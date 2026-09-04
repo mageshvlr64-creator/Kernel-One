@@ -1,60 +1,22 @@
-# Pgvector
+# pgvector Integration
 
-> Directory: `docs/integrations/` · File: `06_pgvector.md` · Kind: **integration**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `05_postgresql.md` · Next: `07_minio.md`
+> The vector-search extension to PostgreSQL (DEC-002), specifically for
+> `document_chunks.embedding` (`schemas/01_database_schema.md`).
 
-## Purpose
+## Index type
 
-**Pgvector** documents the contract with a specific third-party component for "pgvector" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+HNSW (`CREATE INDEX ... USING hnsw`), chosen over IVFFlat for better recall at V1's expected
+corpus size without requiring a separate training/build step that IVFFlat needs — this
+tradeoff is documented here rather than left implicit in the DDL comment alone.
 
-## Definition
+## Distance metric
 
-- **What it is:** Pgvector is a named integration within the `integrations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Pgvector at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Pgvector require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Cosine distance (`vector_cosine_ops`), matching the embedding model's training objective —
+changing the embedding model (`features/01_model_management/`) without re-verifying this
+metric choice is still appropriate is a `DECISION REQUIRED`-worthy check, not an assumed-safe
+swap.
 
-## Detail
+## Scaling boundary
 
-1. Pgvector is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Pgvector enforces the same rule set described here — a feature that reads
-   Pgvector differently than documented here is a bug in that feature, not a variant.
-3. Where Pgvector interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Pgvector interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/integrations/01_integration_architecture.md`
-- `docs/06_TECHNOLOGY_STACK.md`
-
-## Acceptance criteria
-
-- [ ] Pgvector behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Pgvector contradicts a related document listed above.
-- [ ] Pgvector is covered by at least one test referenced from `docs/testing/`.
-- [ ] Pgvector requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Pgvector, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Pgvector that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Pgvector are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+See `performance/12_scaling_limits.md` for where pgvector's practical performance ceiling sits
+relative to V1's expected corpus size.

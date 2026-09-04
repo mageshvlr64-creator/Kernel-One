@@ -1,60 +1,20 @@
-# GPU Budgets
+# GPU (VRAM) Budgets
 
-> Directory: `docs/performance/` · File: `05_gpu_budgets.md` · Kind: **performance budget**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `04_cpu_budgets.md` · Next: `06_storage_budgets.md`
+> Restates and cross-references `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`'s model-sizing
+> section specifically as a performance-budget concern (this file is the pointer; that file
+> is the canonical sizing math, MoE storage-vs-active-parameter distinction, and reference
+> registry — not restated here).
 
-## Purpose
+## Budget allocation for PROFILE-B (12-16GB VRAM)
 
-**GPU Budgets** documents a specific latency/resource target and its consequence on breach for "gpu budgets" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Allocation | Approx. VRAM | Notes |
+|---|---|---|
+| `general-reasoning`/`coding` capability model (7-8B, 4-bit) | 5-9GB | See `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md` reference registry |
+| `vision` capability model, if co-resident | 6-8GB | May require swap-in/swap-out with the text model if combined footprint exceeds available VRAM (`deployment/05_gpu_server.md`) |
+| KV cache headroom | 1-3GB | Scales with context length × concurrent requests |
+| Reserved headroom (driver overhead, fragmentation) | ~1GB | CONFIG DEFAULT safety margin |
 
-## Definition
+## Rule
 
-- **What it is:** GPU Budgets is a named performance budget within the `performance/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for GPU Budgets at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to GPU Budgets require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. GPU Budgets is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of GPU Budgets enforces the same rule set described here — a feature that reads
-   GPU Budgets differently than documented here is a bug in that feature, not a variant.
-3. Where GPU Budgets interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where GPU Budgets interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/performance/01_performance_requirements.md`
-- `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`
-
-## Acceptance criteria
-
-- [ ] GPU Budgets behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of GPU Budgets contradicts a related document listed above.
-- [ ] GPU Budgets is covered by at least one test referenced from `docs/testing/`.
-- [ ] GPU Budgets requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to GPU Budgets, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of GPU Budgets that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about GPU Budgets are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+See `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md` for the authoritative math (MoE total vs.
+active parameters, REQ-AI-003) — this file only restates it as a performance-budget line item.

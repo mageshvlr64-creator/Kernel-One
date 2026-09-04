@@ -24,6 +24,12 @@ repeat these ground rules in 650 places, they live once, in this file.
 3. **Enforcement.** Adherence to Documentation Index is part of `11_DEFINITION_OF_DONE.md` and
    `12_GLOBAL_ACCEPTANCE_CRITERIA.md` — it is checked, not assumed.
 
+## New root files added during the audit pass
+
+This specification also includes `21_COMPETITIVE_POSITIONING.md` (prior-art comparison,
+Upgrade Prompt §52) and `runtime/_state_machines_canonical.md` (the single source for all
+entity state machines, referenced by `runtime/04..09_*_state_machine.md` pointer files).
+
 ## Related documents
 
 - `docs/13_DEVELOPER_RULES.md`

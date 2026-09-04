@@ -1,36 +1,51 @@
-# Environment and Configuration
+# Environment and Configuration (Canonical)
 
-> Root specification document · `docs/16_ENVIRONMENT_AND_CONFIGURATION.md`
-> Previous: `15_CODEBASE_TARGET_STRUCTURE.md` · Next: `17_SOURCE_TRACEABILITY.md`
+> Single owner for every configuration key. No feature document defines its own config key
+> without adding it here in the same change.
 
-## Purpose
+## Format
 
-This document defines how the system is configured per environment/deployment mode, and what must never be hardcoded for the Sovereign AI Workbench (SIH26176).
+`.env` file (local dev) or environment variables (containers), loaded once at process start,
+validated against a schema (`schemas/19_configuration_schema.md`) — invalid/missing required
+values fail startup immediately, never fall back to a silent default for security-relevant keys.
 
-## Why this document exists
+## Core keys
 
-Every other document in this tree — every file under `features/`, `architecture/`,
-`api/`, and so on — assumes the reader already agrees with what's written here. Rather than
-repeat these ground rules in 650 places, they live once, in this file.
+| Key | Required | Default | Secret? | Notes |
+|---|---|---|---|---|
+| `NETWORK_MODE` | yes | `air_gapped` | no | `air_gapped` \| `restricted` \| `on_premise` — REQ-NET-002 |
+| `DATABASE_URL` | yes | — | yes | PostgreSQL connection string |
+| `OBJECT_STORAGE_ENDPOINT` | yes | — | no | MinIO/S3-compatible endpoint |
+| `OBJECT_STORAGE_ACCESS_KEY` | yes | — | yes | — |
+| `OBJECT_STORAGE_SECRET_KEY` | yes | — | yes | — |
+| `JWT_SIGNING_KEY` | yes | — | yes | Generated at first deploy, never hardcoded; rotation procedure in `operations/06_model_operations.md`-adjacent ops runbook |
+| `AGENT_MAX_STEPS` | no | `20` | no | REQ-FUNC-002, CONFIG DEFAULT |
+| `AGENT_MAX_REPLANS` | no | `3` | no | CONFIG DEFAULT |
+| `APPROVAL_EXPIRY_HOURS` | no | `24` | no | CONFIG DEFAULT |
+| `MAX_UPLOAD_SIZE_BYTES` | no | `209715200` (200MB) | no | CONFIG DEFAULT |
+| `MODEL_REGISTRY_PATH` | yes | — | no | Path/URI to the model registry config (`features/01_model_management/`) |
+| `RESTRICTED_MODE_ALLOWLIST` | only if `NETWORK_MODE=restricted` | — | no | Comma-separated host:port allowlist, REQ-NET-002 |
+| `RATE_LIMIT_PER_MINUTE` | no | `60` | no | `schemas/02_api_schema.md` |
+| `LOG_LEVEL` | no | `info` | no | `debug` \| `info` \| `warn` \| `error` |
+| `OTEL_EXPORTER_ENDPOINT` | no | `http://localhost:4317` (internal only) | no | must resolve to a `localhost`/internal address; never external |
 
-## Content
+## Precedence
 
-1. **Statement.** Environment and Configuration is authoritative for its topic across the entire Sovereign AI Workbench
-   specification; no feature-level document may contradict it without first updating it here.
-2. **Cross-cutting application.** Every feature group under `docs/features/` is expected to be
-   consistent with Environment and Configuration — if a reviewer finds a feature file that conflicts with this
-   document, the feature file is wrong, not this one, unless this document is explicitly
-   revised (with a note in `20_DECISION_LOG.md`).
-3. **Enforcement.** Adherence to Environment and Configuration is part of `11_DEFINITION_OF_DONE.md` and
-   `12_GLOBAL_ACCEPTANCE_CRITERIA.md` — it is checked, not assumed.
+1. Environment variable (highest)
+2. `.env` file (local development only — never used in `on_premise`/`restricted`/`air_gapped`
+   production images)
+3. Schema-declared default (only for keys marked "no" under Required)
 
-## Related documents
+## Per-environment profiles
 
-- `docs/13_DEVELOPER_RULES.md`
-- `docs/14_AI_IMPLEMENTATION_PROTOCOL.md`
-- `docs/18_DOCUMENTATION_INDEX.md`
+- **Development:** `.env.development` — `NETWORK_MODE=restricted` permitted for pulling
+  dependencies during setup only; must be switched to `air_gapped` before any sovereignty test.
+- **Production (air-gapped):** `NETWORK_MODE=air_gapped`, no `.env` file baked into the image;
+  all secrets injected via the container orchestrator's secret mechanism, never a file in the
+  image layer.
 
-## Maintenance
+## Rule
 
-Changes to Environment and Configuration must be reflected in `docs/20_DECISION_LOG.md` with the date, the reason
-for the change, and which downstream documents were checked for consistency afterward.
+Configuration definitions never live inside a `features/` document — a feature document may
+reference a key by name (e.g. "see `AGENT_MAX_STEPS` in `16_ENVIRONMENT_AND_CONFIGURATION.md`")
+but does not restate its default or type.

@@ -1,60 +1,19 @@
 # Storage Boundaries
 
-> Directory: `docs/architecture/` · File: `12_storage_boundaries.md` · Kind: **structural view**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `11_network_boundaries.md` · Next: `13_failure_domains.md`
+> Which component may read/write which storage system directly.
 
-## Purpose
+## Boundaries
 
-**Storage Boundaries** documents a cross-cutting view of how components, trust zones, and deployment topologies relate for "storage boundaries" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Storage | Direct write access | Direct read access |
+|---|---|---|
+| PostgreSQL tables (per `05_component_boundaries.md` ownership) | Only the owning service | Any service, through the owner's query interface — but classification/workspace filters (`features/20_data_classification/`) apply to every read, not only the owner's own reads |
+| Object storage (Documents, Artifacts) | Document Ingestion, Artifact Engine respectively | Any service holding a valid `storage_uri` AND passing the classification check for that document/artifact |
+| Task workspace filesystem (sandboxed, per-task) | Filesystem Tool, Code Execution (within that task's workspace only) | Same, workspace-scoped |
+| Audit event store | Audit Service only (append) | Any service via the Audit API, filtered by role (`api/19_audit_api.md`) |
 
-## Definition
+## Rule
 
-- **What it is:** Storage Boundaries is a named structural view within the `architecture/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Storage Boundaries at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Storage Boundaries require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Storage Boundaries is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Storage Boundaries enforces the same rule set described here — a feature that reads
-   Storage Boundaries differently than documented here is a bug in that feature, not a variant.
-3. Where Storage Boundaries interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Storage Boundaries interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-
-## Acceptance criteria
-
-- [ ] Storage Boundaries behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Storage Boundaries contradicts a related document listed above.
-- [ ] Storage Boundaries is covered by at least one test referenced from `docs/testing/`.
-- [ ] Storage Boundaries requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Storage Boundaries, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Storage Boundaries that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Storage Boundaries are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+"Direct" access above means at the database/filesystem-driver level — every other form of
+access goes through an API/internal-interface call, which is where the classification and
+permission checks actually live (this file names the boundary; `features/20_data_classification/`
+and `features/21_policy_engine/` define the check itself).

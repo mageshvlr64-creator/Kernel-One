@@ -1,60 +1,18 @@
 # Resource Benchmark
 
-> Directory: `docs/benchmarks/` · File: `12_resource_benchmark.md` · Kind: **benchmark**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `11_latency_benchmark.md` · Next: `13_reliability_benchmark.md`
+> Verifies `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`'s VRAM/RAM sizing claims against actual
+> measured usage for the pinned model.
 
-## Purpose
+## Method
 
-**Resource Benchmark** documents what is measured and how it feeds the model router for "resource benchmark" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Measure actual VRAM usage (weights + KV cache at realistic context lengths/batch sizes) and
+host RAM usage for the candidate model on PROFILE-B hardware; compare against the rough sizing
+formula in `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md` ("DESIGN LIMIT / rough sizing
+guidance") and flag any significant discrepancy.
 
-## Definition
+## Rule
 
-- **What it is:** Resource Benchmark is a named benchmark within the `benchmarks/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Resource Benchmark at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Resource Benchmark require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Resource Benchmark is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Resource Benchmark enforces the same rule set described here — a feature that reads
-   Resource Benchmark differently than documented here is a bug in that feature, not a variant.
-3. Where Resource Benchmark interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Resource Benchmark interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/features/02_model_router.md`
-- `docs/benchmarks/01_benchmark_overview.md`
-
-## Acceptance criteria
-
-- [ ] Resource Benchmark behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Resource Benchmark contradicts a related document listed above.
-- [ ] Resource Benchmark is covered by at least one test referenced from `docs/testing/`.
-- [ ] Resource Benchmark requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Resource Benchmark, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Resource Benchmark that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Resource Benchmark are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+If actual measured usage differs materially from the rough formula's estimate, the formula's
+documented status changes from "DESIGN LIMIT" to include the measured correction factor for
+that specific model family, rather than leaving future readers to rely on an unverified
+formula.

@@ -1,60 +1,25 @@
-# Classification Model
+# ClassificationLevel (reference, not a table)
 
-> Directory: `docs/domain/` · File: `19_classification_model.md` · Kind: **domain entity**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `18_memory_model.md` · Next: _(last document in this directory)_
+> Canonical field-level definition. `docs/schemas/` holds the matching JSON Schema for any
+> wire/storage representation of these fields; this file is the authoritative field list.
 
-## Purpose
+## Fields
 
-**Classification Model** documents a core entity's identity, fields, lifecycle, and relationships for "classification model" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Field | Type | Required | Default | Constraints |
+|---|---|---|---|---|
+| `level` | enum | yes | — | `PUBLIC` < `INTERNAL` < `CONFIDENTIAL` < `RESTRICTED` — see `reference/04_data_classification_levels.md` |
 
-## Definition
+## Notes
 
-- **What it is:** Classification Model is a named domain entity within the `domain/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Classification Model at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Classification Model require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Classification is a fixed, ordered enum used as a column type across `Document`, `User.clearance`, `Model.max_classification`, `Evidence` (inherited), and `Artifact` (computed) — it is not a separate persisted table. Full allowed-users/models/tools/export rules per level are defined once in `reference/04_data_classification_levels.md`.
 
-## Detail
+## Ownership
 
-1. Classification Model is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Classification Model enforces the same rule set described here — a feature that reads
-   Classification Model differently than documented here is a bug in that feature, not a variant.
-3. Where Classification Model interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Classification Model interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+This entity is owned and mutated only by the component named in its lifecycle description
+above. Every other component reads it through the API/internal interface defined in
+`docs/api/` and `docs/features/`, never by writing to its table directly.
 
-## Interfaces and related documents
+## Audit behavior
 
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/schemas/01_database_schema.md`
-
-## Acceptance criteria
-
-- [ ] Classification Model behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Classification Model contradicts a related document listed above.
-- [ ] Classification Model is covered by at least one test referenced from `docs/testing/`.
-- [ ] Classification Model requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Classification Model, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Classification Model that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Classification Model are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every insert/update/soft-delete on this entity's table produces a matching `AuditEvent`
+(`schemas/15_audit_event_schema.md`) in the same transaction, per REQ-AUD-001.

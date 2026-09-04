@@ -1,60 +1,22 @@
-# Air Gapped Architecture
+# Air-Gapped Architecture
 
-> Directory: `docs/architecture/` · File: `17_air_gapped_architecture.md` · Kind: **structural view**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `16_multi_node_architecture.md` · Next: `18_restricted_network_architecture.md`
+> The `NETWORK_MODE=air_gapped` realization of `11_network_boundaries.md`.
 
-## Purpose
+## Defining property
 
-**Air Gapped Architecture** documents a cross-cutting view of how components, trust zones, and deployment topologies relate for "air gapped architecture" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Zero outbound connectivity, including no DNS resolution for any non-`localhost`/internal
+address — this is the strictest of the three modes (REQ-NET-002) and is the mode used for the
+reference demo (`demo/01_demo_overview.md`).
 
-## Definition
+## Operational implication
 
-- **What it is:** Air Gapped Architecture is a named structural view within the `architecture/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Air Gapped Architecture at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Air Gapped Architecture require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+All models, embedding models, and OCR engines must be pre-loaded onto the host **before** the
+network is physically disconnected — there is no runtime model-download capability in this
+mode, by design (a "download on demand" feature would itself require exactly the network
+access this mode forbids).
 
-## Detail
+## Verification
 
-1. Air Gapped Architecture is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Air Gapped Architecture enforces the same rule set described here — a feature that reads
-   Air Gapped Architecture differently than documented here is a bug in that feature, not a variant.
-3. Where Air Gapped Architecture interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Air Gapped Architecture interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-
-## Acceptance criteria
-
-- [ ] Air Gapped Architecture behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Air Gapped Architecture contradicts a related document listed above.
-- [ ] Air Gapped Architecture is covered by at least one test referenced from `docs/testing/`.
-- [ ] Air Gapped Architecture requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Air Gapped Architecture, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Air Gapped Architecture that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Air Gapped Architecture are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+`features/18_network_sovereignty/`'s monitor continuously probes and confirms zero external
+connectivity throughout operation — this is the mode `TEST-NET-001`/`SEC-TEST-008` are
+specifically written against.

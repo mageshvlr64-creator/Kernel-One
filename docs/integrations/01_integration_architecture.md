@@ -1,60 +1,25 @@
 # Integration Architecture
 
-> Directory: `docs/integrations/` · File: `01_integration_architecture.md` · Kind: **integration**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: _(first document in this directory)_ · Next: `02_vllm.md`
+> How every third-party component is wrapped, so a swap of any one never leaks into
+> application code beyond its adapter — the concrete pattern behind DEC-004's
+> multi-provider inference design and every other integration below.
 
-## Purpose
+## Pattern
 
-**Integration Architecture** documents the contract with a specific third-party component for "integration architecture" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Every integration in this directory is accessed through exactly one adapter module
+(`packages/` or the owning service's own `adapters/` subfolder per
+`15_CODEBASE_TARGET_STRUCTURE.md`) implementing a fixed interface the rest of the application
+depends on — never the third-party library's native API surface directly from business logic.
 
-## Definition
+## Why this matters for sovereignty specifically
 
-- **What it is:** Integration Architecture is a named integration within the `integrations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Integration Architecture at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Integration Architecture require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+An adapter is also the enforcement point for "this library doesn't phone home" — since a
+raw third-party library call bypassing the adapter is exactly the gap
+`security/14_network_bypass.md` and the egress-guard pattern
+(`features/18_network_sovereignty/`) are designed to catch, keeping all such calls behind a
+reviewed adapter reduces the surface that needs auditing.
 
-## Detail
+## Failure policy
 
-1. Integration Architecture is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Integration Architecture enforces the same rule set described here — a feature that reads
-   Integration Architecture differently than documented here is a bug in that feature, not a variant.
-3. Where Integration Architecture interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Integration Architecture interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/integrations/01_integration_architecture.md`
-- `docs/06_TECHNOLOGY_STACK.md`
-
-## Acceptance criteria
-
-- [ ] Integration Architecture behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Integration Architecture contradicts a related document listed above.
-- [ ] Integration Architecture is covered by at least one test referenced from `docs/testing/`.
-- [ ] Integration Architecture requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Integration Architecture, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Integration Architecture that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Integration Architecture are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+See `16_integration_failure_policy.md` for the shared failure-handling rule every integration
+below follows.

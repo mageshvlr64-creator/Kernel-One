@@ -1,60 +1,24 @@
-# Air Gapped Deployment
+# Air-Gapped Deployment
 
-> Directory: `docs/deployment/` · File: `07_air_gapped_deployment.md` · Kind: **deployment concern**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `06_cpu_only_demo.md` · Next: `08_restricted_network_deployment.md`
+> Concrete deployment procedure for `NETWORK_MODE=air_gapped`
+> (`architecture/17_air_gapped_architecture.md`).
 
-## Purpose
+## Procedure
 
-**Air Gapped Deployment** documents a topology or procedure for installing/running the system for "air gapped deployment" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. On a machine WITH internet access, download all required container images, model weights,
+   and dependency packages; verify checksums.
+2. Transfer to the target air-gapped host via physical media or an approved one-way transfer
+   mechanism (organization-specific, out of this specification's scope).
+3. On the target host, load container images (`docker load`), place model weights at the
+   configured path, install packages from the local bundle (never `pip install`/`npm install`
+   reaching out live).
+4. Physically disconnect or firewall the host's network interface before starting services.
+5. Set `NETWORK_MODE=air_gapped`, run `02_startup.md`.
+6. Verify via the Network Sovereignty Panel (`ui/13_network_panel.md`) and, ideally, an
+   independent packet capture on the physical network segment, that zero external traffic
+   occurs during a full smoke-test session.
 
-## Definition
+## Ongoing operation
 
-- **What it is:** Air Gapped Deployment is a named deployment concern within the `deployment/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Air Gapped Deployment at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Air Gapped Deployment require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Air Gapped Deployment is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Air Gapped Deployment enforces the same rule set described here — a feature that reads
-   Air Gapped Deployment differently than documented here is a bug in that feature, not a variant.
-3. Where Air Gapped Deployment interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Air Gapped Deployment interacts with risk or exposure, treat it as **medium**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`
-- `docs/deployment/01_deployment_overview.md`
-
-## Acceptance criteria
-
-- [ ] Air Gapped Deployment behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Air Gapped Deployment contradicts a related document listed above.
-- [ ] Air Gapped Deployment is covered by at least one test referenced from `docs/testing/`.
-- [ ] Air Gapped Deployment requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Air Gapped Deployment, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Air Gapped Deployment that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Air Gapped Deployment are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+No live package/model updates in this mode — any update repeats steps 1-3 as a new deployment
+cycle, never a live pull.

@@ -1,60 +1,28 @@
 # Idempotency
 
-> Directory: `docs/runtime/` · File: `15_idempotency.md` · Kind: **runtime rule**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `14_resume_and_recovery.md` · Next: `16_concurrency.md`
+> Which operations are safely retryable, and the mechanism (`Idempotency-Key`,
+> `schemas/02_api_schema.md`) that makes retries safe where they are.
 
-## Purpose
+## Idempotent operations (safe to retry with the same key)
 
-**Idempotency** documents lifecycle, state-machine, or concurrency behavior for "idempotency" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+- Task creation (`POST /api/v1/tasks`) — a retried request with the same `Idempotency-Key`
+  returns the original Task rather than creating a duplicate.
+- Document upload — deduplicated by `sha256` (`domain/06_document_model.md`) regardless of
+  `Idempotency-Key`, as a second layer of protection.
+- Approval decisions — a retried identical decision is a no-op returning the original result;
+  a *different* decision on an already-decided Approval is `RESOURCE_CONFLICT`
+  (`failures/41_approval_failures.md`), not silently accepted.
 
-## Definition
+## Non-idempotent operations (never auto-retried, per `11_retry_policy.md`)
 
-- **What it is:** Idempotency is a named runtime rule within the `runtime/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Idempotency at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Idempotency require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+- Code execution (`tool-heavyweight`) — side effects (files written, external-adjacent state
+  even within the sandbox) may not be safely repeatable.
+- Any write whose effect depends on current state in a way a retry could double-apply (e.g.
+  "append this line" operations, if any exist) — these require an explicit idempotency
+  mechanism (a sequence number, or the `Idempotency-Key` pattern above) before being marked
+  safe to retry, not retried by default.
 
-## Detail
+## Rule
 
-1. Idempotency is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Idempotency enforces the same rule set described here — a feature that reads
-   Idempotency differently than documented here is a bug in that feature, not a variant.
-3. Where Idempotency interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Idempotency interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/failures/01_failure_handling_philosophy.md`
-
-## Acceptance criteria
-
-- [ ] Idempotency behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Idempotency contradicts a related document listed above.
-- [ ] Idempotency is covered by at least one test referenced from `docs/testing/`.
-- [ ] Idempotency requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Idempotency, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Idempotency that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Idempotency are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+An operation is idempotent-safe-to-retry only if this file explicitly says so — the default
+assumption for any new operation is "not idempotent" until proven and documented otherwise.

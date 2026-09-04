@@ -1,60 +1,34 @@
 # Navigation
 
-> Directory: `docs/ui/` · File: `03_navigation.md` · Kind: **UI surface**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `02_design_system.md` · Next: `04_layout.md`
+> Canonical route map. Screen files above define what each route shows; this file defines how
+> a user gets there.
 
-## Purpose
+## Top-level navigation (persistent sidebar)
 
-**Navigation** documents layout, states, and interaction rules for one screen or panel for "navigation" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Label | Route | Screen file | Visible to |
+|---|---|---|---|
+| Workbench | `/` | `05_workbench_screen.md` | all roles |
+| Chat | `/chat/:conversationId?` | `06_chat_interface.md` | all roles |
+| Documents | `/documents` | `15_knowledge_browser.md` | all roles with `Document:read` |
+| Approvals | `/approvals` | `11_approval_ui.md` | Administrator, SecurityOfficer only |
+| Security | `/security` | `12_security_panel.md` | Administrator, SecurityOfficer only |
+| Network | `/network` | `13_network_panel.md` | all roles |
+| Models | `/models` | `14_model_panel.md` | all roles (detail limited by role) |
+| Admin | `/admin` | `16_admin_console_ui.md` | Administrator, Operator (subset) |
 
-## Definition
+## Task-scoped navigation (breadcrumb from a Task)
 
-- **What it is:** Navigation is a named UI surface within the `ui/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Navigation at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Navigation require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+`/tasks/:taskId` (`07_task_interface.md`) → `/tasks/:taskId/graph` (`08_execution_graph_ui.md`)
+→ `/tasks/:taskId/evidence` (`09_evidence_panel.md`) → `/tasks/:taskId/artifacts`
+(`10_artifact_panel.md`).
 
-## Detail
+## Guard behavior
 
-1. Navigation is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Navigation enforces the same rule set described here — a feature that reads
-   Navigation differently than documented here is a bug in that feature, not a variant.
-3. Where Navigation interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Navigation interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+A route whose screen requires a role/permission the current user lacks renders
+`20_permission_denied_states.md`'s 403 page instead of the target screen — the route itself
+still resolves (no dead link), but the content is replaced.
 
-## Interfaces and related documents
+## Deep-linking
 
-- **Related:**
-- `docs/05_ARCHITECTURAL_PRINCIPLES.md`
-- `docs/ui/01_ui_architecture.md`
-
-## Acceptance criteria
-
-- [ ] Navigation behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Navigation contradicts a related document listed above.
-- [ ] Navigation is covered by at least one test referenced from `docs/testing/`.
-- [ ] Navigation requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Navigation, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Navigation that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Navigation are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every route above is directly linkable/bookmarkable and re-derives its state from the API on
+load — no client-only state required to render a valid deep link correctly.

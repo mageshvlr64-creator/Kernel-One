@@ -1,59 +1,26 @@
-# Inspection Report Demo
+# Inspection Report Demo (Detailed Script)
 
-> Directory: `docs/demo/` · File: `05_inspection_report_demo.md` · Kind: **demo beat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `04_demo_setup.md` · Next: `06_coding_agent_demo.md`
+> The scripted, line-by-line version of `01_demo_overview.md`'s primary scenario steps 1-11,
+> for the presenter to follow verbatim during rehearsal and the live demo.
 
-## Purpose
+## Script
 
-**Inspection Report Demo** documents one scripted moment in the jury walkthrough for "inspection report demo" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+1. **(Say)** "I'm going to upload a real inspection report — this never leaves this machine."
+   **(Do)** Upload `03_demo_data.md`'s primary document, tag `INTERNAL`.
+2. **(Say)** "Watch the network panel — nothing changes while this processes." **(Do)** Wait
+   for state progression to `READY`, pointing at the Network Sovereignty Panel remaining green.
+3. **(Say)** "Now I'll ask it a real question." **(Do)** Type: "What findings indicate
+   equipment below specification, and on what page?"
+4. **(Say)** "Every claim it makes should be clickable." **(Do)** Click a citation, show the
+   source page highlight.
+5. **(Do)** Generate the DOCX findings summary artifact; open it to show it's a real,
+   well-formed file.
+6. **(Do)** Open the audit viewer, scroll through the event chain for this exact task.
+7. **(Say)** "Now let's see what happens if someone without permission tries this." **(Do)**
+   Switch to `RestrictedUser`, attempt the same artifact export, show the `POLICY_DENIED`
+   message.
 
-## Definition
+## Timing checkpoints
 
-- **What it is:** Inspection Report Demo is a named demo beat within the `demo/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Inspection Report Demo at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Inspection Report Demo require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Inspection Report Demo is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Inspection Report Demo enforces the same rule set described here — a feature that reads
-   Inspection Report Demo differently than documented here is a bug in that feature, not a variant.
-3. Where Inspection Report Demo interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Inspection Report Demo interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/demo/01_demo_overview.md`
-
-## Acceptance criteria
-
-- [ ] Inspection Report Demo behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Inspection Report Demo contradicts a related document listed above.
-- [ ] Inspection Report Demo is covered by at least one test referenced from `docs/testing/`.
-- [ ] Inspection Report Demo requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Inspection Report Demo, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Inspection Report Demo that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Inspection Report Demo are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Steps 1-2 should complete within 90s (document processing); steps 3-4 within 60s (retrieval +
+generation); total under 5 minutes per `REQ-PERF-001`.

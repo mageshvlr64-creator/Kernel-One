@@ -31,7 +31,7 @@ From the workbench UI, multi model routing is triggered by the corresponding act
   "actor_id": "string (uuid, required)",
   "workspace_id": "string (uuid, required)",
   "resource_id": "string (uuid, optional — omitted on create)",
-  "payload": "object (required, shape defined in docs/schemas/ for this resource)",
+  "payload": "object (required; request envelope defined in `docs/schemas/02_api_schema.md`, entity-specific fields defined in the `docs/schemas/` file matching this feature group)",
   "idempotency_key": "string (optional, recommended for retryable calls)"
 }
 ```
@@ -43,7 +43,7 @@ From the workbench UI, multi model routing is triggered by the corresponding act
 {
   "status": "ok | error",
   "resource_id": "string (uuid)",
-  "state": "string (see State transitions below)",
+  "state": "string — one of the states enumerated for this resource in `docs/runtime/_state_machines_canonical.md`",
   "audit_event_id": "string (uuid)",
   "timestamp": "ISO-8601 string"
 }
@@ -75,7 +75,10 @@ Multi Model Routing moves its resource through the states defined in the relevan
 
 ## 14. Dependencies
 
-Hard dependencies: `docs/01_model_management.md`, `docs/features/03_inference_gateway/`, `docs/features/21_policy_engine/`. If any hard dependency is unavailable, Multi Model Routing fails closed per Failure modes — it does not silently degrade to an unsafe default.
+Hard dependencies: `docs/features/01_model_management/`, `docs/features/03_inference_gateway/`, `docs/features/21_policy_engine/`. If any hard dependency is unavailable, Multi Model Routing fails closed per Failure modes — it does not silently degrade to an unsafe default.
+
+**Traceability:** this feature implements `REQ-AI-001`, `REQ-AI-003` (see `docs/03_REQUIREMENTS.md`).
+
 
 ## 15. Security requirements
 
@@ -83,37 +86,32 @@ All input is treated as untrusted and validated against its schema before use. N
 
 ## 16. Permission requirements
 
-Risk level: **low**.
+Resource: `Model` · Action: `execute` · Risk level: **low**.
 
-| Role | Access |
-|---|---|
-| `admin` | allow |
-| `operator` | allow |
-| `restricted` | allow (read-only variants only) |
+Role access for this resource/action pair is defined once, canonically, in `docs/reference/05_permission_matrix.md` — this file does not repeat that table. In addition to the base role check, the policy engine (`docs/features/21_policy_engine/`) evaluates the classification and workspace conditions documented in that same file.
 
-A denied call returns HTTP 403 with error code `MR-4030` and is logged to `docs/features/17_audit/` with the caller's role and the missing permission — never a silent no-op.
+A denied call returns `POLICY_DENIED` or `TOOL_NOT_ALLOWED` (see `docs/reference/01_error_codes.md`) and is logged to `docs/features/17_audit/` with the caller's role and the specific denying rule — never a silent no-op.
 
 ## 17. Failure modes
 
-| Code | HTTP status | Meaning |
-|---|---|---|
-| `MR-4001` | 400 | Request failed schema validation |
-| `MR-4030` | 403 | Caller's role/permission does not allow this operation |
-| `MR-4040` | 404 | Referenced resource does not exist or caller cannot see it |
-| `MR-4090` | 409 | Operation conflicts with current resource state |
-| `MR-5040` | 504 | Downstream dependency exceeded its timeout budget |
-| `MR-5030` | 503 | Required dependency is down or degraded |
-| `MR-5000` | 500 | Unexpected internal error; always paired with an audit event |
+This feature returns errors exclusively from the canonical registry in `docs/reference/01_error_codes.md`. The codes most relevant to this feature:
 
-Each row above maps to a named entry in `docs/failures/` for this subsystem; no failure produced by Multi Model Routing is allowed to exist without a corresponding documented failure mode.
+| Error code (see registry for HTTP status, message, remediation) |
+|---|
+| `MODEL_UNAVAILABLE` |
+| `MODEL_NOT_APPROVED` |
+| `MODEL_RESOURCE_EXHAUSTED` |
+| `INTERNAL_ERROR` (always possible; see registry) |
+
+No other error code may be returned by this feature without first being added to the registry. Each occurrence is a required audit event per `docs/schemas/15_audit_event_schema.md`.
 
 ## 18. Retry behavior
 
-Multi Model Routing is treated as retryable: up to 3 attempt(s) with exponential backoff starting at 398ms, per `docs/runtime/11_retry_policy.md`. Retries are only issued for `503`/`504`-class failures, never for `400`/`403`/`409`.
+This feature's calls are classified **`interactive-read`** operations. Exact timeout, retry count, backoff, and circuit-breaker thresholds for this class are defined once, canonically, in `docs/runtime/11_retry_policy.md` — this file does not restate those numbers. If this feature's actual behavior needs a different class than `interactive-read`, that is a discrepancy to resolve in the canonical policy file, not a reason to define a local exception here.
 
 ## 19. Timeout behavior
 
-Maximum execution time: **55s**, enforced per `docs/runtime/12_timeout_policy.md`. On timeout, any in-flight subprocess, container, or DB transaction opened by Multi Model Routing is terminated/rolled back and the caller receives the `504` error from the table above.
+See the **`interactive-read`** row in `docs/runtime/11_retry_policy.md` for the exact timeout value and its provenance label (CONFIG DEFAULT / DESIGN LIMIT / BENCHMARKED). On timeout, this feature returns the timeout-class error code from `docs/reference/01_error_codes.md` (typically `INFERENCE_TIMEOUT` for model calls or `DEPENDENCY_UNAVAILABLE`/`SANDBOX_LIMIT_EXCEEDED` for tool/infra calls — see Failure modes above for this feature's specific set) and releases any resource it holds (subprocess, container, DB transaction, lock).
 
 ## 20. Recovery behavior
 
@@ -125,11 +123,11 @@ Emits one structured log line per invocation (`level`, `event=model_router.multi
 
 ## 22. Audit requirements
 
-Every invocation, successful or not, produces one audit event of type `model_router.multi_model_routing` containing `actor_id`, `workspace_id`, `resource_id`, a hash of the payload (never the raw payload if it may contain sensitive content), and `outcome`, per `docs/features/17_audit/03_event_schema.md`.
+Every invocation, successful or not, produces exactly one `AuditEvent` of type `model_router.multi_model_routing` conforming to the canonical schema in `docs/schemas/15_audit_event_schema.md` — this file does not redefine the `AuditEvent` field set. `resource_type` is `Model`; `action` is `execute`; `classification` is populated when the resource carries one (`docs/features/20_data_classification/`).
 
 ## 23. Performance requirements
 
-p95 < 50ms for a routing decision, excluding the downstream inference call itself. Measured and enforced per `docs/performance/01_performance_requirements.md` on the reference hardware profile in `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`.
+p95 < 50ms for a routing decision, excluding the downstream inference call itself. Measured and enforced per `docs/performance/01_performance_requirements.md` on the reference hardware profile in `docs/07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`. **Status: DESIGN LIMIT** — this budget is an engineering target chosen for demo usability on the reference hardware profile, not yet a benchmark-verified measurement (see `docs/20_DECISION_LOG.md` DEC-014 for the pending validation step). Treat it as a target to test against, not a guaranteed SLA, until DEC-014 is resolved.
 
 ## 24. Test requirements
 
@@ -157,7 +155,7 @@ Do not check `role` via a client-supplied field. Do not perform the `routing_dec
 
 ## 29. Examples
 
-**Success:** `admin` calls `POST /api/v1/model-router/multi-model-routing` with a valid payload → `200 OK`, `{"status": "ok", "resource_id": "…", "state": "<next-state>"}`, one `model_router.multi_model_routing` audit event recorded.
+**Success:** `admin` calls `POST /api/v1/model-router/multi-model-routing` with a valid payload → `200 OK`, `{"status": "ok", "resource_id": "…", "state": "the resulting state (see `docs/runtime/_state_machines_canonical.md`)"}`, one `model_router.multi_model_routing` audit event recorded.
 
 **Denied:** `restricted` calls the same endpoint → `403`, `MR-4030`, audit event recorded with `outcome=denied`.
 

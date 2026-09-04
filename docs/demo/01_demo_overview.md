@@ -1,59 +1,79 @@
-# Demo Overview
+# Demo Overview (Canonical Runbook)
 
-> Directory: `docs/demo/` · File: `01_demo_overview.md` · Kind: **demo beat**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: _(first document in this directory)_ · Next: `02_demo_environment.md`
+> **Canonical owner** of the exact, reproducible demo procedure. `docs/demo/05_..14_*.md`
+> files hold sub-scenario detail; this file is the master sequence and the shared setup.
 
-## Purpose
+## Hardware / software for the demo
 
-**Demo Overview** documents one scripted moment in the jury walkthrough for "demo overview" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+- Hardware: **PROFILE-B** (`07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`).
+- Network mode: **`air_gapped`** (REQ-NET-002) — Wi-Fi/Ethernet physically disconnected or
+  firewalled at the router level before the demo starts, so the sovereignty claim is provable
+  independent of the application layer.
+- Models: whichever checkpoints are pinned per `20_DECISION_LOG.md` DEC-013, already loaded
+  and warmed (first-token latency excluded from the timed portion of the demo).
+- User/role: demo runs as `Administrator` for the approval step, and separately as
+  `Restricted User` for the RBAC-denial beat (DEC-006 — the two V1-rehearsed roles).
 
-## Definition
+## Demo data
 
-- **What it is:** Demo Overview is a named demo beat within the `demo/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Demo Overview at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Demo Overview require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+Defined in full in `demo/03_demo_data.md`; summary:
+- One synthetic scanned "Industrial Inspection Report" PDF (10 pages, includes at least one
+  page requiring OCR and one native-text page), containing a small number of clearly
+  identifiable, deterministic "findings" (e.g. "Bolt torque on Flange B is 15% below spec on
+  page 4") so the expected agent answer is known in advance.
+- One synthetic equipment photograph for the multimodal beat.
+- One small CSV/XLSX for the spreadsheet-adjacent beat (if included in the walkthrough).
 
-## Detail
+No proprietary or real customer documents are used, per Upgrade Prompt §42.
 
-1. Demo Overview is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Demo Overview enforces the same rule set described here — a feature that reads
-   Demo Overview differently than documented here is a bug in that feature, not a variant.
-3. Where Demo Overview interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Demo Overview interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+## Primary scenario — Inspection Report Q&A with Evidence and Approval
 
-## Interfaces and related documents
+1. **Import.** Administrator uploads the synthetic inspection report PDF via the workbench.
+   Document enters `UPLOADED` (see `runtime/` state machines).
+2. **Classify.** User tags the document `INTERNAL` classification.
+3. **Extract/OCR.** System transitions `VALIDATING` → `EXTRACTING` → `OCR` (for scanned pages)
+   → `INDEXING` → `READY`. Sovereignty panel remains green throughout.
+4. **Ask.** User asks: *"What findings in this report indicate equipment below
+   specification, and on what page?"*
+5. **Retrieve + Evidence.** Agent kernel retrieves relevant chunks (`features/13_knowledge_fabric/`),
+   generates an answer, and attaches `Evidence` records per REQ-FUNC-005.
+6. **Display citations.** UI evidence panel shows each claim with its page reference; clicking
+   a citation highlights the source passage.
+7. **Generate approval note.** Agent proposes generating a DOCX "Findings Summary" artifact —
+   classified `risk=medium` (artifact generation from INTERNAL data) per
+   `reference/03_risk_levels.md`, so it proceeds without approval; if the demo instead uses a
+   CONFIDENTIAL-tagged document, this step becomes `risk=high` and triggers step 8's gate.
+8. **Human approval (if triggered).** If any step is `risk=high` (e.g. an export action), task
+   enters `WAITING_APPROVAL`; Administrator approves via the Approval panel.
+9. **Produce artifact.** Artifact Engine generates a real, valid `.docx` file
+   (`features/15_artifact_engine/03_docx_generation.md`) containing the findings and citations.
+10. **Show audit trail.** Audit viewer displays the complete event chain for this task:
+    `document.uploaded` → ... → `document.indexed` → `task.created` → ... →
+    `artifact.created` → `artifact.ready` → (`artifact.approved` if applicable).
+11. **Show network monitor.** Sovereignty panel (`ui/13_network_panel.md`) has shown zero
+    external connections for the full duration; operator may additionally show a live
+    `tcpdump`/firewall log confirming the same at the OS level (`operations/12_network_incidents.md`).
+12. **RBAC denial beat.** Switch to `Restricted User`; attempt the same artifact-export action
+    → `POLICY_DENIED` (`reference/01_error_codes.md`) shown clearly in the UI, logged to audit.
 
-- **Related:**
-- `docs/demo/01_demo_overview.md`
+**Expected total wall-clock:** under 5 minutes end-to-end on PROFILE-B (REQ-PERF-001, DESIGN
+LIMIT pending DEC-014 benchmark confirmation).
 
-## Acceptance criteria
+## Secondary scenarios
 
-- [ ] Demo Overview behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Demo Overview contradicts a related document listed above.
-- [ ] Demo Overview is covered by at least one test referenced from `docs/testing/`.
-- [ ] Demo Overview requires no outbound network access to function correctly.
+- **Coding sandbox demo** (`demo/06_coding_agent_demo.md`): agent writes and executes a small
+  script inside the sandbox (`features/09_code_execution/`), demonstrating network-denied
+  execution and resource limits.
+- **Multimodal image demo** (`demo/07_multimodal_demo.md`): agent analyzes the synthetic
+  equipment photo, with confidence and limitations stated explicitly per
+  `features/12_multimodal/06_photo_analysis.md`.
+- **Model fallback demo** (`demo/11_..` — mapped to `router/09_fallback_routing.md`): operator
+  manually stops the primary model's runtime process mid-session; next request observably
+  falls back per the router's deterministic fallback policy and surfaces `MODEL_UNAVAILABLE`
+  → recovered, not a crash.
 
-## Implementation notes for AI agents
+## Failure fallback during the live demo
 
-Before changing anything related to Demo Overview, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Demo Overview that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Demo Overview are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+If any step fails during the actual jury demo, `demo/13_failure_demo.md` defines the exact
+recovery script (which pre-recorded state to fall back to, which step to skip, what to say) —
+prepared in advance, not improvised.

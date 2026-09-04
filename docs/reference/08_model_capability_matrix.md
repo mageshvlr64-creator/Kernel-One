@@ -1,59 +1,18 @@
-# Model Capability Matrix
+# Model Capability Matrix (Reference)
 
-> Directory: `docs/reference/` · File: `08_model_capability_matrix.md` · Kind: **reference table**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `07_tool_matrix.md` · Next: `09_environment_matrix.md`
+> Restates `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`'s reference model registry as a
+> capability-focused quick lookup.
 
-## Purpose
+| Capability slot | Requires | Fallback if unavailable |
+|---|---|---|
+| `general-reasoning` | A model with this capability tag (`schemas/06_model_schema.md`) | `cpu-fallback` |
+| `coding` | A model with `coding` capability tag | `general-reasoning` (degraded — see `features/02_model_router/09_fallback_routing.md`) |
+| `vision` | A model with `vision` capability tag | None in V1 — a vision-requiring request fails with `MODEL_UNAVAILABLE` if no vision model is configured, rather than silently attempting a text-only model against an image |
+| `tool_calling` | A model with `tool_calling` capability tag | Required for `features/04_agent_kernel/` — no fallback; a model lacking this capability cannot serve as the planning model |
+| `structured_output` | A model with `structured_output` capability tag | Falls back to prompt-engineered JSON extraction with stricter validation, if no structured-output-capable model is configured |
+| `cpu-fallback` | The designated 3-4B CPU-viable model | None — this is itself the fallback of last resort |
 
-**Model Capability Matrix** documents a lookup table other documents point to for "model capability matrix" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+## Full sizing detail
 
-## Definition
-
-- **What it is:** Model Capability Matrix is a named reference table within the `reference/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Model Capability Matrix at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Model Capability Matrix require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Model Capability Matrix is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Model Capability Matrix enforces the same rule set described here — a feature that reads
-   Model Capability Matrix differently than documented here is a bug in that feature, not a variant.
-3. Where Model Capability Matrix interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Model Capability Matrix interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/18_DOCUMENTATION_INDEX.md`
-
-## Acceptance criteria
-
-- [ ] Model Capability Matrix behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Model Capability Matrix contradicts a related document listed above.
-- [ ] Model Capability Matrix is covered by at least one test referenced from `docs/testing/`.
-- [ ] Model Capability Matrix requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Model Capability Matrix, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Model Capability Matrix that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Model Capability Matrix are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+See `07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md` for VRAM math and the MoE storage-vs-active
+distinction (REQ-AI-003) — this file is the capability-to-fallback mapping only.

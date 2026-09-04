@@ -1,60 +1,34 @@
 # Error Contracts
 
-> Directory: `docs/api/` · File: `26_error_contracts.md` · Kind: **API contract**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `25_metrics_api.md` · Next: _(last document in this directory)_
+> This file does not redefine error codes — the canonical registry is
+> `docs/reference/01_error_codes.md`. This file defines only the HTTP-layer *shape* every
+> error takes, which is identical across all endpoints.
 
-## Purpose
+## Shape
 
-**Error Contracts** documents the exact HTTP/WS route(s), payloads, and status codes for "error contracts" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+Every non-2xx response body matches `ApiErrorEnvelope` in `docs/schemas/02_api_schema.md`:
 
-## Definition
+```json
+{
+  "error": {
+    "code": "POLICY_DENIED",
+    "message": "You don't have permission to do this.",
+    "details": null,
+    "correlation_id": "5b9c9e3a-4b0a-4c9f-9a1b-1e2f3a4b5c6d"
+  }
+}
+```
 
-- **What it is:** Error Contracts is a named API contract within the `api/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Error Contracts at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Error Contracts require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+## Rules
 
-## Detail
-
-1. Error Contracts is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Error Contracts enforces the same rule set described here — a feature that reads
-   Error Contracts differently than documented here is a bug in that feature, not a variant.
-3. Where Error Contracts interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Error Contracts interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/schemas/02_api_schema.md`
-- `docs/api/26_error_contracts.md`
-
-## Acceptance criteria
-
-- [ ] Error Contracts behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Error Contracts contradicts a related document listed above.
-- [ ] Error Contracts is covered by at least one test referenced from `docs/testing/`.
-- [ ] Error Contracts requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Error Contracts, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Error Contracts that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Error Contracts are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+1. `code` is always one of `docs/reference/01_error_codes.md` — never a free-text string, and
+   never an endpoint-specific code invented locally.
+2. `message` is always the exact "User message" column value from the registry for that code —
+   endpoints do not write their own error copy.
+3. `details` is populated only for `INVALID_REQUEST`, containing field-level validation errors:
+   `{"field_errors": [{"field": "classification", "message": "must be one of PUBLIC, INTERNAL, CONFIDENTIAL, RESTRICTED"}]}`.
+4. `correlation_id` is always present and matches the `correlation_id` on the corresponding
+   `AuditEvent` (`schemas/15_audit_event_schema.md`), so an operator can go from a user-reported
+   error straight to the exact audit trail.
+5. HTTP status code always matches the registry's "HTTP" column for that `code` — an endpoint
+   never overrides it.

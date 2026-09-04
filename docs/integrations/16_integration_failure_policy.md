@@ -1,60 +1,21 @@
 # Integration Failure Policy
 
-> Directory: `docs/integrations/` · File: `16_integration_failure_policy.md` · Kind: **integration**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `15_grafana.md` · Next: _(last document in this directory)_
+> The shared rule every integration file above follows for handling that specific
+> third-party dependency's failure — referenced rather than restated per-integration.
 
-## Purpose
+## Policy
 
-**Integration Failure Policy** documents the contract with a specific third-party component for "integration failure policy" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
-
-## Definition
-
-- **What it is:** Integration Failure Policy is a named integration within the `integrations/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Integration Failure Policy at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Integration Failure Policy require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
-
-## Detail
-
-1. Integration Failure Policy is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Integration Failure Policy enforces the same rule set described here — a feature that reads
-   Integration Failure Policy differently than documented here is a bug in that feature, not a variant.
-3. Where Integration Failure Policy interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Integration Failure Policy interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
-
-## Interfaces and related documents
-
-- **Related:**
-- `docs/integrations/01_integration_architecture.md`
-- `docs/06_TECHNOLOGY_STACK.md`
-
-## Acceptance criteria
-
-- [ ] Integration Failure Policy behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Integration Failure Policy contradicts a related document listed above.
-- [ ] Integration Failure Policy is covered by at least one test referenced from `docs/testing/`.
-- [ ] Integration Failure Policy requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Integration Failure Policy, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Integration Failure Policy that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Integration Failure Policy are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+1. **Every integration failure maps to a named entry in `docs/failures/`** — no integration's
+   failure is "just an exception" without a documented response (e.g. vLLM failures →
+   `failures/10_model_unavailable.md`; PostgreSQL failures → `failures/19_database_failures.md`).
+2. **Every integration is wrapped in an adapter** (`01_integration_architecture.md`) that is
+   the sole point of contact with that dependency — failures are caught and translated to the
+   canonical error registry (`reference/01_error_codes.md`) at the adapter boundary, not left
+   as raw third-party exceptions propagating into business logic.
+3. **No integration's failure silently degrades security or sovereignty guarantees** — e.g. if
+   the Audit Service's database write fails, the action itself fails too (REQ-AUD-001,
+   `failures/40_audit_failures.md`), rather than the integration failure being "worked around"
+   by skipping the audit step.
+4. **Health checks exist for every integration with a runtime dependency** (all except
+   build-time-only integrations like dependency scanning) and feed
+   `deployment/13_health_checks.md`'s readiness composition.

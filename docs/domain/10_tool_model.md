@@ -1,60 +1,31 @@
-# Tool Model
+# Tool, ToolInvocation, TaskStep
 
-> Directory: `docs/domain/` · File: `10_tool_model.md` · Kind: **domain entity**
-> Part of the Sovereign AI Workbench (SIH26176) specification set.
-> Previous: `09_agent_model.md` · Next: `11_task_model.md`
+> Canonical field-level definition. `docs/schemas/` holds the matching JSON Schema for any
+> wire/storage representation of these fields; this file is the authoritative field list.
 
-## Purpose
+## Fields
 
-**Tool Model** documents a core entity's identity, fields, lifecycle, and relationships for "tool model" specifically. It is the single
-place other documents point to when they need this fact, rather than each restating it.
+| Field | Type | Required | Default | Constraints |
+|---|---|---|---|---|
+| `tool_id` | text | yes | — | Tool.id, e.g. `filesystem.read`, `code_execution.run` |
+| `name` | text | yes | — | human-readable |
+| `version` | text | yes | — | semver |
+| `input_schema_ref` | text | yes | — | pointer to `schemas/05_tool_call_schema.md` entry for this tool |
+| `min_role` | enum per reference/05_permission_matrix.md | yes | — | minimum role able to invoke, before classification/approval conditions |
+| `risk_level` | enum(low,medium,high) | yes | — | `reference/03_risk_levels.md` |
+| `network_required` | boolean | yes | false | must be false for any tool usable in `air_gapped` mode |
 
-## Definition
+## Notes
 
-- **What it is:** Tool Model is a named domain entity within the `domain/` category of the
-  Sovereign AI Workbench specification.
-- **Owner:** exactly one subsystem is authoritative for Tool Model at runtime; every other
-  component treats it as read-only input unless this document states otherwise.
-- **Stability:** changes to Tool Model require a corresponding entry in `docs/20_DECISION_LOG.md`
-  and a check for consistency against every related document listed below.
+**ToolInvocation** (a row created per call): `id`, `tool_id` FK, `task_id` FK, `state` (see canonical state machine), `input` (jsonb, validated against the tool's input schema), `output` (jsonb, null until SUCCEEDED), `error_code` (nullable FK-like reference into `reference/01_error_codes.md`), `started_at`, `finished_at`. **TaskStep** (element of AgentRun.plan, not its own table): `{step_index, tool_id, input, depends_on: [step_index], status}` — stored inline in `AgentRun.plan` jsonb rather than a separate table, since a plan is immutable once validated (a replan creates a new AgentRun).
 
-## Detail
+## Ownership
 
-1. Tool Model is fully specified without assuming internet access; it must work identically in
-   air-gapped, restricted-network, and on-premise deployment modes
-   (`docs/architecture/17_air_gapped_architecture.md`,
-   `docs/architecture/18_restricted_network_architecture.md`,
-   `docs/architecture/19_on_premise_architecture.md`).
-2. Any consumer of Tool Model enforces the same rule set described here — a feature that reads
-   Tool Model differently than documented here is a bug in that feature, not a variant.
-3. Where Tool Model interacts with permissions, the check is performed server-side against
-   `docs/features/19_identity_and_rbac/05_permissions.md`; client input is never trusted for
-   an authorization decision.
-4. Where Tool Model interacts with risk or exposure, treat it as **low**-sensitivity by
-   default unless a specific feature file states otherwise.
+This entity is owned and mutated only by the component named in its lifecycle description
+above. Every other component reads it through the API/internal interface defined in
+`docs/api/` and `docs/features/`, never by writing to its table directly.
 
-## Interfaces and related documents
+## Audit behavior
 
-- **Related:**
-- `docs/04_SYSTEM_ARCHITECTURE.md`
-- `docs/schemas/01_database_schema.md`
-
-## Acceptance criteria
-
-- [ ] Tool Model behaves identically regardless of whether it is reached via the UI, the API, or
-      an autonomous agent plan step.
-- [ ] No implementation detail of Tool Model contradicts a related document listed above.
-- [ ] Tool Model is covered by at least one test referenced from `docs/testing/`.
-- [ ] Tool Model requires no outbound network access to function correctly.
-
-## Implementation notes for AI agents
-
-Before changing anything related to Tool Model, an implementing agent (see
-`docs/14_AI_IMPLEMENTATION_PROTOCOL.md`) re-reads this file and every document under
-"Related" above, and does not introduce a definition of Tool Model that conflicts with what is
-written here without first updating this document.
-
-## Decision log pointer
-
-Unresolved questions about Tool Model are recorded in `docs/20_DECISION_LOG.md`, not resolved
-silently inside code or left undocumented.
+Every insert/update/soft-delete on this entity's table produces a matching `AuditEvent`
+(`schemas/15_audit_event_schema.md`) in the same transaction, per REQ-AUD-001.
