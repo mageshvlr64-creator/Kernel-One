@@ -1,7 +1,7 @@
 # Tool Calling
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `08_tool_calling.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `07_streaming.md` · Next: `09_multimodal_requests.md`
 
 ## 1. Purpose

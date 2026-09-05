@@ -1,7 +1,7 @@
 # Artifact Failures
 
 > Feature group: **Artifact Engine** (`docs/features/15_artifact_engine/`) · File: `13_artifact_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `12_artifact_versioning.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

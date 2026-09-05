@@ -1,7 +1,7 @@
 # Formula Analysis
 
 > Feature group: **Spreadsheet Intelligence** (`docs/features/23_spreadsheet_intelligence/`) · File: `05_formula_analysis.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_cell_analysis.md` · Next: `06_table_analysis.md`
 
 ## 1. Purpose

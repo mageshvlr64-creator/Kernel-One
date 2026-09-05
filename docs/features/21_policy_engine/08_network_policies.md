@@ -1,7 +1,7 @@
 # Network Policies
 
 > Feature group: **Policy Engine** (`docs/features/21_policy_engine/`) · File: `08_network_policies.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `07_document_policies.md` · Next: `09_export_policies.md`
 
 ## 1. Purpose

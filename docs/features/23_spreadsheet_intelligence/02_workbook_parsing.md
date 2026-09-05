@@ -1,7 +1,7 @@
 # Workbook Parsing
 
 > Feature group: **Spreadsheet Intelligence** (`docs/features/23_spreadsheet_intelligence/`) · File: `02_workbook_parsing.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_spreadsheet_overview.md` · Next: `03_sheet_analysis.md`
 
 ## 1. Purpose

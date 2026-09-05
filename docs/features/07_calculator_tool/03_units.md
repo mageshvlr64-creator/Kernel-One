@@ -1,7 +1,7 @@
 # Units
 
 > Feature group: **Calculator Tool** (`docs/features/07_calculator_tool/`) · File: `03_units.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_expression_validation.md` · Next: `04_precision.md`
 
 ## 1. Purpose

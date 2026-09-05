@@ -1,7 +1,7 @@
 # Tool Registration
 
 > Feature group: **Tool Gateway** (`docs/features/05_tool_gateway/`) · File: `02_tool_registration.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `01_tool_system_overview.md` · Next: `03_tool_schema.md`
 
 ## 1. Purpose

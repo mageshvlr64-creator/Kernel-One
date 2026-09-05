@@ -1,7 +1,7 @@
 # Database Failures
 
 > Feature group: **Database Tool** (`docs/features/08_database_tool/`) · File: `07_database_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `06_query_limits.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

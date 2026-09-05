@@ -1,7 +1,7 @@
 # Confidence Scores
 
 > Feature group: **OCR** (`docs/features/11_ocr/`) · File: `06_confidence_scores.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `05_region_processing.md` · Next: `07_text_reconstruction.md`
 
 ## 1. Purpose

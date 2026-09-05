@@ -1,7 +1,7 @@
 # Streaming
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `07_streaming.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `06_openai_compatible_interface.md` · Next: `08_tool_calling.md`
 
 ## 1. Purpose

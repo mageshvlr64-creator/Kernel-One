@@ -1,7 +1,7 @@
 # Artifact Versioning
 
 > Feature group: **Artifact Engine** (`docs/features/15_artifact_engine/`) · File: `12_artifact_versioning.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `11_artifact_validation.md` · Next: `13_artifact_failures.md`
 
 ## 1. Purpose

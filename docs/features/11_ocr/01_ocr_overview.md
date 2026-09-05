@@ -1,7 +1,7 @@
 # OCR Overview
 
 > Feature group: **OCR** (`docs/features/11_ocr/`) · File: `01_ocr_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_engine_selection.md`
 
 ## 1. Purpose

@@ -14,6 +14,18 @@ All roles (read-only)
 
 ## Key elements
 
+Per `SIH26117_Documentation_Refactor_Master_Prompt.txt` §41's field vocabulary, shown as a
+status summary above the detail lists below:
+
+- **Mode** — Air-Gapped / Restricted / Connected On-Premise (`features/18_network_sovereignty/02_network_modes.md`)
+- **Internet** — Blocked / Allowed (per active mode)
+- **External AI calls** — Blocked / Allowed (should read Blocked in every V1 mode — see `05_ARCHITECTURAL_PRINCIPLES.md` principle 1)
+- **Local models** — which models are currently loaded and serving (`integrations/02-04_*.md`)
+- **Local knowledge** — document/index counts, confirming retrieval is served from local storage, not an external index
+- **Network attestation** — PASSED / FAILED, driven by `features/18_network_sovereignty/12_sovereignty_status.md`'s attestation mechanism
+
+Detail lists, unchanged from the original screen spec:
+
 - Blocked-checks list (green/red)
 - Internal-health-checks list
 - Blocked-attempts counter

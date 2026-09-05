@@ -1,7 +1,7 @@
 # Tool Audit
 
 > Feature group: **Tool Gateway** (`docs/features/05_tool_gateway/`) · File: `11_tool_audit.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `10_tool_retry.md` · Next: `12_tool_failure_modes.md`
 
 ## 1. Purpose

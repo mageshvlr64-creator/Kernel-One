@@ -1,7 +1,7 @@
 # Resource Limits
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `05_resource_limits.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `04_container_creation.md` · Next: `06_network_isolation.md`
 
 ## 1. Purpose

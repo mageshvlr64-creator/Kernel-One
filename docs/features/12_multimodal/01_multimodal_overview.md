@@ -1,7 +1,7 @@
 # Multimodal Overview
 
 > Feature group: **Multimodal** (`docs/features/12_multimodal/`) · File: `01_multimodal_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_image_processing.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Model Loading
 
 > Feature group: **Model Management** (`docs/features/01_model_management/`) · File: `06_model_loading.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `05_model_installation.md` · Next: `07_model_unloading.md`
 
 ## 1. Purpose

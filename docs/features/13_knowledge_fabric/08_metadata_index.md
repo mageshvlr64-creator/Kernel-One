@@ -1,7 +1,7 @@
 # Metadata Index
 
 > Feature group: **Knowledge Fabric** (`docs/features/13_knowledge_fabric/`) · File: `08_metadata_index.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `07_vector_index.md` · Next: `09_hybrid_search.md`
 
 ## 1. Purpose

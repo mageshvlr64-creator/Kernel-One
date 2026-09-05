@@ -1,7 +1,7 @@
 # Requirements Registry
 
 > **Canonical owner** of every numbered requirement for the Sovereign On-Premise Agentic AI
-> Workbench (SIH26176). No other document may define a new requirement ID. Feature and
+> Workbench (SIH26117). No other document may define a new requirement ID. Feature and
 > architecture documents reference a REQ-ID from this file; they do not restate it.
 
 ## How to read this registry

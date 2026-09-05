@@ -1,7 +1,7 @@
 # Supported Languages
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `02_supported_languages.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `01_code_execution_overview.md` · Next: `03_workspace_mounts.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Model Benchmarking
 
 > Feature group: **Admin Console** (`docs/features/24_admin_console/`) · File: `07_model_benchmarking.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `06_model_management.md` · Next: `08_knowledge_management.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Page Extraction
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `06_page_extraction.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `05_scanned_pdf_detection.md` · Next: `07_metadata_extraction.md`
 
 ## 1. Purpose

@@ -5,7 +5,7 @@
 
 ## Purpose
 
-This document defines the checklist any single change (not just a whole feature) must satisfy before merge for the Sovereign AI Workbench (SIH26176).
+This document defines the checklist any single change (not just a whole feature) must satisfy before merge for the Sovereign AI Workbench (SIH26117).
 
 ## Why this document exists
 

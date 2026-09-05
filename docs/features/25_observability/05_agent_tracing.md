@@ -1,7 +1,7 @@
 # Agent Tracing
 
 > Feature group: **Observability** (`docs/features/25_observability/`) · File: `05_agent_tracing.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_traces.md` · Next: `06_model_metrics.md`
 
 ## 1. Purpose

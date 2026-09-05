@@ -1,7 +1,7 @@
 # Tool Invocation
 
 > Feature group: **Tool Gateway** (`docs/features/05_tool_gateway/`) · File: `06_tool_invocation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `05_tool_risk_levels.md` · Next: `07_tool_validation.md`
 
 ## 1. Purpose

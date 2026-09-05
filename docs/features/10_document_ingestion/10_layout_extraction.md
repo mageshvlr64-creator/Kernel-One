@@ -1,7 +1,7 @@
 # Layout Extraction
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `10_layout_extraction.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `09_image_extraction.md` · Next: `11_coordinate_tracking.md`
 
 ## 1. Purpose

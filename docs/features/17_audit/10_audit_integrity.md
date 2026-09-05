@@ -1,7 +1,7 @@
 # Audit Integrity
 
 > Feature group: **Audit** (`docs/features/17_audit/`) · File: `10_audit_integrity.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `09_artifact_logging.md` · Next: `11_audit_failures.md`
 
 ## 1. Purpose

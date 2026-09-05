@@ -1,7 +1,7 @@
 # Structured Logging
 
 > Feature group: **Observability** (`docs/features/25_observability/`) · File: `02_structured_logging.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_observability_overview.md` · Next: `03_metrics.md`
 
 ## 1. Purpose

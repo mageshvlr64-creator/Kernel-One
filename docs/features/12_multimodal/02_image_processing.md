@@ -1,7 +1,7 @@
 # Image Processing
 
 > Feature group: **Multimodal** (`docs/features/12_multimodal/`) · File: `02_image_processing.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_multimodal_overview.md` · Next: `03_vision_model_selection.md`
 
 ## 1. Purpose

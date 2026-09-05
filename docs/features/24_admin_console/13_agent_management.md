@@ -1,7 +1,7 @@
 # Agent Management
 
 > Feature group: **Admin Console** (`docs/features/24_admin_console/`) · File: `13_agent_management.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `12_network_viewer.md` · Next: `14_backup_management.md`
 
 ## 1. Purpose

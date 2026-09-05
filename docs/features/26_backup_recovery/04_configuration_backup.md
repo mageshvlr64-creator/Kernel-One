@@ -1,7 +1,7 @@
 # Configuration Backup
 
 > Feature group: **Backup Recovery** (`docs/features/26_backup_recovery/`) · File: `04_configuration_backup.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `03_object_storage_backup.md` · Next: `05_model_registry_backup.md`
 
 ## 1. Purpose

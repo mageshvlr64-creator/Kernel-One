@@ -1,7 +1,7 @@
 # Tool Selection
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `08_tool_selection.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `07_step_scheduler.md` · Next: `09_observation_handling.md`
 
 ## 1. Purpose

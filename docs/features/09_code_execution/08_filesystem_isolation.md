@@ -1,7 +1,7 @@
 # Filesystem Isolation
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `08_filesystem_isolation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `07_process_isolation.md` · Next: `09_execution_timeout.md`
 
 ## 1. Purpose

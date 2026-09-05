@@ -1,7 +1,7 @@
 # Coordinate Tracking
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `11_coordinate_tracking.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `10_layout_extraction.md` · Next: `12_document_normalization.md`
 
 ## 1. Purpose

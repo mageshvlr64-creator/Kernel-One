@@ -1,7 +1,7 @@
 # Memory Expiration
 
 > Feature group: **Agent Memory** (`docs/features/22_agent_memory/`) · File: `08_memory_expiration.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `07_memory_write_policy.md` · Next: `09_memory_permissions.md`
 
 ## 1. Purpose

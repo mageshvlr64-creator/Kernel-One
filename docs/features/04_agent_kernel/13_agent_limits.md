@@ -1,7 +1,7 @@
 # Agent Limits
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `13_agent_limits.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `12_completion_logic.md` · Next: `14_agent_context_management.md`
 
 ## 1. Purpose

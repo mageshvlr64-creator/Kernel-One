@@ -1,7 +1,7 @@
 # Knowledge Management
 
 > Feature group: **Admin Console** (`docs/features/24_admin_console/`) · File: `08_knowledge_management.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `07_model_benchmarking.md` · Next: `09_tool_management.md`
 
 ## 1. Purpose

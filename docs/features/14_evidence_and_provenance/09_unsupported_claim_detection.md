@@ -1,7 +1,7 @@
 # Unsupported Claim Detection
 
 > Feature group: **Evidence and Provenance** (`docs/features/14_evidence_and_provenance/`) · File: `09_unsupported_claim_detection.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `08_confidence.md` · Next: `10_evidence_failures.md`
 
 ## 1. Purpose

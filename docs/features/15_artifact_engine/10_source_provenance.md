@@ -1,7 +1,7 @@
 # Source Provenance
 
 > Feature group: **Artifact Engine** (`docs/features/15_artifact_engine/`) · File: `10_source_provenance.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `09_markdown_generation.md` · Next: `11_artifact_validation.md`
 
 ## 1. Purpose

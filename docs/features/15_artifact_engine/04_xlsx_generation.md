@@ -1,7 +1,7 @@
 # XLSX Generation
 
 > Feature group: **Artifact Engine** (`docs/features/15_artifact_engine/`) · File: `04_xlsx_generation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `03_docx_generation.md` · Next: `05_pptx_generation.md`
 
 ## 1. Purpose

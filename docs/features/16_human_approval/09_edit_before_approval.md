@@ -1,7 +1,7 @@
 # Edit Before Approval
 
 > Feature group: **Human Approval** (`docs/features/16_human_approval/`) · File: `09_edit_before_approval.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `08_approval_ui.md` · Next: `10_rejection_handling.md`
 
 ## 1. Purpose

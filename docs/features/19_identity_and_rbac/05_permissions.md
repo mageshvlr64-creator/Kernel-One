@@ -1,7 +1,7 @@
 # Permissions
 
 > Feature group: **Identity and RBAC** (`docs/features/19_identity_and_rbac/`) · File: `05_permissions.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `04_roles.md` · Next: `06_groups.md`
 
 ## 1. Purpose

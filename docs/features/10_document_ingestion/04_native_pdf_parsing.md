@@ -1,7 +1,7 @@
 # Native PDF Parsing
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `04_native_pdf_parsing.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `03_file_type_detection.md` · Next: `05_scanned_pdf_detection.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Output Capture
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `10_output_capture.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `09_execution_timeout.md` · Next: `11_container_cleanup.md`
 
 ## 1. Purpose

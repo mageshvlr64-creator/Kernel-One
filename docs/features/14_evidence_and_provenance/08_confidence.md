@@ -1,20 +1,57 @@
 # Confidence
 
 > Feature group: **Evidence and Provenance** (`docs/features/14_evidence_and_provenance/`) · File: `08_confidence.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `07_evidence_graph.md` · Next: `09_unsupported_claim_detection.md`
 
 ## 1. Purpose
 
-**Confidence** is the unit of Evidence and Provenance responsible for tying every claim an agent makes back to a specific source as it specifically relates to "confidence." It exists as its own document because it has its own inputs, its own failure modes, and its own permission boundary — distinct from the other files in `docs/features/14_evidence_and_provenance/`.
+**Confidence** computes and exposes how much a user should trust a piece of Evidence, without
+presenting a bare number as a correctness probability. Per
+`SIH26117_Documentation_Refactor_Master_Prompt.txt` §12, "Confidence = 94%" with no calibration
+methodology is an explicit anti-pattern this feature is designed to avoid. It reads the fields
+defined in `docs/domain/13_evidence_model.md` (`confidence`, `source_authority`,
+`verification_status`) and `docs/domain/06_document_model.md` (`effective_from`,
+`effective_until`) and derives the four-part qualitative representation the UI actually shows.
 
 ## 2. Scope
 
-In scope: validating and executing the `confidence` operation, updating the `evidence_links` store, and emitting the corresponding audit event (`evidence_and_provenance.confidence`). Out of scope: anything owned by a sibling file in this feature group, and anything listed under Non-goals below.
+In scope: computing the qualitative Evidence Coverage / Source Authority / Freshness /
+Cross-Source Agreement representation for a given answer's set of Evidence rows, and exposing
+the raw retrieval `confidence` score separately, clearly labeled, for an operator debug view.
+Out of scope: performing retrieval or reranking itself (owned by
+`docs/features/13_knowledge_fabric/`), and detecting contradictions between sources (owned by
+`docs/industrial/14_knowledge_conflict_detection.md`, which writes the `verification_status`
+field this feature reads).
 
 ## 3. Non-goals
 
-Confidence does not perform its own permission check logic — it calls the shared RBAC layer (`docs/features/19_identity_and_rbac/05_permissions.md`). It does not decide routing or model selection itself. It does not write directly to the audit table — it emits an event that `docs/features/17_audit/` consumes. It makes zero outbound network calls outside the active network mode.
+Confidence does not compute the retrieval/rerank score itself — that number is produced
+during retrieval (`docs/features/13_knowledge_fabric/10_reranking.md`) and stored on the
+Evidence row already. Confidence does not decide whether two sources conflict — that's
+`industrial/14_knowledge_conflict_detection.md`'s job; this feature only reads its output
+(`verification_status = contradicted`). It does not perform its own permission check logic —
+it calls the shared RBAC layer (`docs/features/19_identity_and_rbac/05_permissions.md`). It
+makes zero outbound network calls outside the active network mode.
+
+## 3a. Methodology (the part this file previously omitted)
+
+For a given answer, each cited Evidence row is scored on four qualitative axes, each derived
+from an already-stored field rather than invented at display time:
+
+| Axis | Derived from | Displayed values |
+|---|---|---|
+| Evidence coverage | Ratio of claims in the answer with ≥1 matching Evidence row, to total claims | High / Partial / Low |
+| Source authority | `Evidence.source_authority` (denormalized from `Document.authority`) | Primary / Secondary / Reference |
+| Freshness | `Document.effective_from`/`effective_until` vs. current date (or the query's target date, if the query was date-scoped) | Current / Superseded / Undated |
+| Cross-source agreement | `Evidence.verification_status` | Agreement / Contradicted / Unverified |
+
+No single 0–100% number is computed by combining these four axes — the master prompt's §12
+explicitly warns against fake precision from combining heterogeneous signals into one score.
+The four axes are shown as four separate, independently-understandable pieces of information;
+a user (or judge) can see *why* something is trustworthy or isn't, rather than trusting an
+opaque percentage. The raw `confidence` retrieval score remains available in a clearly-labeled
+debug view for operators, described as a ranking signal, not a correctness estimate.
 
 ## 4. User-facing behavior
 

@@ -1,7 +1,7 @@
 # Network Event Model
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `11_network_event_model.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `10_network_monitor.md` · Next: `12_sovereignty_status.md`
 
 ## 1. Purpose

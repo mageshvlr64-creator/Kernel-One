@@ -1,7 +1,7 @@
 # Internal
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `03_internal.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `02_public.md` · Next: `04_confidential.md`
 
 ## 1. Purpose

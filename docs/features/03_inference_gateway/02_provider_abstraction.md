@@ -1,7 +1,7 @@
 # Provider Abstraction
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `02_provider_abstraction.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_gateway_overview.md` · Next: `03_vllm_provider.md`
 
 ## 1. Purpose

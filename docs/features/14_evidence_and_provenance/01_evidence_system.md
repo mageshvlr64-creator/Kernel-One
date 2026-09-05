@@ -1,7 +1,7 @@
 # Evidence System
 
 > Feature group: **Evidence and Provenance** (`docs/features/14_evidence_and_provenance/`) · File: `01_evidence_system.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_claim_extraction.md`
 
 ## 1. Purpose

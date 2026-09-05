@@ -1,7 +1,7 @@
 # Completion Logic
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `12_completion_logic.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `11_verification_loop.md` · Next: `13_agent_limits.md`
 
 ## 1. Purpose

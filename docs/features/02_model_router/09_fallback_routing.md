@@ -1,7 +1,7 @@
 # Fallback Routing
 
 > Feature group: **Model Router** (`docs/features/02_model_router/`) · File: `09_fallback_routing.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `08_latency_fit.md` · Next: `10_multi_model_routing.md`
 
 ## 1. Purpose

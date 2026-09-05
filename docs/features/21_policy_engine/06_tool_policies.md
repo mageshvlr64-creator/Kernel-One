@@ -1,7 +1,7 @@
 # Tool Policies
 
 > Feature group: **Policy Engine** (`docs/features/21_policy_engine/`) · File: `06_tool_policies.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `05_model_policies.md` · Next: `07_document_policies.md`
 
 ## 1. Purpose

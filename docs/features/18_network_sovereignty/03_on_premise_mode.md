@@ -1,7 +1,7 @@
 # On Premise Mode
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `03_on_premise_mode.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `02_network_modes.md` · Next: `04_restricted_mode.md`
 
 ## 1. Purpose

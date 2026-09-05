@@ -1,7 +1,7 @@
 # Sandbox Escape Failures
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `14_sandbox_escape_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `13_patch_and_retry.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

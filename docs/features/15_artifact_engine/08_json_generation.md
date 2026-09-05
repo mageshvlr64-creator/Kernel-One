@@ -1,7 +1,7 @@
 # JSON Generation
 
 > Feature group: **Artifact Engine** (`docs/features/15_artifact_engine/`) · File: `08_json_generation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `07_csv_generation.md` · Next: `09_markdown_generation.md`
 
 ## 1. Purpose

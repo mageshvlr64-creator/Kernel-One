@@ -1,7 +1,7 @@
 # Replanning
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `10_replanning.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `09_observation_handling.md` · Next: `11_verification_loop.md`
 
 ## 1. Purpose

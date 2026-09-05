@@ -1,7 +1,7 @@
 # Tool Permissions
 
 > Feature group: **Tool Gateway** (`docs/features/05_tool_gateway/`) · File: `04_tool_permissions.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `03_tool_schema.md` · Next: `05_tool_risk_levels.md`
 
 ## 1. Purpose

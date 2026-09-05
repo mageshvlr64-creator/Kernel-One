@@ -1,7 +1,7 @@
 # Tool Restrictions
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `10_tool_restrictions.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `09_model_restrictions.md` · Next: `11_export_restrictions.md`
 
 ## 1. Purpose

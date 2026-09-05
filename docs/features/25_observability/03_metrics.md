@@ -1,7 +1,7 @@
 # Metrics
 
 > Feature group: **Observability** (`docs/features/25_observability/`) · File: `03_metrics.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_structured_logging.md` · Next: `04_traces.md`
 
 ## 1. Purpose

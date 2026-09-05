@@ -1,7 +1,7 @@
 # Visual Evidence
 
 > Feature group: **Multimodal** (`docs/features/12_multimodal/`) · File: `08_visual_evidence.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `07_handwriting.md` · Next: `09_multimodal_failures.md`
 
 ## 1. Purpose

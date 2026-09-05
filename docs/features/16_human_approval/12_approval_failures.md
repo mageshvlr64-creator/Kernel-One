@@ -1,7 +1,7 @@
 # Approval Failures
 
 > Feature group: **Human Approval** (`docs/features/16_human_approval/`) · File: `12_approval_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `11_expired_approvals.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

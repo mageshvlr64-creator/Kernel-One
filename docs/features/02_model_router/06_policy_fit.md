@@ -1,7 +1,7 @@
 # Policy Fit
 
 > Feature group: **Model Router** (`docs/features/02_model_router/`) · File: `06_policy_fit.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `05_resource_fit.md` · Next: `07_accuracy_fit.md`
 
 ## 1. Purpose

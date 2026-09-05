@@ -1,7 +1,7 @@
 # Text Reconstruction
 
 > Feature group: **OCR** (`docs/features/11_ocr/`) · File: `07_text_reconstruction.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `06_confidence_scores.md` · Next: `08_coordinate_mapping.md`
 
 ## 1. Purpose

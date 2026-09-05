@@ -1,7 +1,7 @@
 # Expression Validation
 
 > Feature group: **Calculator Tool** (`docs/features/07_calculator_tool/`) · File: `02_expression_validation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_calculator.md` · Next: `03_units.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Model Health
 
 > Feature group: **Model Management** (`docs/features/01_model_management/`) · File: `04_model_health.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `03_model_capabilities.md` · Next: `05_model_installation.md`
 
 ## 1. Purpose

@@ -28,7 +28,12 @@ sovereign-workbench/
 │   ├── identity-service/        # features/19_identity_and_rbac/
 │   ├── policy-engine/           # features/20_data_classification/, 21_policy_engine/
 │   ├── memory-service/          # features/22_agent_memory/
-│   └── admin-console/           # features/24_admin_console/
+│   ├── admin-console/           # features/24_admin_console/
+│   ├── spreadsheet-service/     # features/23_spreadsheet_intelligence/
+│   ├── observability-service/   # features/25_observability/ (collector config, dashboards-as-code)
+│   ├── backup-service/          # features/26_backup_recovery/
+│   └── industrial-service/      # industrial/*, domain/20_asset_model.md — asset model, knowledge
+│                                 # graph, revision comparison, conflict detection, industrial workflows
 ├── packages/                    # Shared libraries, imported by services/ and apps/, never the reverse
 │   ├── domain/                  # Entity types matching docs/domain/
 │   ├── schemas/                 # Generated types from docs/schemas/*.json blocks

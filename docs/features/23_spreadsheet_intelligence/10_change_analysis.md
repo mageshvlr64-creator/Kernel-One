@@ -1,7 +1,7 @@
 # Change Analysis
 
 > Feature group: **Spreadsheet Intelligence** (`docs/features/23_spreadsheet_intelligence/`) · File: `10_change_analysis.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `09_numeric_reasoning.md` · Next: `11_chart_generation.md`
 
 ## 1. Purpose

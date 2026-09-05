@@ -1,7 +1,7 @@
 # Database Tool
 
 > Feature group: **Database Tool** (`docs/features/08_database_tool/`) · File: `01_database_tool.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: _(first document in this feature)_ · Next: `02_query_generation.md`
 
 ## 1. Purpose

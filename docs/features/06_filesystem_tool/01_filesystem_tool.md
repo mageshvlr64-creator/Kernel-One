@@ -1,7 +1,7 @@
 # Filesystem Tool
 
 > Feature group: **Filesystem Tool** (`docs/features/06_filesystem_tool/`) · File: `01_filesystem_tool.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: _(first document in this feature)_ · Next: `02_read_permissions.md`
 
 ## 1. Purpose

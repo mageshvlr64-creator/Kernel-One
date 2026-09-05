@@ -1,7 +1,7 @@
 # Evidence Graph
 
 > Feature group: **Evidence and Provenance** (`docs/features/14_evidence_and_provenance/`) · File: `07_evidence_graph.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `06_source_chain.md` · Next: `08_confidence.md`
 
 ## 1. Purpose

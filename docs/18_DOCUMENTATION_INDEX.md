@@ -5,7 +5,7 @@
 
 ## Purpose
 
-This document defines a flat index of every document in this tree, for fast lookup for the Sovereign AI Workbench (SIH26176).
+This document defines a flat index of every document in this tree, for fast lookup for the Sovereign AI Workbench (SIH26117).
 
 ## Why this document exists
 
@@ -27,8 +27,24 @@ repeat these ground rules in 650 places, they live once, in this file.
 ## New root files added during the audit pass
 
 This specification also includes `21_COMPETITIVE_POSITIONING.md` (prior-art comparison,
-Upgrade Prompt §52) and `runtime/_state_machines_canonical.md` (the single source for all
-entity state machines, referenced by `runtime/04..09_*_state_machine.md` pointer files).
+Upgrade Prompt §52), `runtime/_state_machines_canonical.md` (the single source for all
+entity state machines, referenced by `runtime/04..09_*_state_machine.md` pointer files),
+`22_REFACTOR_AUDIT_REPORT.md` (the 2026-09-04 identifier-correction and consistency audit —
+see `20_DECISION_LOG.md` DEC-018/DEC-019), `MASTER_PROMPT_COMPLIANCE_AUDIT.md` and
+`DETAILED_FINDINGS_AND_REMEDIATION_PLAN.md` (the 63-section compliance audit and per-item
+remediation plan that DEC-020/DEC-021 implement).
+
+## New non-root files added during the compliance remediation pass (DEC-020)
+
+- `domain/20_asset_model.md` — Plant/Unit/Equipment/MaintenanceEvent/Inspection/Incident entities.
+- `industrial/13_asset_knowledge_graph.md` — asset-centric relationship model.
+- `industrial/14_knowledge_conflict_detection.md` — cross-document contradiction detection.
+- `ui/23_asset_view.md` — the equipment/asset screen.
+
+## Repo-root files (not under `docs/`, but essential reading — see DEC-022)
+
+- `../TEAM.md` — the six-character build-ownership split, read by any agent before writing code.
+- `../CHANGELOG.md` — the running build log every character appends to.
 
 ## Related documents
 

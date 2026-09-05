@@ -1,7 +1,7 @@
 # Memory Overview
 
 > Feature group: **Agent Memory** (`docs/features/22_agent_memory/`) · File: `01_memory_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_conversation_memory.md`
 
 ## 1. Purpose

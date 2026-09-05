@@ -1,7 +1,7 @@
 # Vision Model Selection
 
 > Feature group: **Multimodal** (`docs/features/12_multimodal/`) · File: `03_vision_model_selection.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_image_processing.md` · Next: `04_image_region_analysis.md`
 
 ## 1. Purpose

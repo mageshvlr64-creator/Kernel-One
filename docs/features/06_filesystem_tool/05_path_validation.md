@@ -1,7 +1,7 @@
 # Path Validation
 
 > Feature group: **Filesystem Tool** (`docs/features/06_filesystem_tool/`) · File: `05_path_validation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `04_workspace_boundaries.md` · Next: `06_symlink_protection.md`
 
 ## 1. Purpose

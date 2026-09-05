@@ -1,7 +1,7 @@
 # Action Risk Classification
 
 > Feature group: **Human Approval** (`docs/features/16_human_approval/`) · File: `02_action_risk_classification.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `01_approval_system.md` · Next: `03_low_risk_actions.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Model Approval
 
 > Feature group: **Model Management** (`docs/features/01_model_management/`) · File: `09_model_approval.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `08_model_versioning.md` · Next: `10_model_lifecycle.md`
 
 ## 1. Purpose

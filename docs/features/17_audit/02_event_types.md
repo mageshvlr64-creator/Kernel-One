@@ -1,7 +1,7 @@
 # Event Types
 
 > Feature group: **Audit** (`docs/features/17_audit/`) · File: `02_event_types.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_audit_system.md` · Next: `03_event_schema.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # HTTP Controls
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `08_http_controls.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `07_dns_controls.md` · Next: `09_container_networks.md`
 
 ## 1. Purpose

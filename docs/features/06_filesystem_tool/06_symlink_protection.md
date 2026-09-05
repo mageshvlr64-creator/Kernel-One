@@ -1,7 +1,7 @@
 # Symlink Protection
 
 > Feature group: **Filesystem Tool** (`docs/features/06_filesystem_tool/`) · File: `06_symlink_protection.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `05_path_validation.md` · Next: `07_file_size_limits.md`
 
 ## 1. Purpose

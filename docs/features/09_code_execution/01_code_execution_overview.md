@@ -1,7 +1,7 @@
 # Code Execution Overview
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `01_code_execution_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: _(first document in this feature)_ · Next: `02_supported_languages.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Disaster Recovery
 
 > Feature group: **Backup Recovery** (`docs/features/26_backup_recovery/`) · File: `09_disaster_recovery.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `08_restore_procedure.md` · Next: `10_backup_failures.md`
 
 ## 1. Purpose

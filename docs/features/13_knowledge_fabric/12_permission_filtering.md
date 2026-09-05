@@ -1,7 +1,7 @@
 # Permission Filtering
 
 > Feature group: **Knowledge Fabric** (`docs/features/13_knowledge_fabric/`) · File: `12_permission_filtering.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `11_document_hierarchy.md` · Next: `13_context_assembly.md`
 
 ## 1. Purpose

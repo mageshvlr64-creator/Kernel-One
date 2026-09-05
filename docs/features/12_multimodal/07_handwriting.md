@@ -1,7 +1,7 @@
 # Handwriting
 
 > Feature group: **Multimodal** (`docs/features/12_multimodal/`) · File: `07_handwriting.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `06_photo_analysis.md` · Next: `08_visual_evidence.md`
 
 ## 1. Purpose

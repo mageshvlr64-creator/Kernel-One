@@ -1,7 +1,7 @@
 # Workspace Management
 
 > Feature group: **Admin Console** (`docs/features/24_admin_console/`) · File: `05_workspace_management.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `04_role_management.md` · Next: `06_model_management.md`
 
 ## 1. Purpose

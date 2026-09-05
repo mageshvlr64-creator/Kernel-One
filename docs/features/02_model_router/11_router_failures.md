@@ -1,7 +1,7 @@
 # Router Failures
 
 > Feature group: **Model Router** (`docs/features/02_model_router/`) · File: `11_router_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `10_multi_model_routing.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

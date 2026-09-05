@@ -1,7 +1,7 @@
 # Memory Retrieval
 
 > Feature group: **Agent Memory** (`docs/features/22_agent_memory/`) · File: `06_memory_retrieval.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `05_organization_memory.md` · Next: `07_memory_write_policy.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Tool Timeout
 
 > Feature group: **Tool Gateway** (`docs/features/05_tool_gateway/`) · File: `09_tool_timeout.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `08_tool_output_validation.md` · Next: `10_tool_retry.md`
 
 ## 1. Purpose

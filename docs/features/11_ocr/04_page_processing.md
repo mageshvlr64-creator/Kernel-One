@@ -1,7 +1,7 @@
 # Page Processing
 
 > Feature group: **OCR** (`docs/features/11_ocr/`) · File: `04_page_processing.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `03_language_handling.md` · Next: `05_region_processing.md`
 
 ## 1. Purpose

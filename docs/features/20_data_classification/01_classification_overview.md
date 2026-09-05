@@ -1,7 +1,7 @@
 # Classification Overview
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `01_classification_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: _(first document in this feature)_ · Next: `02_public.md`
 
 ## 1. Purpose

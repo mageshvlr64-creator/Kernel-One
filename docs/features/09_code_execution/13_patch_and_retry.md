@@ -1,7 +1,7 @@
 # Patch and Retry
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `13_patch_and_retry.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `12_test_execution.md` · Next: `14_sandbox_escape_failures.md`
 
 ## 1. Purpose

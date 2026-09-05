@@ -1,7 +1,7 @@
 # Memory Failures
 
 > Feature group: **Agent Memory** (`docs/features/22_agent_memory/`) · File: `10_memory_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `09_memory_permissions.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

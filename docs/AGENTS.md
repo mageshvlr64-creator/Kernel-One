@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Instructions for any AI coding agent (Claude Code, Cursor, Copilot Workspace, or similar)
-operating on the **Sovereign AI Workbench** (SIH26176) repository.
+operating on the **Sovereign AI Workbench** (SIH26117) repository.
 
 ## What this repository is
 

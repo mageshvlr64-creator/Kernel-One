@@ -1,7 +1,7 @@
 # Model Installation
 
 > Feature group: **Model Management** (`docs/features/01_model_management/`) · File: `05_model_installation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_model_health.md` · Next: `06_model_loading.md`
 
 ## 1. Purpose

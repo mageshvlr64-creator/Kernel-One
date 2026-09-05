@@ -1,7 +1,7 @@
 # Transcription Requests
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `11_transcription_requests.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `10_embedding_requests.md` · Next: `12_request_limits.md`
 
 ## 1. Purpose

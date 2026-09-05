@@ -1,7 +1,7 @@
 # Document Normalization
 
 > Feature group: **Knowledge Fabric** (`docs/features/13_knowledge_fabric/`) · File: `03_document_normalization.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_document_store.md` · Next: `04_chunking.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Capability Matching
 
 > Feature group: **Model Router** (`docs/features/02_model_router/`) · File: `02_capability_matching.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_router_overview.md` · Next: `03_task_classification.md`
 
 ## 1. Purpose

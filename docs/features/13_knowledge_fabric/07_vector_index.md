@@ -1,7 +1,7 @@
 # Vector Index
 
 > Feature group: **Knowledge Fabric** (`docs/features/13_knowledge_fabric/`) · File: `07_vector_index.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `06_keyword_index.md` · Next: `08_metadata_index.md`
 
 ## 1. Purpose

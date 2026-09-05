@@ -1,7 +1,7 @@
 # Workspace Memory
 
 > Feature group: **Agent Memory** (`docs/features/22_agent_memory/`) · File: `04_workspace_memory.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `03_task_memory.md` · Next: `05_organization_memory.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Database Backup
 
 > Feature group: **Backup Recovery** (`docs/features/26_backup_recovery/`) · File: `02_database_backup.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `01_backup_overview.md` · Next: `03_object_storage_backup.md`
 
 ## 1. Purpose

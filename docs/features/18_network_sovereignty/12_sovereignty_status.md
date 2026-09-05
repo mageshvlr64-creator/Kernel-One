@@ -1,16 +1,50 @@
 # Sovereignty Status
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `12_sovereignty_status.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `11_network_event_model.md` · Next: `13_network_failures.md`
 
 ## 1. Purpose
 
-**Sovereignty Status** is the unit of Network Sovereignty responsible for proving and enforcing zero external data egress as it specifically relates to "sovereignty status." It exists as its own document because it has its own inputs, its own failure modes, and its own permission boundary — distinct from the other files in `docs/features/18_network_sovereignty/`.
+**Sovereignty Status** produces the runtime attestation shown in `ui/13_network_panel.md` —
+per `05_ARCHITECTURAL_PRINCIPLES.md` principle 15, sovereignty is continuously verified, not
+asserted once at deployment. This file defines the actual mechanism, not just the claim.
+
+## 1a. Attestation mechanism
+
+A background process (`network-monitor` service, `15_CODEBASE_TARGET_STRUCTURE.md`) runs the
+following checks on a fixed interval (CONFIG DEFAULT: every 30 seconds,
+`16_ENVIRONMENT_AND_CONFIGURATION.md`):
+
+1. **Outbound connection audit** — inspects the host's active/recent connection table
+   (platform-appropriate mechanism, e.g. reading `/proc/net/tcp` inside the container or an
+   eBPF hook, chosen at implementation time) for any connection to a non-allow-listed
+   destination. The allow-list contains only `localhost`/internal service addresses
+   (`integrations/01_integration_architecture.md`) — nothing else is ever permitted regardless
+   of network mode.
+2. **DNS resolution audit** — confirms no external DNS queries were issued since the last
+   check, since a blocked connection attempt still leaks intent via DNS if not also blocked.
+3. **Per-integration reachability check** — for each `integrations/*.md` component this
+   deployment uses, confirm it answers on its expected internal address (vLLM/Ollama/
+   llama.cpp, PostgreSQL, MinIO) — this is the "Local models"/"Local knowledge" rows in the UI.
+4. **Mode-consistency check** — confirms the runtime network policy actually matches the
+   configured mode (`features/18_network_sovereignty/02_network_modes.md`) — e.g. in
+   Air-Gapped mode, confirms the network namespace genuinely has no route to an external
+   interface, not just that the application chose not to use one.
+
+**"PASSED"** means all four checks completed with no violation in the most recent interval.
+**"FAILED"** means at least one check found a violation or could not complete (fail-closed per
+principle 11 — an inconclusive check counts as FAILED, not PASSED). Each check's result is
+written to the `network_events` store and is what `ui/13_network_panel.md`'s blocked-checks
+list and Network Attestation field render directly — the UI never computes its own status, it
+displays this feature's output.
 
 ## 2. Scope
 
-In scope: validating and executing the `sovereignty status` operation, updating the `network_events` store, and emitting the corresponding audit event (`network_sovereignty.sovereignty_status`). Out of scope: anything owned by a sibling file in this feature group, and anything listed under Non-goals below.
+In scope: running the four checks above on the fixed interval, updating the `network_events`
+store, and emitting the corresponding audit event (`network_sovereignty.sovereignty_status`).
+Out of scope: anything owned by a sibling file in this feature group, and anything listed
+under Non-goals below.
 
 ## 3. Non-goals
 

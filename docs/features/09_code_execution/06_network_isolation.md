@@ -1,7 +1,7 @@
 # Network Isolation
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `06_network_isolation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `05_resource_limits.md` · Next: `07_process_isolation.md`
 
 ## 1. Purpose

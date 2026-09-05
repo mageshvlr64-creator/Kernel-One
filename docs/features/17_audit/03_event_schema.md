@@ -1,7 +1,7 @@
 # Event Schema
 
 > Feature group: **Audit** (`docs/features/17_audit/`) · File: `03_event_schema.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_event_types.md` · Next: `04_run_id.md`
 
 ## 1. Purpose

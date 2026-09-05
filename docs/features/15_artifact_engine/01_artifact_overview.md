@@ -1,7 +1,7 @@
 # Artifact Overview
 
 > Feature group: **Artifact Engine** (`docs/features/15_artifact_engine/`) · File: `01_artifact_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: _(first document in this feature)_ · Next: `02_artifact_lifecycle.md`
 
 ## 1. Purpose

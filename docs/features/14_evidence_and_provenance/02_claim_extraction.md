@@ -1,7 +1,7 @@
 # Claim Extraction
 
 > Feature group: **Evidence and Provenance** (`docs/features/14_evidence_and_provenance/`) · File: `02_claim_extraction.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_evidence_system.md` · Next: `03_claim_to_source_mapping.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Spreadsheet Overview
 
 > Feature group: **Spreadsheet Intelligence** (`docs/features/23_spreadsheet_intelligence/`) · File: `01_spreadsheet_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_workbook_parsing.md`
 
 ## 1. Purpose

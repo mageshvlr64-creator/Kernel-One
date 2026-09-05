@@ -1,7 +1,7 @@
 # Deterministic Verification
 
 > Feature group: **Calculator Tool** (`docs/features/07_calculator_tool/`) · File: `05_deterministic_verification.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_precision.md` · Next: `06_calculator_failures.md`
 
 ## 1. Purpose

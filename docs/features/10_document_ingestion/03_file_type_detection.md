@@ -1,7 +1,7 @@
 # File Type Detection
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `03_file_type_detection.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_upload_validation.md` · Next: `04_native_pdf_parsing.md`
 
 ## 1. Purpose

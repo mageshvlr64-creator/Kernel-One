@@ -1,7 +1,7 @@
 # System Dashboard
 
 > Feature group: **Admin Console** (`docs/features/24_admin_console/`) · File: `02_system_dashboard.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `01_admin_overview.md` · Next: `03_user_management.md`
 
 ## 1. Purpose

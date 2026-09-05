@@ -1,7 +1,7 @@
 # Markdown Generation
 
 > Feature group: **Artifact Engine** (`docs/features/15_artifact_engine/`) · File: `09_markdown_generation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `08_json_generation.md` · Next: `10_source_provenance.md`
 
 ## 1. Purpose

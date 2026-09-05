@@ -1,7 +1,7 @@
 # Container Creation
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `04_container_creation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `03_workspace_mounts.md` · Next: `05_resource_limits.md`
 
 ## 1. Purpose

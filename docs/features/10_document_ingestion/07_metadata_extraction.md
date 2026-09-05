@@ -1,7 +1,7 @@
 # Metadata Extraction
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `07_metadata_extraction.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `06_page_extraction.md` · Next: `08_table_extraction.md`
 
 ## 1. Purpose

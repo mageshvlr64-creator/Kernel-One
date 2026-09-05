@@ -1,16 +1,50 @@
 # Router Overview
 
 > Feature group: **Model Router** (`docs/features/02_model_router/`) · File: `01_router_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_capability_matching.md`
 
 ## 1. Purpose
 
-**Router Overview** is the unit of Model Router responsible for the router selecting which local model handles a task by capability, policy, and resource fit as it specifically relates to "router overview." It exists as its own document because it has its own inputs, its own failure modes, and its own permission boundary — distinct from the other files in `docs/features/02_model_router/`.
+**Router Overview** defines how a task is matched to a local model. Per
+`SIH26117_Documentation_Refactor_Master_Prompt.txt` §13, this is a risk-aware decision
+combining multiple inputs, not a single-factor choice ("use the biggest model").
+
+## 1a. Selection logic
+
+The router evaluates candidate models in this order, each stage narrowing the candidate set
+rather than producing an independent score to sum:
+
+1. **Capability fit** (`02_capability_matching.md`) — hard filter. A model lacking a required
+   capability (e.g. long-context, multimodal input) is removed from the candidate set
+   entirely; this is not a weighted factor, it's a gate.
+2. **Policy fit** (`06_policy_fit.md`) — hard filter. If the task's Document classification or
+   the caller's role restricts which models may process it (`features/21_policy_engine/`), any
+   model violating that restriction is removed. This runs before accuracy/latency scoring
+   because a policy violation is never an acceptable trade-off for better performance.
+3. **Resource fit** (`05_resource_fit.md`) — hard filter. A model that cannot fit in currently
+   available VRAM/RAM (`07_HARDWARE_AND_DEPLOYMENT_CONSTRAINTS.md`) is removed, not
+   down-weighted — it cannot physically run.
+4. **Accuracy fit vs. latency fit** (`07_accuracy_fit.md`, `08_latency_fit.md`) — among the
+   remaining candidates, a weighted score combines a task-type-specific accuracy expectation
+   (from `benchmarks/`) and the latency budget for this task's interactivity class
+   (`runtime/11_retry_policy.md`'s classes), with accuracy weighted higher for report/analysis
+   tasks and latency weighted higher for interactive chat. The exact weights are a CONFIG
+   DEFAULT (`16_ENVIRONMENT_AND_CONFIGURATION.md`), tunable per deployment, not hardcoded.
+5. **Fallback routing** (`09_fallback_routing.md`) — if the top choice is unavailable at
+   request time, the next-highest-scoring candidate from step 4's ranked list is used, logged
+   as a fallback event distinct from a normal routing decision.
+
+Stages 1-3 are hard gates precisely because policy/resource/capability violations are not
+things a good score elsewhere should be able to override — this ordering is itself a safety
+property, not just an optimization.
 
 ## 2. Scope
 
-In scope: validating and executing the `router overview` operation, updating the `routing_decisions` store, and emitting the corresponding audit event (`model_router.router_overview`). Out of scope: anything owned by a sibling file in this feature group, and anything listed under Non-goals below.
+In scope: running the five-stage selection logic above, updating the `routing_decisions`
+store, and emitting the corresponding audit event (`model_router.router_overview`). Out of
+scope: anything owned by a sibling file in this feature group, and anything listed under
+Non-goals below.
 
 ## 3. Non-goals
 

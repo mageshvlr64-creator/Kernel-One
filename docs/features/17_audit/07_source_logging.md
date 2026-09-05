@@ -1,7 +1,7 @@
 # Source Logging
 
 > Feature group: **Audit** (`docs/features/17_audit/`) · File: `07_source_logging.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `06_tool_call_logging.md` · Next: `08_approval_logging.md`
 
 ## 1. Purpose

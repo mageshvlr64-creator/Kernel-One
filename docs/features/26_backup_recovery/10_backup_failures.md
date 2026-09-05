@@ -1,7 +1,7 @@
 # Backup Failures
 
 > Feature group: **Backup Recovery** (`docs/features/26_backup_recovery/`) · File: `10_backup_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `09_disaster_recovery.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Restore Procedure
 
 > Feature group: **Backup Recovery** (`docs/features/26_backup_recovery/`) · File: `08_restore_procedure.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `07_audit_backup.md` · Next: `09_disaster_recovery.md`
 
 ## 1. Purpose

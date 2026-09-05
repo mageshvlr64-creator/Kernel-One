@@ -1,16 +1,46 @@
 # Export Restrictions
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `11_export_restrictions.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `10_tool_restrictions.md` · Next: `12_classification_failures.md`
 
 ## 1. Purpose
 
-**Export Restrictions** is the unit of Data Classification responsible for restricting which models/tools may touch a given document based on its classification as it specifically relates to "export restrictions." It exists as its own document because it has its own inputs, its own failure modes, and its own permission boundary — distinct from the other files in `docs/features/20_data_classification/`.
+**Export Restrictions** is the concrete check sequence that runs whenever an Artifact
+(`domain/14_artifact_model.md`) leaves the system via download, email, or any other export
+path — per `SIH26117_Documentation_Refactor_Master_Prompt.txt` §45.
+
+## 1a. Export check sequence
+
+Every export request runs these five checks in order; the first failing check stops the
+export and returns its specific error, never a generic denial:
+
+1. **Permissions** — does the requesting user's role have `Artifact:export` for this
+   Artifact's resource type (`reference/05_permission_matrix.md`)? Fail → `PERMISSION_DENIED`.
+2. **Classification** — is the Artifact's classification (max of its source Evidence's
+   Documents, per REQ-DATA-001) at or below what this export destination is allowed to carry?
+   A destination is itself typed (e.g. "download to operator's own machine" vs. "email to an
+   external address," the latter disallowed for CONFIDENTIAL+ regardless of role, consistent
+   with `05_ARCHITECTURAL_PRINCIPLES.md` principle 1). Fail → `EXPORT_CLASSIFICATION_EXCEEDED`.
+3. **Destination** — is the destination itself permitted under the active network mode
+   (`features/18_network_sovereignty/02_network_modes.md`)? An email export in Air-Gapped mode
+   fails here regardless of classification. Fail → `NETWORK_MODE_VIOLATION`.
+4. **Policy** — does the policy engine (`features/21_policy_engine/`) have any operator-added
+   restriction on this Artifact/destination/role combination beyond the base rules above? Fail
+   → `POLICY_DENIED`.
+5. **Approval** — if the Artifact's classification is CONFIDENTIAL or above, has it received
+   the required Approval (`features/16_human_approval/`) for *this specific export*, not
+   merely for its generation? Fail → `APPROVAL_REQUIRED`.
+
+Only after all five checks pass does the export proceed; each check (pass or fail) produces
+its own audit event, per `05_ARCHITECTURAL_PRINCIPLES.md` principle 9.
 
 ## 2. Scope
 
-In scope: validating and executing the `export restrictions` operation, updating the `documents.classification` store, and emitting the corresponding audit event (`data_classification.export_restrictions`). Out of scope: anything owned by a sibling file in this feature group, and anything listed under Non-goals below.
+In scope: running the five-step check sequence above, updating the `documents.classification`
+store, and emitting the corresponding audit event (`data_classification.export_restrictions`).
+Out of scope: anything owned by a sibling file in this feature group, and anything listed
+under Non-goals below.
 
 ## 3. Non-goals
 

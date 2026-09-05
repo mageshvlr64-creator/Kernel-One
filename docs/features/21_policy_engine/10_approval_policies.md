@@ -1,7 +1,7 @@
 # Approval Policies
 
 > Feature group: **Policy Engine** (`docs/features/21_policy_engine/`) · File: `10_approval_policies.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `09_export_policies.md` · Next: `11_policy_failures.md`
 
 ## 1. Purpose

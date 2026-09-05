@@ -1,7 +1,7 @@
 # Latency Fit
 
 > Feature group: **Model Router** (`docs/features/02_model_router/`) · File: `08_latency_fit.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `07_accuracy_fit.md` · Next: `09_fallback_routing.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Image Extraction
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `09_image_extraction.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `08_table_extraction.md` · Next: `10_layout_extraction.md`
 
 ## 1. Purpose

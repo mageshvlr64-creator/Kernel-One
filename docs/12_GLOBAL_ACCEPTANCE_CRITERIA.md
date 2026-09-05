@@ -5,7 +5,7 @@
 
 ## Purpose
 
-This document defines the criteria the system as a whole must satisfy, above and beyond any one feature's local acceptance criteria for the Sovereign AI Workbench (SIH26176).
+This document defines the criteria the system as a whole must satisfy, above and beyond any one feature's local acceptance criteria for the Sovereign AI Workbench (SIH26117).
 
 ## Why this document exists
 

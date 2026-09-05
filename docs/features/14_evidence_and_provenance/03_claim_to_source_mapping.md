@@ -1,7 +1,7 @@
 # Claim to Source Mapping
 
 > Feature group: **Evidence and Provenance** (`docs/features/14_evidence_and_provenance/`) · File: `03_claim_to_source_mapping.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_claim_extraction.md` · Next: `04_page_level_citations.md`
 
 ## 1. Purpose

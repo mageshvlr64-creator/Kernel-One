@@ -1,7 +1,7 @@
 # Top Secret
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `06_top_secret.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `05_restricted.md` · Next: `07_classification_rules.md`
 
 ## 1. Purpose

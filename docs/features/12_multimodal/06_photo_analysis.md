@@ -1,7 +1,7 @@
 # Photo Analysis
 
 > Feature group: **Multimodal** (`docs/features/12_multimodal/`) · File: `06_photo_analysis.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `05_diagram_understanding.md` · Next: `07_handwriting.md`
 
 ## 1. Purpose

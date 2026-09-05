@@ -1,7 +1,7 @@
 # Image Region Analysis
 
 > Feature group: **Multimodal** (`docs/features/12_multimodal/`) · File: `04_image_region_analysis.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `03_vision_model_selection.md` · Next: `05_diagram_understanding.md`
 
 ## 1. Purpose

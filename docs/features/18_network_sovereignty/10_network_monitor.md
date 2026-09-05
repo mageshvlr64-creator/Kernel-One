@@ -1,7 +1,7 @@
 # Network Monitor
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `10_network_monitor.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `09_container_networks.md` · Next: `11_network_event_model.md`
 
 ## 1. Purpose

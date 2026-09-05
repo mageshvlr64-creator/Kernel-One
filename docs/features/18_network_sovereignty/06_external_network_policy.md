@@ -1,7 +1,7 @@
 # External Network Policy
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `06_external_network_policy.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `05_air_gapped_mode.md` · Next: `07_dns_controls.md`
 
 ## 1. Purpose

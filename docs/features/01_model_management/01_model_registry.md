@@ -1,7 +1,7 @@
 # Model Registry
 
 > Feature group: **Model Management** (`docs/features/01_model_management/`) · File: `01_model_registry.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_model_metadata.md`
 
 ## 1. Purpose

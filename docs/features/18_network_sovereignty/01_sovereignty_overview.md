@@ -1,7 +1,7 @@
 # Sovereignty Overview
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `01_sovereignty_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: _(first document in this feature)_ · Next: `02_network_modes.md`
 
 ## 1. Purpose

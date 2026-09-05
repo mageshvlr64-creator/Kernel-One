@@ -1,7 +1,7 @@
 # Retrieval Quality
 
 > Feature group: **Knowledge Fabric** (`docs/features/13_knowledge_fabric/`) · File: `14_retrieval_quality.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `13_context_assembly.md` · Next: `15_retrieval_failures.md`
 
 ## 1. Purpose

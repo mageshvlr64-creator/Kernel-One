@@ -1,7 +1,7 @@
 # Coordinate Level Citations
 
 > Feature group: **Evidence and Provenance** (`docs/features/14_evidence_and_provenance/`) · File: `05_coordinate_level_citations.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_page_level_citations.md` · Next: `06_source_chain.md`
 
 ## 1. Purpose

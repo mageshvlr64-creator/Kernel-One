@@ -1,7 +1,7 @@
 # Workspace Boundaries
 
 > Feature group: **Filesystem Tool** (`docs/features/06_filesystem_tool/`) · File: `04_workspace_boundaries.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `03_write_permissions.md` · Next: `05_path_validation.md`
 
 ## 1. Purpose

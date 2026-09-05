@@ -1,7 +1,7 @@
 # Write Permissions
 
 > Feature group: **Filesystem Tool** (`docs/features/06_filesystem_tool/`) · File: `03_write_permissions.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `02_read_permissions.md` · Next: `04_workspace_boundaries.md`
 
 ## 1. Purpose

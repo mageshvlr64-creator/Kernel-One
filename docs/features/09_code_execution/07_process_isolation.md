@@ -1,7 +1,7 @@
 # Process Isolation
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `07_process_isolation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `06_network_isolation.md` · Next: `08_filesystem_isolation.md`
 
 ## 1. Purpose

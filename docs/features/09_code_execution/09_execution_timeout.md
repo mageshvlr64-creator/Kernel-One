@@ -1,7 +1,7 @@
 # Execution Timeout
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `09_execution_timeout.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `08_filesystem_isolation.md` · Next: `10_output_capture.md`
 
 ## 1. Purpose

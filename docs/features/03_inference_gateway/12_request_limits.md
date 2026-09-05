@@ -1,7 +1,7 @@
 # Request Limits
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `12_request_limits.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `11_transcription_requests.md` · Next: `13_inference_failures.md`
 
 ## 1. Purpose

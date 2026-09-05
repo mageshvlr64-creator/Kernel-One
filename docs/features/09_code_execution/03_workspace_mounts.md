@@ -1,7 +1,7 @@
 # Workspace Mounts
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `03_workspace_mounts.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `02_supported_languages.md` · Next: `04_container_creation.md`
 
 ## 1. Purpose

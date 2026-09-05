@@ -1,7 +1,7 @@
 # Precision
 
 > Feature group: **Calculator Tool** (`docs/features/07_calculator_tool/`) · File: `04_precision.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `03_units.md` · Next: `05_deterministic_verification.md`
 
 ## 1. Purpose

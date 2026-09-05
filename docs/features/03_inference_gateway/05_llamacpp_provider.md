@@ -1,7 +1,7 @@
 # Llamacpp Provider
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `05_llamacpp_provider.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_ollama_provider.md` · Next: `06_openai_compatible_interface.md`
 
 ## 1. Purpose

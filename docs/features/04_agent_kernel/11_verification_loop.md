@@ -1,7 +1,7 @@
 # Verification Loop
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `11_verification_loop.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `10_replanning.md` · Next: `12_completion_logic.md`
 
 ## 1. Purpose

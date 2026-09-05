@@ -1,7 +1,7 @@
 # Department Access
 
 > Feature group: **Identity and RBAC** (`docs/features/19_identity_and_rbac/`) · File: `07_department_access.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `06_groups.md` · Next: `08_workspace_access.md`
 
 ## 1. Purpose

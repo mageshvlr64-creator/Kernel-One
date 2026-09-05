@@ -1,7 +1,7 @@
 # Scanned PDF Detection
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `05_scanned_pdf_detection.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_native_pdf_parsing.md` · Next: `06_page_extraction.md`
 
 ## 1. Purpose

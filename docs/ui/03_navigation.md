@@ -10,6 +10,9 @@
 | Workbench | `/` | `05_workbench_screen.md` | all roles |
 | Chat | `/chat/:conversationId?` | `06_chat_interface.md` | all roles |
 | Documents | `/documents` | `15_knowledge_browser.md` | all roles with `Document:read` |
+| Assets | `/assets` | `23_asset_view.md` | all roles with `Equipment:read` |
+| Workflows | `/workflows` | industrial workflow launch points, `workflows/*.md` (inspection intelligence, document comparison, engineering calculation) | all roles with the relevant `Document:read`/`Tool:execute` permission |
+| Reports | `/reports` | generated Artifact list, filtered to report-type Artifacts (`workflows/07_report_generation.md`, `features/15_artifact_engine/`) | all roles with `Artifact:read` |
 | Approvals | `/approvals` | `11_approval_ui.md` | Administrator, SecurityOfficer only |
 | Security | `/security` | `12_security_panel.md` | Administrator, SecurityOfficer only |
 | Network | `/network` | `13_network_panel.md` | all roles |

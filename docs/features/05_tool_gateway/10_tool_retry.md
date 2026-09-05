@@ -1,7 +1,7 @@
 # Tool Retry
 
 > Feature group: **Tool Gateway** (`docs/features/05_tool_gateway/`) · File: `10_tool_retry.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `09_tool_timeout.md` · Next: `11_tool_audit.md`
 
 ## 1. Purpose

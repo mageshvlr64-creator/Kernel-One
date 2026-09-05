@@ -1,7 +1,7 @@
 # Restricted
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `05_restricted.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `04_confidential.md` · Next: `06_top_secret.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Write Permissions
 
 > Feature group: **Database Tool** (`docs/features/08_database_tool/`) · File: `05_write_permissions.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `04_read_permissions.md` · Next: `06_query_limits.md`
 
 ## 1. Purpose

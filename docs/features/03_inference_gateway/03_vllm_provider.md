@@ -1,7 +1,7 @@
 # VLLM Provider
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `03_vllm_provider.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_provider_abstraction.md` · Next: `04_ollama_provider.md`
 
 ## 1. Purpose

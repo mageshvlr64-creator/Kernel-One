@@ -1,7 +1,7 @@
 # Engine Selection
 
 > Feature group: **OCR** (`docs/features/11_ocr/`) · File: `02_engine_selection.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_ocr_overview.md` · Next: `03_language_handling.md`
 
 ## 1. Purpose

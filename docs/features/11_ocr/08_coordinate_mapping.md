@@ -1,7 +1,7 @@
 # Coordinate Mapping
 
 > Feature group: **OCR** (`docs/features/11_ocr/`) · File: `08_coordinate_mapping.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `07_text_reconstruction.md` · Next: `09_ocr_failures.md`
 
 ## 1. Purpose

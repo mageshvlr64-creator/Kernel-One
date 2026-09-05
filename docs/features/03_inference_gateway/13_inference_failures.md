@@ -1,7 +1,7 @@
 # Inference Failures
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `13_inference_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `12_request_limits.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

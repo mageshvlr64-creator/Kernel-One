@@ -1,7 +1,7 @@
 # Rejection Handling
 
 > Feature group: **Human Approval** (`docs/features/16_human_approval/`) · File: `10_rejection_handling.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `09_edit_before_approval.md` · Next: `11_expired_approvals.md`
 
 ## 1. Purpose

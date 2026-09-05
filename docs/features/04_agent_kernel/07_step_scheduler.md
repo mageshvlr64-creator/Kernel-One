@@ -1,7 +1,7 @@
 # Step Scheduler
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `07_step_scheduler.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `06_execution_graph.md` · Next: `08_tool_selection.md`
 
 ## 1. Purpose

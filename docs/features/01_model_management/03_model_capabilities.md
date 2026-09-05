@@ -1,7 +1,7 @@
 # Model Capabilities
 
 > Feature group: **Model Management** (`docs/features/01_model_management/`) · File: `03_model_capabilities.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `02_model_metadata.md` · Next: `04_model_health.md`
 
 ## 1. Purpose

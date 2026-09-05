@@ -1,7 +1,7 @@
 # Document Normalization
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `12_document_normalization.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `11_coordinate_tracking.md` · Next: `13_ingestion_failures.md`
 
 ## 1. Purpose

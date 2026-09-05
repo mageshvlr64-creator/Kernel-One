@@ -1,7 +1,7 @@
 # Read Permissions
 
 > Feature group: **Filesystem Tool** (`docs/features/06_filesystem_tool/`) · File: `02_read_permissions.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `01_filesystem_tool.md` · Next: `03_write_permissions.md`
 
 ## 1. Purpose

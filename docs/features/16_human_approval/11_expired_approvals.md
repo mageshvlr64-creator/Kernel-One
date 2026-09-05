@@ -1,7 +1,7 @@
 # Expired Approvals
 
 > Feature group: **Human Approval** (`docs/features/16_human_approval/`) · File: `11_expired_approvals.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `10_rejection_handling.md` · Next: `12_approval_failures.md`
 
 ## 1. Purpose

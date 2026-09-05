@@ -1,7 +1,7 @@
 # Prompt Hashing
 
 > Feature group: **Audit** (`docs/features/17_audit/`) · File: `05_prompt_hashing.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_run_id.md` · Next: `06_tool_call_logging.md`
 
 ## 1. Purpose

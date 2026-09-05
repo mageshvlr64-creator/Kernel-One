@@ -1,7 +1,7 @@
 # Policy Structure
 
 > Feature group: **Policy Engine** (`docs/features/21_policy_engine/`) · File: `02_policy_structure.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `01_policy_engine.md` · Next: `03_policy_evaluation.md`
 
 ## 1. Purpose

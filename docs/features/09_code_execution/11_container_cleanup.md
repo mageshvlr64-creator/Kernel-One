@@ -1,7 +1,7 @@
 # Container Cleanup
 
 > Feature group: **Code Execution** (`docs/features/09_code_execution/`) · File: `11_container_cleanup.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `10_output_capture.md` · Next: `12_test_execution.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Agent Kernel Overview
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `01_agent_kernel_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: _(first document in this feature)_ · Next: `02_task_ingestion.md`
 
 ## 1. Purpose

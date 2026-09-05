@@ -1,7 +1,7 @@
 # Diagram Understanding
 
 > Feature group: **Multimodal** (`docs/features/12_multimodal/`) · File: `05_diagram_understanding.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_image_region_analysis.md` · Next: `06_photo_analysis.md`
 
 ## 1. Purpose

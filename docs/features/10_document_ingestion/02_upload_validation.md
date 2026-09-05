@@ -1,7 +1,7 @@
 # Upload Validation
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `02_upload_validation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_ingestion_overview.md` · Next: `03_file_type_detection.md`
 
 ## 1. Purpose

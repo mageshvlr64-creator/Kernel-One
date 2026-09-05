@@ -1,10 +1,16 @@
-# Sovereign AI Workbench (SIH26176) — Documentation Set
+# Sovereign AI Workbench (SIH26117) — Documentation Set
 
-This `docs/` tree is the complete specification for the Sovereign AI Workbench: a locally-hosted,
-sovereignty-first AI workbench that plans and executes multi-step agentic tasks — document
-Q&A, spreadsheet analysis, coding, report generation — entirely on infrastructure the
-operator controls, with every model call, tool call, and file touch attributable and
-auditable.
+This `docs/` tree is the complete specification for the Sovereign AI Workbench: a **sovereign
+industrial intelligence platform** that runs entirely on infrastructure the operator controls,
+connects an organization's documents to the physical assets they govern, detects when those
+documents disagree, verifies claims against evidence before presenting them, and executes
+bounded, human-approved workflows across inspection reports, maintenance records, SOPs, and
+engineering calculations. Its defining characteristic is organizational control — every model
+call, tool call, and file touch attributable and auditable — not merely running locally for
+its own sake. General-purpose agentic capabilities (document Q&A, spreadsheet analysis,
+coding, report generation) exist as the platform this is built on, not as the product's
+primary story — see `21_COMPETITIVE_POSITIONING.md` for how this differs from a generic local
+chatbot or RAG assistant.
 
 ## How this documentation set is organized
 
@@ -35,12 +41,18 @@ auditable.
 ## Reading order for a new contributor (human or AI)
 
 1. `00_README.md` (this file)
-2. `01_PRODUCT_VISION.md`
-3. `02_SCOPE_AND_NON_GOALS.md`
-4. `04_SYSTEM_ARCHITECTURE.md`
-5. `13_DEVELOPER_RULES.md`
-6. `14_AI_IMPLEMENTATION_PROTOCOL.md`
-7. The specific `features/<group>/` directory relevant to the task at hand
+2. **`../TEAM.md`** (repo root, not under `docs/`) — if you are building code, not just
+   reading the spec, stop here first: it tells you which of the six ownership zones you're
+   allowed to touch.
+3. `01_PRODUCT_VISION.md`
+4. `02_SCOPE_AND_NON_GOALS.md`
+5. `04_SYSTEM_ARCHITECTURE.md`
+6. `13_DEVELOPER_RULES.md`
+7. `14_AI_IMPLEMENTATION_PROTOCOL.md`
+8. The specific `features/<group>/` directory relevant to the task at hand — cross-checked
+   against `../TEAM.md` to confirm it's actually your character's to build.
+9. **`../CHANGELOG.md`** (repo root) — check your character's most recent entry before
+   starting, and append a new one before you finish.
 
 ## Ground rules
 

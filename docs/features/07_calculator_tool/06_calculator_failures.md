@@ -1,7 +1,7 @@
 # Calculator Failures
 
 > Feature group: **Calculator Tool** (`docs/features/07_calculator_tool/`) · File: `06_calculator_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `05_deterministic_verification.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

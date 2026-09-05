@@ -1,7 +1,7 @@
 # Execution Graph
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `06_execution_graph.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `05_plan_validation.md` · Next: `07_step_scheduler.md`
 
 ## 1. Purpose

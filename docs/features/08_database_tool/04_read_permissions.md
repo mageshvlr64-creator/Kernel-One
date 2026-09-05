@@ -1,7 +1,7 @@
 # Read Permissions
 
 > Feature group: **Database Tool** (`docs/features/08_database_tool/`) · File: `04_read_permissions.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `03_query_validation.md` · Next: `05_write_permissions.md`
 
 ## 1. Purpose

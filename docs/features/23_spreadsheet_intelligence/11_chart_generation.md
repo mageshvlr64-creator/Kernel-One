@@ -1,7 +1,7 @@
 # Chart Generation
 
 > Feature group: **Spreadsheet Intelligence** (`docs/features/23_spreadsheet_intelligence/`) · File: `11_chart_generation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `10_change_analysis.md` · Next: `12_spreadsheet_failures.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Agent Context Management
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `14_agent_context_management.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `13_agent_limits.md` · Next: `15_agent_failure_modes.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Classification Failures
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `12_classification_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `11_export_restrictions.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

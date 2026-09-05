@@ -1,7 +1,7 @@
 # Run ID
 
 > Feature group: **Audit** (`docs/features/17_audit/`) · File: `04_run_id.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `03_event_schema.md` · Next: `05_prompt_hashing.md`
 
 ## 1. Purpose

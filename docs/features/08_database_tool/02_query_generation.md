@@ -1,7 +1,7 @@
 # Query Generation
 
 > Feature group: **Database Tool** (`docs/features/08_database_tool/`) · File: `02_query_generation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `01_database_tool.md` · Next: `03_query_validation.md`
 
 ## 1. Purpose

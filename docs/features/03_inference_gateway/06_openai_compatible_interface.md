@@ -1,7 +1,7 @@
 # Openai Compatible Interface
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `06_openai_compatible_interface.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `05_llamacpp_provider.md` · Next: `07_streaming.md`
 
 ## 1. Purpose

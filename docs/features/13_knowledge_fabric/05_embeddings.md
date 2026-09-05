@@ -1,7 +1,7 @@
 # Embeddings
 
 > Feature group: **Knowledge Fabric** (`docs/features/13_knowledge_fabric/`) · File: `05_embeddings.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `04_chunking.md` · Next: `06_keyword_index.md`
 
 ## 1. Purpose

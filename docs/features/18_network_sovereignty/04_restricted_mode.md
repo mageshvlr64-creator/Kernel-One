@@ -1,7 +1,7 @@
 # Restricted Mode
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `04_restricted_mode.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `03_on_premise_mode.md` · Next: `05_air_gapped_mode.md`
 
 ## 1. Purpose

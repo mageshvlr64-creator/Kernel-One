@@ -24,6 +24,7 @@
 | AuditEvent | `17_audit_event_model.md` (full schema in `schemas/15_audit_event_schema.md`) |
 | MemoryEntry | `18_memory_model.md` |
 | ClassificationLevel (enum, not a table) | `19_classification_model.md` |
+| Plant, Unit, Equipment, MaintenanceEvent, Inspection, Incident | `20_asset_model.md` |
 
 ## Relationship overview
 
@@ -45,6 +46,15 @@ Organization 1---* Workspace 1---* Document 1---* DocumentChunk
 Model 1---* ModelCapability (inline array, not a join table in V1)
 Policy independently referenced by AgentRun/ToolInvocation/Document/Artifact evaluation paths
   via the policy engine (features/21_policy_engine/) -- not a direct foreign key relationship.
+
+Organization 1---* Plant 1---* Unit 1---* Equipment
+                                              |
+                                              +--* MaintenanceEvent --1 Document (source_document_id)
+                                              +--* Inspection       --1 Document (source_document_id)
+                                              +--* Incident         --1 Document (source_document_id)
+
+Equipment *---* Document  (many-to-many "governed_by" relationship -- which SOPs/manuals apply
+  to which equipment -- defined in industrial/13_asset_knowledge_graph.md, not a direct FK here)
 ```
 
 ## Cross-cutting rules that apply to every entity

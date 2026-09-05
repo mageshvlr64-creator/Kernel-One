@@ -1,7 +1,7 @@
 # Document Store
 
 > Feature group: **Knowledge Fabric** (`docs/features/13_knowledge_fabric/`) · File: `02_document_store.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `01_knowledge_overview.md` · Next: `03_document_normalization.md`
 
 ## 1. Purpose

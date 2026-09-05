@@ -1,7 +1,7 @@
 # Agent Failure Modes
 
 > Feature group: **Agent Kernel** (`docs/features/04_agent_kernel/`) · File: `15_agent_failure_modes.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `14_agent_context_management.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Classification Inheritance
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `08_classification_inheritance.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `07_classification_rules.md` · Next: `09_model_restrictions.md`
 
 ## 1. Purpose

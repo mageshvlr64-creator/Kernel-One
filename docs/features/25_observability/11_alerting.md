@@ -1,7 +1,7 @@
 # Alerting
 
 > Feature group: **Observability** (`docs/features/25_observability/`) · File: `11_alerting.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `10_network_metrics.md` · Next: `12_observability_failures.md`
 
 ## 1. Purpose

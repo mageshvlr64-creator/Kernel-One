@@ -1,7 +1,7 @@
 # Observability Failures
 
 > Feature group: **Observability** (`docs/features/25_observability/`) · File: `12_observability_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `11_alerting.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

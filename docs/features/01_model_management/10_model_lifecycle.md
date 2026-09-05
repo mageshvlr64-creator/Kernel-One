@@ -1,7 +1,7 @@
 # Model Lifecycle
 
 > Feature group: **Model Management** (`docs/features/01_model_management/`) · File: `10_model_lifecycle.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `09_model_approval.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

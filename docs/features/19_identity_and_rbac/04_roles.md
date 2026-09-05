@@ -1,7 +1,7 @@
 # Roles
 
 > Feature group: **Identity and RBAC** (`docs/features/19_identity_and_rbac/`) · File: `04_roles.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `03_sessions.md` · Next: `05_permissions.md`
 
 ## 1. Purpose

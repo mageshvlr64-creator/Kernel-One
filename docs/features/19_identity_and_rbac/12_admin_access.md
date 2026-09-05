@@ -1,7 +1,7 @@
 # Admin Access
 
 > Feature group: **Identity and RBAC** (`docs/features/19_identity_and_rbac/`) · File: `12_admin_access.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `11_model_access.md` · Next: `13_rbac_failures.md`
 
 ## 1. Purpose

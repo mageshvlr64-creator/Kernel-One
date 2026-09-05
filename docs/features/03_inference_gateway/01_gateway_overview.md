@@ -1,7 +1,7 @@
 # Gateway Overview
 
 > Feature group: **Inference Gateway** (`docs/features/03_inference_gateway/`) · File: `01_gateway_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_provider_abstraction.md`
 
 ## 1. Purpose

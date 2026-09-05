@@ -1,7 +1,7 @@
 # Tool Output Validation
 
 > Feature group: **Tool Gateway** (`docs/features/05_tool_gateway/`) · File: `08_tool_output_validation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `07_tool_validation.md` · Next: `09_tool_timeout.md`
 
 ## 1. Purpose

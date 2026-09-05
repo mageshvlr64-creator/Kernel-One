@@ -5,7 +5,7 @@
 
 ## Purpose
 
-This document defines what V1 explicitly includes and excludes, so scope creep is a documented decision rather than an accident for the Sovereign AI Workbench (SIH26176).
+This document defines what V1 explicitly includes and excludes, so scope creep is a documented decision rather than an accident for the Sovereign AI Workbench (SIH26117).
 
 ## Why this document exists
 

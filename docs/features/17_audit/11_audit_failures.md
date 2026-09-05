@@ -1,7 +1,7 @@
 # Audit Failures
 
 > Feature group: **Audit** (`docs/features/17_audit/`) · File: `11_audit_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `10_audit_integrity.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

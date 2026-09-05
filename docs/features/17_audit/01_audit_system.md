@@ -1,7 +1,7 @@
 # Audit System
 
 > Feature group: **Audit** (`docs/features/17_audit/`) · File: `01_audit_system.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_event_types.md`
 
 ## 1. Purpose

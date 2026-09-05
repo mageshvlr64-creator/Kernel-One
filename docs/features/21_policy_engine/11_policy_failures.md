@@ -1,7 +1,7 @@
 # Policy Failures
 
 > Feature group: **Policy Engine** (`docs/features/21_policy_engine/`) · File: `11_policy_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `10_approval_policies.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

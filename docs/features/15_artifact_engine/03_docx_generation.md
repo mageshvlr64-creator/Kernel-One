@@ -1,7 +1,7 @@
 # DOCX Generation
 
 > Feature group: **Artifact Engine** (`docs/features/15_artifact_engine/`) · File: `03_docx_generation.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **medium**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **medium**.
 > Previous: `02_artifact_lifecycle.md` · Next: `04_xlsx_generation.md`
 
 ## 1. Purpose

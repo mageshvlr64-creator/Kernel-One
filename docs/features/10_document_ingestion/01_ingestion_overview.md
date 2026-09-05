@@ -1,7 +1,7 @@
 # Ingestion Overview
 
 > Feature group: **Document Ingestion** (`docs/features/10_document_ingestion/`) · File: `01_ingestion_overview.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: _(first document in this feature)_ · Next: `02_upload_validation.md`
 
 ## 1. Purpose

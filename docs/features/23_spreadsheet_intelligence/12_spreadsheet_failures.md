@@ -1,7 +1,7 @@
 # Spreadsheet Failures
 
 > Feature group: **Spreadsheet Intelligence** (`docs/features/23_spreadsheet_intelligence/`) · File: `12_spreadsheet_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `11_chart_generation.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

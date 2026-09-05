@@ -1,7 +1,7 @@
 # Network Failures
 
 > Feature group: **Network Sovereignty** (`docs/features/18_network_sovereignty/`) · File: `13_network_failures.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `12_sovereignty_status.md` · Next: _(last document in this feature)_
 
 ## 1. Purpose

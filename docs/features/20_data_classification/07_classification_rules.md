@@ -1,7 +1,7 @@
 # Classification Rules
 
 > Feature group: **Data Classification** (`docs/features/20_data_classification/`) · File: `07_classification_rules.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **high**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **high**.
 > Previous: `06_top_secret.md` · Next: `08_classification_inheritance.md`
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # Document Hierarchy
 
 > Feature group: **Knowledge Fabric** (`docs/features/13_knowledge_fabric/`) · File: `11_document_hierarchy.md`
-> Part of the Sovereign AI Workbench (SIH26176) specification set. Risk level: **low**.
+> Part of the Sovereign AI Workbench (SIH26117) specification set. Risk level: **low**.
 > Previous: `10_reranking.md` · Next: `12_permission_filtering.md`
 
 ## 1. Purpose
