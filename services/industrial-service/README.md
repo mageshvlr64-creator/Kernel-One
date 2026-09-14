@@ -30,8 +30,14 @@ Implements the asset-centric industrial intelligence platform capabilities defin
 ## Stack
 
 - Python 3.11, FastAPI, asyncpg (PostgreSQL 15+)
-- All numeric calculations delegated to `services/tool-gateway/tools/calculator/`
-  (Character 2) per `docs/industrial/10_engineering_calculations.md`
+- Deterministic calculation helpers in `app/calculations.py`
+  (`docs/industrial/10_engineering_calculations.md`): tolerance checks, explicit
+  unit conversions, aggregate statistics. These run locally today with full input
+  traceability so callers can cite inputs as Evidence; when Character 2's
+  Calculator Tool (`services/tool-gateway/`, `features/07_calculator_tool/`) is
+  available, `/internal/verify-calculation` callers should cite its
+  ToolInvocation instead — this service never asserts a numeric claim without
+  an auditable computation behind it either way.
 
 ## Running
 

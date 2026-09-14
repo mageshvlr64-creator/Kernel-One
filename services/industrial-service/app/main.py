@@ -32,10 +32,12 @@ from typing import Annotated, Optional
 import asyncpg
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Header, Query, status
+from pydantic import BaseModel as _BaseModel
 
 from app.calculations import aggregate_values, check_tolerance, convert_unit
 from app.comparison import compare_findings, is_low_confidence
 from app.conflict_detection import detect_conflicts, format_conflict_output
+from app.sop import evaluate_sop_compliance
 from app.database import (
     ConflictResolutionRepository,
     EquipmentRepository,
@@ -641,9 +643,6 @@ async def get_governing_documents(
 # ---------------------------------------------------------------------------
 
 
-from pydantic import BaseModel as _BaseModel
-
-
 class ResolveTagRequest(_BaseModel):
     tag_number: str
     within_unit_id: uuid.UUID
@@ -937,6 +936,32 @@ async def verify_calculation(payload: VerifyCalculationRequest):
         raise ValueError(f"unknown operation: {payload.operation}")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+class CheckSopComplianceRequest(_BaseModel):
+    action_evidence_ids: list[str] = []
+    sop_evidence_ids: list[str] = []
+    agent_verdict: str = "uncertain"
+    answer_text: str = ""
+
+
+@app.post("/internal/check-sop-compliance")
+async def check_sop_compliance(payload: CheckSopComplianceRequest):
+    """Gate an SOP-compliance answer on its Definition of Done.
+
+    Per docs/industrial/03_maintenance_records.md (cross-referencing) and
+    04_sop_compliance.md: the answer must cite Evidence from BOTH sides
+    (maintenance record + SOP step) and carry the scope disclaimer.
+    The match verdict itself comes from the calling agent — this endpoint
+    never decides match vs. no-match, only validates the presentation.
+    """
+    evaluation = evaluate_sop_compliance(
+        action_evidence_ids=payload.action_evidence_ids,
+        sop_evidence_ids=payload.sop_evidence_ids,
+        agent_verdict=payload.agent_verdict,
+        answer_text=payload.answer_text,
+    )
+    return {"accepted": evaluation.accepted, "reasons": evaluation.reasons}
 
 
 # ---------------------------------------------------------------------------

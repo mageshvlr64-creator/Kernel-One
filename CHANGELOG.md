@@ -241,3 +241,35 @@ for ui/23_asset_view.md /assets/:equipmentId — currently the UI would need to 
 
 **Next:** Live-DB integration test; governing-doc authority/effective-date enrichment
 (joins Character 3 Document rows); SOP-vs-maintenance cross-check helper (03+04).
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (deep audit pass, Character 4 paths only):**
+- Audited all 14 `docs/industrial/*`, `docs/domain/20_asset_model.md`, all 14
+  `docs/workflows/*`, `docs/ui/23_asset_view.md` against `services/industrial-service/`.
+  Workflows 02-05/09-14 impose no Character 4 obligations (other characters' features);
+  workflow 07's asset/conflict sections are fed by existing endpoints. No cross-boundary
+  files touched.
+- `services/industrial-service/app/sop.py` — NEW: `evaluate_sop_compliance()` per
+  03+04 (dual-sided evidence gate + disclaimer gate; never decides match itself).
+- `services/industrial-service/app/main.py` — `POST /internal/check-sop-compliance`;
+  moved mid-file pydantic import to top imports.
+- `services/industrial-service/tests/test_sop.py` — NEW: 4 tests; fixed
+  `test_resolution.py` enum type nit.
+- `services/industrial-service/README.md` — corrected stale "all calculations delegated
+  to tool-gateway" claim to describe local deterministic helpers + ToolInvocation
+  migration path (was inaccurate vs. `app/calculations.py`).
+
+**Status:** Implemented, unit-tested — 54 passed (`pytest tests/` in
+`services/industrial-service`); all modules import cleanly.
+
+**Blocked on / depends on (unchanged, other characters' scope — not acted on):**
+- Character 1: `conflict_resolutions` migration counterpart in `infra/`; `/internal/*`
+  contracts in `docs/api/`; real JWT validation.
+- Character 3: Document.authority/effective-date joins; ingest wiring for
+  validate-finding/resolve-tag/check-sop-compliance.
+- Character 2: agent-side use of verify-calculation/compare-documents; Risks/AI-insights
+  panel summary (uses `GET /assets/{id}/detail`).
+
+**Next:** Live-DB integration test; superseded-SOP grey-out data (needs Character 3
+Document validity windows).

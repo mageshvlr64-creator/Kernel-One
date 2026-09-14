@@ -1,7 +1,7 @@
 import uuid
 
 from app.comparison import apply_table_confidence_default, compare_findings
-from app.models import ConflictResolutionCreate
+from app.models import ConflictResolutionCreate, ConflictResolutionKind
 
 
 def test_table_confidence_capped():
@@ -43,6 +43,6 @@ def test_resolution_kinds_valid():
             claim_description="Filter interval",
             source_a_document_id=uuid.uuid4(),
             source_b_document_id=uuid.uuid4(),
-            resolution_kind=kind,
+            resolution_kind=ConflictResolutionKind(kind),
         )
         assert r.resolution_kind.value == kind
