@@ -150,6 +150,20 @@ class MaintenanceEventBase(BaseModel):
         None, description="Free text, e.g. 'seal replacement', 'scheduled service'"
     )
     performed_at: Optional[date] = None
+    technician: Optional[str] = Field(
+        None,
+        description=(
+            "Who performed the work, where recorded. "
+            "See docs/industrial/03_maintenance_records.md."
+        ),
+    )
+    work_order_id: Optional[str] = Field(
+        None,
+        description=(
+            "Work-order identifier, where recorded. "
+            "See docs/industrial/03_maintenance_records.md."
+        ),
+    )
     notes: Optional[str] = None
 
 

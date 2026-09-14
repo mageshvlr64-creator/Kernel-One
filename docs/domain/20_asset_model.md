@@ -68,6 +68,8 @@ relational tables — no separate graph database is introduced (see `06_TECHNOLO
 | `source_document_id` | uuid FK → Document.id | no | null | the maintenance record this event was extracted from, if any — links back to `industrial/03_maintenance_records.md`'s extraction output |
 | `event_type` | text | no | null | free text, e.g. "seal replacement," "scheduled service" |
 | `performed_at` | date | no | null | — |
+| `technician` | text | no | null | who performed the work, where the record states it — precise citation per `industrial/03_maintenance_records.md` |
+| `work_order_id` | text | no | null | work-order identifier, where the record states it — precise citation per `industrial/03_maintenance_records.md` |
 | `notes` | text | no | null | — |
 | `created_at` | timestamptz | yes | now() | immutable |
 

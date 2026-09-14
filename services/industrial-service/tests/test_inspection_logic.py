@@ -13,6 +13,7 @@ from app.inspection_logic import (
     needs_ocr_confidence_warning,
     validate_answer_disclaimers,
     validate_calculation_framing,
+    validate_pid_caveat,
     validate_sop_compliance_disclaimer,
     format_finding_answer_fragment,
     OCR_CONFIDENCE_WARN_THRESHOLD,
@@ -168,3 +169,16 @@ class TestValidateAnswerDisclaimers:
             assert False, "should have raised"
         except ValueError:
             pass
+
+    def test_pid_kind_requires_caveat(self):
+        out = validate_answer_disclaimers("A pump and a vessel.", "pid")
+        assert out == {"valid": False, "missing": ["pid_caveat"]}
+        good = (
+            "General visual description of the P&ID, "
+            "not a structured extraction — confirm against the source."
+        )
+        assert validate_pid_caveat(good) is True
+        assert validate_answer_disclaimers(good, "pid") == {
+            "valid": True,
+            "missing": [],
+        }

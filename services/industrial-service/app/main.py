@@ -346,6 +346,49 @@ async def list_assets(
     )
 
 
+class AssetListItem(_BaseModel):
+    """One row of the Asset list view table (docs/ui/23_asset_view.md /assets).
+
+    Extends the bare Equipment row with the Unit name and last inspection
+    date columns the table shows.
+    """
+
+    equipment: Equipment
+    unit_name: Optional[str] = None
+    last_inspection_date: Optional[date] = None
+
+
+@app.get("/assets/table", response_model=list[AssetListItem])
+async def list_assets_table(
+    organization_id: uuid.UUID,
+    tag_number: Optional[str] = Query(None),
+    name: Optional[str] = Query(None),
+    equipment_status: Optional[EquipmentStatus] = Query(None, alias="status"),
+    plant_id: Optional[uuid.UUID] = Query(None),
+    unit_id: Optional[uuid.UUID] = Query(None),
+    repo: EquipmentRepository = Depends(equipment_repo),
+    x_roles: Annotated[Optional[str], Header()] = None,
+):
+    """List view with Unit + last-inspection columns, one query (no N+1)."""
+    _require_permission(x_roles, "Equipment:read")
+    rows = await repo.search_with_history(
+        organization_id=organization_id,
+        tag_number=tag_number,
+        name_query=name,
+        status=equipment_status,
+        plant_id=plant_id,
+        unit_id=unit_id,
+    )
+    return [
+        AssetListItem(
+            equipment=equipment,
+            unit_name=unit_name,
+            last_inspection_date=last_date,
+        )
+        for equipment, unit_name, last_date in rows
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Equipment — CRUD
 # ---------------------------------------------------------------------------
@@ -776,6 +819,7 @@ class AssetDetail(_BaseModel):
     inspections: list[Inspection] = []
     incidents: list[Incident] = []
     governing_documents: list[dict] = []
+    conflict_resolutions: list[ConflictResolution] = []
     last_inspection_date: Optional[date] = None
 
 
@@ -789,12 +833,14 @@ async def get_asset_detail(
     insp_repo: InspectionRepository = Depends(inspection_repo),
     inci_repo: IncidentRepository = Depends(incident_repo),
     kg_repo: KnowledgeGraphRepository = Depends(graph_repo),
+    res_repo: ConflictResolutionRepository = Depends(conflict_resolution_repo),
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
     """Single aggregated call for /assets/:equipmentId detail view.
 
     Per docs/ui/23_asset_view.md: header + identity + maintenance +
-    inspection + incident histories + governing docs, one round trip.
+    inspection + incident histories + governing docs + conflict resolution
+    history (Known-conflicts panel), one round trip.
     """
     _require_permission(x_roles, "Equipment:read")
     equipment = await eq_repo.get(equipment_id)
@@ -813,6 +859,7 @@ async def get_asset_detail(
             link.model_dump()
             for link in await kg_repo.get_governing_documents(equipment_id)
         ],
+        conflict_resolutions=await res_repo.list_by_equipment(equipment_id),
         last_inspection_date=await insp_repo.last_inspection_date(equipment_id),
     )
 
@@ -874,9 +921,9 @@ async def validate_answer(
     payload: ValidateAnswerRequest,
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
-    """Check required disclaimers per 04_sop_compliance / 09 / 11.
+    """Check required disclaimers per 04_sop_compliance / 08 / 09 / 11.
 
-    answer_kind: 'sop' | 'calculation' | 'drawing' | 'general'.
+    answer_kind: 'sop' | 'calculation' | 'drawing' | 'pid' | 'general'.
     Returns {valid, missing} — caller rejects or flags when not valid.
     Unknown kinds fail closed (400), never pass through as valid.
     """

@@ -152,7 +152,25 @@ def validate_drawing_caveat(answer_text: str) -> bool:
     return any(phrase in lower for phrase in required_phrases)
 
 
-VALID_ANSWER_KINDS = ("sop", "calculation", "drawing", "general")
+VALID_ANSWER_KINDS = ("sop", "calculation", "drawing", "pid", "general")
+
+
+def validate_pid_caveat(answer_text: str) -> bool:
+    """Check that a P&ID-derived answer states its limitation.
+
+    Per docs/industrial/08_p_and_id_intelligence.md: V1 output is a general
+    visual description, not a structured symbol/tag extraction — the answer
+    must say so rather than presenting the description as equivalent to a
+    proper extraction.
+    """
+    required_phrases = [
+        "general visual description",
+        "not a structured extraction",
+        "not structured symbol",
+        "description, not",
+    ]
+    lower = answer_text.lower()
+    return any(phrase in lower for phrase in required_phrases)
 
 
 def validate_answer_disclaimers(answer_text: str, answer_kind: str) -> dict:
@@ -174,6 +192,8 @@ def validate_answer_disclaimers(answer_text: str, answer_kind: str) -> dict:
         checks["calculation_framing"] = validate_calculation_framing(answer_text)
     elif answer_kind == "drawing":
         checks["drawing_caveat"] = validate_drawing_caveat(answer_text)
+    elif answer_kind == "pid":
+        checks["pid_caveat"] = validate_pid_caveat(answer_text)
     # "general" carries no kind-specific disclaimer requirement.
     missing = [k for k, v in checks.items() if not v]
     return {"valid": not missing, "missing": missing}

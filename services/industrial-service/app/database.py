@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS maintenance_events (
     source_document_id  UUID,          -- FK into documents table owned by Character 3
     event_type          TEXT,
     performed_at        DATE,
+    technician          TEXT,          -- docs/industrial/03_maintenance_records.md
+    work_order_id       TEXT,          -- docs/industrial/03_maintenance_records.md
     notes               TEXT,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -220,6 +222,8 @@ def _row_to_maintenance_event(row: asyncpg.Record) -> MaintenanceEvent:
         source_document_id=row["source_document_id"],
         event_type=row["event_type"],
         performed_at=row["performed_at"],
+        technician=row["technician"] if "technician" in row else None,
+        work_order_id=row["work_order_id"] if "work_order_id" in row else None,
         notes=row["notes"],
         created_at=row["created_at"],
     )
@@ -447,6 +451,72 @@ class EquipmentRepository:
             rows = await conn.fetch(sql, *args)
         return [_row_to_equipment(r) for r in rows]
 
+    async def search_with_history(
+        self,
+        organization_id: uuid.UUID,
+        tag_number: Optional[str] = None,
+        name_query: Optional[str] = None,
+        status: Optional[EquipmentStatus] = None,
+        plant_id: Optional[uuid.UUID] = None,
+        unit_id: Optional[uuid.UUID] = None,
+    ) -> list[tuple[Equipment, Optional[str], Optional[date]]]:
+        """Search plus per-row list-view columns in a single query.
+
+        Returns (Equipment, unit_name, last_inspection_date) tuples for the
+        Asset list view table (docs/ui/23_asset_view.md: Tag, Name, Unit,
+        Status, last inspection date).
+        """
+        conditions = [
+            "p.organization_id = $1",
+            "e.deleted_at IS NULL",
+            "u.deleted_at IS NULL",
+            "p.deleted_at IS NULL",
+        ]
+        args: list[Any] = [organization_id]
+        idx = 2
+
+        if tag_number:
+            conditions.append(f"e.tag_number ILIKE ${idx}")
+            args.append(f"%{tag_number}%")
+            idx += 1
+        if name_query:
+            conditions.append(f"e.name ILIKE ${idx}")
+            args.append(f"%{name_query}%")
+            idx += 1
+        if status:
+            conditions.append(f"e.status = ${idx}")
+            args.append(status.value)
+            idx += 1
+        if plant_id:
+            conditions.append(f"p.id = ${idx}")
+            args.append(plant_id)
+            idx += 1
+        if unit_id:
+            conditions.append(f"u.id = ${idx}")
+            args.append(unit_id)
+            idx += 1
+
+        where = " AND ".join(conditions)
+        sql = f"""
+            SELECT e.*, u.name AS unit_name, insp.last_date AS last_inspection_date
+            FROM equipment e
+            JOIN units u ON u.id = e.unit_id
+            JOIN plants p ON p.id = u.plant_id
+            LEFT JOIN LATERAL (
+                SELECT MAX(inspected_at) AS last_date
+                FROM inspections
+                WHERE equipment_id = e.id
+            ) insp ON true
+            WHERE {where}
+            ORDER BY e.tag_number
+        """
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(sql, *args)
+        return [
+            (_row_to_equipment(r), r["unit_name"], r["last_inspection_date"])
+            for r in rows
+        ]
+
     async def update(
         self, equipment_id: uuid.UUID, payload: EquipmentUpdate
     ) -> Optional[Equipment]:
@@ -537,14 +607,17 @@ class MaintenanceEventRepository:
             row = await conn.fetchrow(
                 """
                 INSERT INTO maintenance_events
-                    (equipment_id, source_document_id, event_type, performed_at, notes)
-                VALUES ($1, $2, $3, $4, $5)
+                    (equipment_id, source_document_id, event_type, performed_at,
+                     technician, work_order_id, notes)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
                 """,
                 payload.equipment_id,
                 payload.source_document_id,
                 payload.event_type,
                 payload.performed_at,
+                payload.technician,
+                payload.work_order_id,
                 payload.notes,
             )
         return _row_to_maintenance_event(row)

@@ -302,3 +302,32 @@ Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
 (Document joins, ingest wiring), Character 2 (agent-side use, insights summary).
 
 **Next:** Live-DB integration test once PostgreSQL is available.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (feature-completeness sweep — every owned spec re-checked):**
+- `docs/domain/20_asset_model.md` + `app/models.py` + `app/database.py` —
+  `MaintenanceEvent.technician` + `work_order_id` (nullable) per
+  `docs/industrial/03_maintenance_records.md` precise-citation rule. DDL, row
+  mapper (tolerant of pre-migration rows), and create path updated.
+- `app/inspection_logic.py` + `POST /internal/validate-answer` — new `pid`
+  answer kind with `validate_pid_caveat()` per `docs/industrial/08_p_and_id_intelligence.md`
+  ("description, not structured extraction").
+- `app/database.py` — new `EquipmentRepository.search_with_history()` (single query,
+  `LEFT JOIN LATERAL`, no N+1); `app/main.py` — new `GET /assets/table`
+  (`AssetListItem`: equipment + unit_name + last_inspection_date) per the
+  `docs/ui/23_asset_view.md` list-view columns. Bare `GET /assets` unchanged.
+- `app/main.py` — `GET /assets/{id}/detail` now includes `conflict_resolutions`
+  (Known-conflicts panel data we own) alongside histories and governing docs.
+- `tests/test_asset_views.py` — NEW (3 tests); `test_inspection_logic.py` — pid tests.
+
+**Status:** Implemented, unit-tested — 61 passed (`pytest tests/` in
+`services/industrial-service`); all modules import cleanly; routes verified.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged —
+Character 1 (`infra/` migration incl. new columns, `docs/api/` contracts, JWT),
+Character 3 (Document authority/validity joins, ingest wiring), Character 2
+(agent-side use, insights summary).
+
+**Next:** Live-DB integration test; existing-DB `ALTER TABLE maintenance_events ADD
+COLUMN` note flagged for Character 1's migration authoring.
