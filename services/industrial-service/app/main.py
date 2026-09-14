@@ -327,6 +327,8 @@ async def list_assets(
     equipment_status: Optional[EquipmentStatus] = Query(None, alias="status"),
     plant_id: Optional[uuid.UUID] = Query(None),
     unit_id: Optional[uuid.UUID] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     repo: EquipmentRepository = Depends(equipment_repo),
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
@@ -334,6 +336,7 @@ async def list_assets(
 
     Implements the list view from docs/ui/23_asset_view.md:
     Filter by tag number, name, Plant, Unit, status.
+    Pagination is server-driven (limit/offset) — the UI never client-slices.
     """
     _require_permission(x_roles, "Equipment:read")
     return await repo.search(
@@ -343,6 +346,8 @@ async def list_assets(
         status=equipment_status,
         plant_id=plant_id,
         unit_id=unit_id,
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -366,6 +371,8 @@ async def list_assets_table(
     equipment_status: Optional[EquipmentStatus] = Query(None, alias="status"),
     plant_id: Optional[uuid.UUID] = Query(None),
     unit_id: Optional[uuid.UUID] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     repo: EquipmentRepository = Depends(equipment_repo),
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
@@ -378,6 +385,8 @@ async def list_assets_table(
         status=equipment_status,
         plant_id=plant_id,
         unit_id=unit_id,
+        limit=limit,
+        offset=offset,
     )
     return [
         AssetListItem(

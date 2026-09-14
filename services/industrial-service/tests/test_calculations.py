@@ -18,6 +18,12 @@ def test_convert_unit():
     assert abs(out["converted_value"] - 1.0) < 1e-9
 
 
+def test_convert_temperature_absolute():
+    assert abs(convert_unit(32.0, "f", "c")["converted_value"] - 0.0) < 1e-9
+    assert abs(convert_unit(100.0, "c", "f")["converted_value"] - 212.0) < 1e-9
+    assert abs(convert_unit(20.0, "c", "c")["converted_value"] - 20.0) < 1e-9
+
+
 def test_convert_unknown_fails():
     try:
         convert_unit(1.0, "furlong", "m")

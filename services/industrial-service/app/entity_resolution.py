@@ -85,18 +85,20 @@ class EntityResolver:
             exclude_unit_id=within_unit_id,
         )
         if cross_unit_matches:
-            # Take the first match; there may be several if tag numbers are reused.
-            # The human confirmation UI will show all candidates.
+            # Return ALL candidates — the human confirmation UI shows every
+            # match since tag numbers are sometimes reused across units.
             first = cross_unit_matches[0]
             return EntityResolutionResult(
                 tag_number=tag_number,
                 confidence="exact_other_unit",
                 matched_equipment_id=first.id,
                 matched_unit_id=first.unit_id,
+                candidate_equipment_ids=[m.id for m in cross_unit_matches],
                 requires_human_confirmation=True,
                 reason=(
-                    f"Tag '{tag_number}' matched in a different unit "
-                    f"(unit_id={first.unit_id}).  Tag numbers are sometimes "
+                    f"Tag '{tag_number}' matched {len(cross_unit_matches)} "
+                    f"equipment row(s) in other units of the plant "
+                    f"(first: unit_id={first.unit_id}).  Tag numbers are sometimes "
                     f"reused across units — human confirmation required before "
                     f"auto-linking."
                 ),

@@ -82,6 +82,19 @@ class TestEntityResolution:
         assert result.requires_human_confirmation is True
 
     @pytest.mark.asyncio
+    async def test_case2_returns_all_candidates(self, resolver, mock_equipment_repo):
+        """Case 2 with reused tags: every match is returned for the human UI."""
+        eq_b = _make_equipment(UNIT_B, "P-204")
+        eq_c = _make_equipment(uuid.uuid4(), "P-204")
+        mock_equipment_repo.find_by_tag_in_unit.return_value = None
+        mock_equipment_repo.find_by_tag_in_plant.return_value = [eq_b, eq_c]
+
+        result = await resolver.resolve("P-204", UNIT_A, PLANT_ID)
+
+        assert result.candidate_equipment_ids == [eq_b.id, eq_c.id]
+        assert result.matched_equipment_id == eq_b.id
+
+    @pytest.mark.asyncio
     async def test_case3_no_match(self, resolver, mock_equipment_repo):
         """Case 3: no match — document still ingested but has no equipment_id link."""
         mock_equipment_repo.find_by_tag_in_unit.return_value = None
@@ -94,14 +107,14 @@ class TestEntityResolution:
         assert result.requires_human_confirmation is False
 
     @pytest.mark.asyncio
-    async def test_confirm_and_link_calls_graph_repo(
-        self, resolver, mock_graph_repo
-    ):
+    async def test_confirm_and_link_calls_graph_repo(self, resolver, mock_graph_repo):
         """Confirming a link should persist the governed_by edge."""
         equipment_id = uuid.uuid4()
         document_id = uuid.uuid4()
 
-        await resolver.confirm_and_link(equipment_id, document_id, "operating procedure")
+        await resolver.confirm_and_link(
+            equipment_id, document_id, "operating procedure"
+        )
 
         mock_graph_repo.add_governing_document.assert_called_once_with(
             equipment_id=equipment_id,

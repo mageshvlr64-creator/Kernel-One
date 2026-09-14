@@ -150,18 +150,19 @@ def detect_conflicts(
                     ConflictRecord(
                         equipment_id=equipment_id,
                         claim_description=(
-                            f"{parameter.title()} for Equipment "
-                            f"(id={equipment_id})"
+                            f"{parameter.title()} for Equipment (id={equipment_id})"
                         ),
                         source_a_document_id=uuid.UUID(str(a["document_id"])),
                         source_a_document_name=a.get("document_name", ""),
                         source_a_authority=a.get("authority", "unknown"),
                         source_a_effective_from=a.get("effective_from"),
+                        source_a_effective_until=a.get("effective_until"),
                         source_a_claim=a.get("value", ""),
                         source_b_document_id=uuid.UUID(str(b["document_id"])),
                         source_b_document_name=b.get("document_name", ""),
                         source_b_authority=b.get("authority", "unknown"),
                         source_b_effective_from=b.get("effective_from"),
+                        source_b_effective_until=b.get("effective_until"),
                         source_b_claim=b.get("value", ""),
                         status="unresolved",
                         resolution_note=None,
@@ -171,6 +172,17 @@ def detect_conflicts(
     return conflicts
 
 
+def _format_window(from_date: Optional[date], until_date: Optional[date]) -> str:
+    """Render a validity window per the spec's output example.
+
+    Open-ended (still in force) renders as "<from>–present"; a closed window
+    renders the full range so history reads as history, not a live conflict.
+    """
+    start = from_date.isoformat() if from_date else "unknown date"
+    end = until_date.isoformat() if until_date else "present"
+    return f"{start}–{end}"
+
+
 def format_conflict_output(conflict: ConflictRecord) -> str:
     """Render a ConflictRecord as the canonical CONFLICT DETECTED text block.
 
@@ -178,10 +190,22 @@ def format_conflict_output(conflict: ConflictRecord) -> str:
     Used when the agent must present the conflict in a chat response — principle 12
     requires this wording rather than picking one source silently.
     """
-    from_a = (
-        conflict.source_a_effective_from.isoformat()
-        if conflict.source_a_effective_from
-        else "unknown date"
+    window_a = _format_window(
+        conflict.source_a_effective_from, conflict.source_a_effective_until
+    )
+    window_b = _format_window(
+        conflict.source_b_effective_from, conflict.source_b_effective_until
+    )
+    return (
+        f"CONFLICT DETECTED\n"
+        f"Claim: {conflict.claim_description}\n"
+        f"Source A: {conflict.source_a_document_name} "
+        f"(authority: {conflict.source_a_authority}, "
+        f'effective {window_a}) — "{conflict.source_a_claim}"\n'
+        f"Source B: {conflict.source_b_document_name} "
+        f"(authority: {conflict.source_b_authority}, "
+        f'effective {window_b}) — "{conflict.source_b_claim}"\n'
+        f"Status: Unresolved — requires human review"
     )
     from_b = (
         conflict.source_b_effective_from.isoformat()
@@ -193,9 +217,9 @@ def format_conflict_output(conflict: ConflictRecord) -> str:
         f"Claim: {conflict.claim_description}\n"
         f"Source A: {conflict.source_a_document_name} "
         f"(authority: {conflict.source_a_authority}, "
-        f"effective {from_a}–present) — \"{conflict.source_a_claim}\"\n"
+        f'effective {from_a}–present) — "{conflict.source_a_claim}"\n'
         f"Source B: {conflict.source_b_document_name} "
         f"(authority: {conflict.source_b_authority}, "
-        f"effective {from_b}–present) — \"{conflict.source_b_claim}\"\n"
+        f'effective {from_b}–present) — "{conflict.source_b_claim}"\n'
         f"Status: Unresolved — requires human review"
     )

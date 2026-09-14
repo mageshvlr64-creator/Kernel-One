@@ -295,12 +295,14 @@ class ConflictRecord(BaseModel):
     source_a_document_name: str
     source_a_authority: str
     source_a_effective_from: Optional[date]
+    source_a_effective_until: Optional[date] = None
     source_a_claim: str
 
     source_b_document_id: uuid.UUID
     source_b_document_name: str
     source_b_authority: str
     source_b_effective_from: Optional[date]
+    source_b_effective_until: Optional[date] = None
     source_b_claim: str
 
     status: str = "unresolved"
@@ -404,5 +406,12 @@ class EntityResolutionResult(BaseModel):
     )
     matched_equipment_id: Optional[uuid.UUID] = None
     matched_unit_id: Optional[uuid.UUID] = None
+    candidate_equipment_ids: list[uuid.UUID] = Field(
+        default_factory=list,
+        description=(
+            "ALL cross-unit matches for case 2 — the human confirmation UI "
+            "shows every candidate, not just the first."
+        ),
+    )
     requires_human_confirmation: bool = False
     reason: str = ""

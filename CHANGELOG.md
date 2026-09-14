@@ -331,3 +331,28 @@ Character 3 (Document authority/validity joins, ingest wiring), Character 2
 
 **Next:** Live-DB integration test; existing-DB `ALTER TABLE maintenance_events ADD
 COLUMN` note flagged for Character 1's migration authoring.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (correctness audit — every module re-read line by line):**
+- `app/calculations.py` — temperature conversion is now absolute-scale (F↔C with
+  32 offset); previously `f` used a bare 5/9 ratio, silently wrong for absolute
+  readings. Dead ratio-table entries removed.
+- `app/models.py` + `app/conflict_detection.py` — `ConflictRecord` gains
+  `source_{a,b}_effective_until`; formatter renders closed windows as ranges
+  (`2020-01-01–2024-02-29`) instead of always `–present`, per the spec's output
+  example. Detection passes both windows through.
+- `app/models.py` + `app/entity_resolution.py` — case-2 results now carry ALL
+  `candidate_equipment_ids`, not just the first match (spec: human UI shows all
+  candidates when tags are reused across units).
+- `app/database.py` + `app/main.py` — server-driven pagination (`limit` 1–200,
+  default 50; `offset`) on `GET /assets` and `GET /assets/table` per
+  `docs/ui/23_asset_view.md` ("never client-sliced").
+- Tests: +3 (absolute temperature, closed-window rendering, all-candidates).
+
+**Status:** Implemented, unit-tested — 64 passed (`pytest tests/` in
+`services/industrial-service`); all modules import cleanly.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged.
+
+**Next:** Live-DB integration test once PostgreSQL is available.

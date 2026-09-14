@@ -97,9 +97,9 @@ UNIT_FACTORS_TO_SI: dict[str, float] = {
     "kpa": 1000.0,
     "mpa": 1_000_000.0,
     "bar": 100_000.0,
-    "c": 1.0,
-    "f": 5.0 / 9.0,
 }
+# NOTE: temperature ("c"/"f") is NOT in this table — convert_unit() handles
+# it as an absolute scale with offset (see above), never as a bare ratio.
 
 
 def convert_unit(value: float, from_unit: str, to_unit: str) -> dict:
@@ -108,13 +108,23 @@ def convert_unit(value: float, from_unit: str, to_unit: str) -> dict:
     Per 10_engineering_calculations.md: cross-unit comparisons go through
     this function rather than an implicit conversion. Raises ValueError
     on unknown units so callers fail closed instead of guessing.
-    Temperature 'f' is handled as an interval scale (delta), not absolute.
+
+    Temperature (c/f) is absolute-scale: F->C applies the 32 offset, not a
+    bare ratio. All other units convert by ratio through SI.
     """
     fu, tu = from_unit.lower(), to_unit.lower()
-    if fu not in UNIT_FACTORS_TO_SI or tu not in UNIT_FACTORS_TO_SI:
-        raise ValueError(f"unsupported unit conversion: {from_unit} -> {to_unit}")
-    si_value = value * UNIT_FACTORS_TO_SI[fu]
-    converted = si_value / UNIT_FACTORS_TO_SI[tu]
+    if fu == tu:
+        converted = value
+    elif {fu, tu} <= {"c", "f"}:
+        if fu == "f":
+            converted = (value - 32.0) * 5.0 / 9.0
+        else:
+            converted = value * 9.0 / 5.0 + 32.0
+    else:
+        if fu not in UNIT_FACTORS_TO_SI or tu not in UNIT_FACTORS_TO_SI:
+            raise ValueError(f"unsupported unit conversion: {from_unit} -> {to_unit}")
+        si_value = value * UNIT_FACTORS_TO_SI[fu]
+        converted = si_value / UNIT_FACTORS_TO_SI[tu]
     return {
         "input_value": value,
         "from_unit": from_unit,

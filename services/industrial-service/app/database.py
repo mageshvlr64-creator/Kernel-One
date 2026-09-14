@@ -403,10 +403,13 @@ class EquipmentRepository:
         status: Optional[EquipmentStatus] = None,
         plant_id: Optional[uuid.UUID] = None,
         unit_id: Optional[uuid.UUID] = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Equipment]:
         """Search all equipment visible to an organization with optional filters.
 
         Used by the Asset list view (docs/ui/23_asset_view.md /assets route).
+        Pagination is server-driven (limit/offset) — the UI never client-slices.
         """
         conditions = [
             "p.organization_id = $1",
@@ -446,9 +449,10 @@ class EquipmentRepository:
             JOIN plants p ON p.id = u.plant_id
             WHERE {where}
             ORDER BY e.tag_number
+            LIMIT ${idx} OFFSET ${idx + 1}
         """
         async with self._pool.acquire() as conn:
-            rows = await conn.fetch(sql, *args)
+            rows = await conn.fetch(sql, *args, limit, offset)
         return [_row_to_equipment(r) for r in rows]
 
     async def search_with_history(
@@ -459,12 +463,14 @@ class EquipmentRepository:
         status: Optional[EquipmentStatus] = None,
         plant_id: Optional[uuid.UUID] = None,
         unit_id: Optional[uuid.UUID] = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[tuple[Equipment, Optional[str], Optional[date]]]:
         """Search plus per-row list-view columns in a single query.
 
         Returns (Equipment, unit_name, last_inspection_date) tuples for the
         Asset list view table (docs/ui/23_asset_view.md: Tag, Name, Unit,
-        Status, last inspection date).
+        Status, last inspection date). Pagination is server-driven.
         """
         conditions = [
             "p.organization_id = $1",
@@ -509,9 +515,10 @@ class EquipmentRepository:
             ) insp ON true
             WHERE {where}
             ORDER BY e.tag_number
+            LIMIT ${idx} OFFSET ${idx + 1}
         """
         async with self._pool.acquire() as conn:
-            rows = await conn.fetch(sql, *args)
+            rows = await conn.fetch(sql, *args, limit, offset)
         return [
             (_row_to_equipment(r), r["unit_name"], r["last_inspection_date"])
             for r in rows
