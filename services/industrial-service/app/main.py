@@ -522,11 +522,13 @@ async def create_maintenance_event(
 )
 async def list_maintenance_events(
     equipment_id: uuid.UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     repo: MaintenanceEventRepository = Depends(maintenance_repo),
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
     _require_permission(x_roles, "Equipment:read")
-    return await repo.list_by_equipment(equipment_id)
+    return await repo.list_by_equipment(equipment_id, limit=limit, offset=offset)
 
 
 # ---------------------------------------------------------------------------
@@ -564,11 +566,13 @@ async def create_inspection(
 @app.get("/assets/{equipment_id}/inspections", response_model=list[Inspection])
 async def list_inspections(
     equipment_id: uuid.UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     repo: InspectionRepository = Depends(inspection_repo),
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
     _require_permission(x_roles, "Equipment:read")
-    return await repo.list_by_equipment(equipment_id)
+    return await repo.list_by_equipment(equipment_id, limit=limit, offset=offset)
 
 
 # ---------------------------------------------------------------------------
@@ -606,11 +610,13 @@ async def create_incident(
 @app.get("/assets/{equipment_id}/incidents", response_model=list[Incident])
 async def list_incidents(
     equipment_id: uuid.UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     repo: IncidentRepository = Depends(incident_repo),
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
     _require_permission(x_roles, "Equipment:read")
-    return await repo.list_by_equipment(equipment_id)
+    return await repo.list_by_equipment(equipment_id, limit=limit, offset=offset)
 
 
 # ---------------------------------------------------------------------------

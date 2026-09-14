@@ -630,7 +630,7 @@ class MaintenanceEventRepository:
         return _row_to_maintenance_event(row)
 
     async def list_by_equipment(
-        self, equipment_id: uuid.UUID
+        self, equipment_id: uuid.UUID, limit: int = 50, offset: int = 0
     ) -> list[MaintenanceEvent]:
         """Chronological — most recent first, per ui/23_asset_view.md."""
         async with self._pool.acquire() as conn:
@@ -639,8 +639,11 @@ class MaintenanceEventRepository:
                 SELECT * FROM maintenance_events
                 WHERE equipment_id = $1
                 ORDER BY performed_at DESC NULLS LAST, created_at DESC
+                LIMIT $2 OFFSET $3
                 """,
                 equipment_id,
+                limit,
+                offset,
             )
         return [_row_to_maintenance_event(r) for r in rows]
 
@@ -671,15 +674,20 @@ class InspectionRepository:
             )
         return _row_to_inspection(row)
 
-    async def list_by_equipment(self, equipment_id: uuid.UUID) -> list[Inspection]:
+    async def list_by_equipment(
+        self, equipment_id: uuid.UUID, limit: int = 50, offset: int = 0
+    ) -> list[Inspection]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
                 """
                 SELECT * FROM inspections
                 WHERE equipment_id = $1
                 ORDER BY inspected_at DESC NULLS LAST, created_at DESC
+                LIMIT $2 OFFSET $3
                 """,
                 equipment_id,
+                limit,
+                offset,
             )
         return [_row_to_inspection(r) for r in rows]
 
@@ -719,15 +727,20 @@ class IncidentRepository:
             )
         return _row_to_incident(row)
 
-    async def list_by_equipment(self, equipment_id: uuid.UUID) -> list[Incident]:
+    async def list_by_equipment(
+        self, equipment_id: uuid.UUID, limit: int = 50, offset: int = 0
+    ) -> list[Incident]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
                 """
                 SELECT * FROM incidents
                 WHERE equipment_id = $1
                 ORDER BY occurred_at DESC NULLS LAST, created_at DESC
+                LIMIT $2 OFFSET $3
                 """,
                 equipment_id,
+                limit,
+                offset,
             )
         return [_row_to_incident(r) for r in rows]
 

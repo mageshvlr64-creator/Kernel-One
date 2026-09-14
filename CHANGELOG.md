@@ -305,6 +305,31 @@ Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
 
 ### [Character 4 — Industrial Intelligence] 2026-09-14
 
+**Built/changed (full-test pass — previously untested layers now covered):**
+- `tests/test_database.py` — NEW (14 tests): every repository against a fake
+  asyncpg pool — equipment search filters/pagination SQL, `search_with_history`
+  tuple mapping + LATERAL, maintenance create (technician/work-order passthrough),
+  history pagination args, last-inspection value/None, incident ordering,
+  governing-doc upsert idempotency, remove true/false, conflict record round-trip.
+- `tests/test_routes.py` — NEW (16 tests): HTTP layer with all repo deps
+  overridden (no DB, no network) — asset list/table allow+deny, detail 404,
+  history pagination passthrough, all `/internal/*` allow/deny incl. unknown-kind
+  400 and bad-operation 400, resolve-tag deny, conflict resolve gate (403 on
+  wrong permission) + 201 record path.
+- `app/database.py` + `app/main.py` — history lists (maintenance/inspections/
+  incidents) paginated server-side (`limit` 1–200, `offset`), matching the asset
+  list rule in `docs/ui/23_asset_view.md`.
+
+**Status:** 94 passed (`pytest tests/` in `services/industrial-service`) — full
+Character 4 suite, DB-free. Remaining DB risk is live-PostgreSQL SQL validity
+only (syntax), not logic.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged.
+
+**Next:** Live-DB integration test once PostgreSQL is available.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
 **Built/changed (feature-completeness sweep — every owned spec re-checked):**
 - `docs/domain/20_asset_model.md` + `app/models.py` + `app/database.py` —
   `MaintenanceEvent.technician` + `work_order_id` (nullable) per
