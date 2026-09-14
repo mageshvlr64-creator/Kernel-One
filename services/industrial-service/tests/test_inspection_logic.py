@@ -11,6 +11,7 @@ from app.inspection_logic import (
     Finding,
     is_supported_finding,
     needs_ocr_confidence_warning,
+    validate_answer_disclaimers,
     validate_calculation_framing,
     validate_sop_compliance_disclaimer,
     format_finding_answer_fragment,
@@ -43,8 +44,8 @@ class TestSupportedFinding:
             pass_fail="FAIL",
             location_reference="Flange B",
             evidence_id_parameter="ev-001",
-            evidence_id_measured_value=None,   # missing
-            evidence_id_specification=None,    # missing
+            evidence_id_measured_value=None,  # missing
+            evidence_id_specification=None,  # missing
             evidence_id_pass_fail="ev-004",
         )
         assert is_supported_finding(finding) is False
@@ -148,3 +149,22 @@ class TestCalculationFramingValidation:
     def test_answer_without_framing_fails(self):
         answer = "The deviation is 12.5%."
         assert validate_calculation_framing(answer) is False
+
+
+class TestValidateAnswerDisclaimers:
+    def test_sop_kind_requires_disclaimer(self):
+        out = validate_answer_disclaimers("Matches Step 3.", "sop")
+        assert out == {"valid": False, "missing": ["sop_disclaimer"]}
+
+    def test_general_kind_has_no_requirements(self):
+        assert validate_answer_disclaimers("Anything.", "general") == {
+            "valid": True,
+            "missing": [],
+        }
+
+    def test_unknown_kind_fails_closed(self):
+        try:
+            validate_answer_disclaimers("Anything.", "audit")
+            assert False, "should have raised"
+        except ValueError:
+            pass

@@ -273,3 +273,32 @@ for ui/23_asset_view.md /assets/:equipmentId — currently the UI would need to 
 
 **Next:** Live-DB integration test; superseded-SOP grey-out data (needs Character 3
 Document validity windows).
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (second deep audit, line-level, Character 4 paths only):**
+- `services/industrial-service/app/main.py` — all 7 `/internal/*` endpoints now
+  fail closed on permissions (`Equipment:read`; `confirm-link` keeps
+  `Equipment:write`): previously resolve-tag/detect-conflicts/compare-documents/
+  validate-finding/validate-answer/verify-calculation/check-sop-compliance took
+  no roles header at all, violating principle 11. `confirm-link` now 404s on
+  unknown equipment instead of leaking a DB FK error as a 500.
+- `services/industrial-service/app/inspection_logic.py` — new pure
+  `validate_answer_disclaimers()`; unknown `answer_kind` now raises (400) instead
+  of passing through as valid (was fail-open for any unrecognized kind).
+- `services/industrial-service/app/main.py` — removed dead imports
+  (`is_low_confidence`, `format_conflict_output` — both stay tested in their own
+  modules, just not used by routes).
+- `services/industrial-service/requirements.txt` — dropped unused `sqlalchemy`
+  and `opentelemetry*` deps (nothing imports them).
+- `services/industrial-service/tests/test_inspection_logic.py` — 3 new tests for
+  the disclaimer helper incl. the fail-closed case.
+
+**Status:** Implemented, unit-tested — 57 passed (`pytest tests/` in
+`services/industrial-service`); all modules import cleanly.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged —
+Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
+(Document joins, ingest wiring), Character 2 (agent-side use, insights summary).
+
+**Next:** Live-DB integration test once PostgreSQL is available.

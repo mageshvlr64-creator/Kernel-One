@@ -35,8 +35,8 @@ from fastapi import Depends, FastAPI, HTTPException, Header, Query, status
 from pydantic import BaseModel as _BaseModel
 
 from app.calculations import aggregate_values, check_tolerance, convert_unit
-from app.comparison import compare_findings, is_low_confidence
-from app.conflict_detection import detect_conflicts, format_conflict_output
+from app.comparison import compare_findings
+from app.conflict_detection import detect_conflicts
 from app.sop import evaluate_sop_compliance
 from app.database import (
     ConflictResolutionRepository,
@@ -56,9 +56,7 @@ from app.inspection_logic import (
     format_finding_answer_fragment,
     is_supported_finding,
     needs_ocr_confidence_warning,
-    validate_calculation_framing,
-    validate_drawing_caveat,
-    validate_sop_compliance_disclaimer,
+    validate_answer_disclaimers,
 )
 from app.models import (
     ConflictRecord,
@@ -653,6 +651,7 @@ class ResolveTagRequest(_BaseModel):
 async def resolve_tag(
     payload: ResolveTagRequest,
     resolver: EntityResolver = Depends(entity_resolver),
+    x_roles: Annotated[Optional[str], Header()] = None,
 ):
     """Resolve an equipment tag extracted from a document.
 
@@ -663,6 +662,7 @@ async def resolve_tag(
     for surfacing case-2 results for human confirmation before persisting any
     governed_by edge.
     """
+    _require_permission(x_roles, "Equipment:read")
     return await resolver.resolve(
         tag_number=payload.tag_number,
         within_unit_id=payload.within_unit_id,
@@ -680,6 +680,7 @@ class ConfirmLinkRequest(_BaseModel):
 async def confirm_link(
     payload: ConfirmLinkRequest,
     resolver: EntityResolver = Depends(entity_resolver),
+    eq_repo: EquipmentRepository = Depends(equipment_repo),
     x_actor: Annotated[Optional[str], Header()] = None,
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
@@ -689,6 +690,8 @@ async def confirm_link(
     human-confirmed links (called after the human approves the ambiguous match).
     """
     _require_permission(x_roles, "Equipment:write")
+    if not await eq_repo.get(payload.equipment_id):
+        raise HTTPException(status_code=404, detail="Equipment not found")
     await resolver.confirm_and_link(
         equipment_id=payload.equipment_id,
         document_id=payload.document_id,
@@ -712,6 +715,7 @@ class DetectConflictsRequest(_BaseModel):
 @app.post("/internal/detect-conflicts", response_model=list[ConflictRecord])
 async def detect_conflicts_endpoint(
     payload: DetectConflictsRequest,
+    x_roles: Annotated[Optional[str], Header()] = None,
 ):
     """Run conflict detection for one piece of equipment.
 
@@ -723,6 +727,7 @@ async def detect_conflicts_endpoint(
     This endpoint applies the deterministic detection logic and returns
     ConflictRecord objects — it never auto-resolves anything.
     """
+    _require_permission(x_roles, "Equipment:read")
     return detect_conflicts(
         equipment_id=payload.equipment_id,
         claims=payload.claims,
@@ -739,6 +744,7 @@ class CompareDocumentsRequest(_BaseModel):
 @app.post("/internal/compare-documents", response_model=DocumentDiff)
 async def compare_documents_endpoint(
     payload: CompareDocumentsRequest,
+    x_roles: Annotated[Optional[str], Header()] = None,
 ):
     """Produce a structured diff between two sets of findings.
 
@@ -748,6 +754,7 @@ async def compare_documents_endpoint(
     The caller is responsible for retrieving the findings from each document
     independently — this endpoint only applies the deterministic classification.
     """
+    _require_permission(x_roles, "Equipment:read")
     return compare_findings(
         document_a_id=payload.document_a_id,
         document_b_id=payload.document_b_id,
@@ -838,13 +845,17 @@ class ValidateFindingRequest(_BaseModel):
 
 
 @app.post("/internal/validate-finding")
-async def validate_finding(payload: ValidateFindingRequest):
+async def validate_finding(
+    payload: ValidateFindingRequest,
+    x_roles: Annotated[Optional[str], Header()] = None,
+):
     """Validate one inspection finding per docs/industrial/02_inspection_reports.md.
 
     Called by document-pipeline (Character 3) after extraction, before
     persisting an Inspection row. Returns supported/ocr-warning flags plus
     the formatted answer fragment.
     """
+    _require_permission(x_roles, "Equipment:read")
     finding = Finding(**payload.model_dump())
     return {
         "supported": is_supported_finding(finding),
@@ -859,33 +870,21 @@ class ValidateAnswerRequest(_BaseModel):
 
 
 @app.post("/internal/validate-answer")
-async def validate_answer(payload: ValidateAnswerRequest):
+async def validate_answer(
+    payload: ValidateAnswerRequest,
+    x_roles: Annotated[Optional[str], Header()] = None,
+):
     """Check required disclaimers per 04_sop_compliance / 09 / 11.
 
     answer_kind: 'sop' | 'calculation' | 'drawing' | 'general'.
     Returns {valid, missing} — caller rejects or flags when not valid.
+    Unknown kinds fail closed (400), never pass through as valid.
     """
-    checks: dict[str, bool] = {}
-    if payload.answer_kind in ("sop", "general"):
-        checks["sop_disclaimer"] = (
-            validate_sop_compliance_disclaimer(payload.answer_text)
-            if payload.answer_kind == "sop"
-            else True
-        )
-    if payload.answer_kind in ("calculation", "general"):
-        checks["calculation_framing"] = (
-            validate_calculation_framing(payload.answer_text)
-            if payload.answer_kind == "calculation"
-            else True
-        )
-    if payload.answer_kind in ("drawing", "general"):
-        checks["drawing_caveat"] = (
-            validate_drawing_caveat(payload.answer_text)
-            if payload.answer_kind == "drawing"
-            else True
-        )
-    missing = [k for k, v in checks.items() if not v]
-    return {"valid": not missing, "missing": missing}
+    _require_permission(x_roles, "Equipment:read")
+    try:
+        return validate_answer_disclaimers(payload.answer_text, payload.answer_kind)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 class VerifyCalculationRequest(_BaseModel):
@@ -903,13 +902,17 @@ class VerifyCalculationRequest(_BaseModel):
 
 
 @app.post("/internal/verify-calculation")
-async def verify_calculation(payload: VerifyCalculationRequest):
+async def verify_calculation(
+    payload: VerifyCalculationRequest,
+    x_roles: Annotated[Optional[str], Header()] = None,
+):
     """Deterministic calculation check per 10_engineering_calculations.md.
 
     operation: 'tolerance' | 'convert' | 'aggregate'. Fails closed (400)
     on bad inputs — never estimates. Caller cites the returned inputs
     as Evidence (input traceability, 11_calculation_verification.md).
     """
+    _require_permission(x_roles, "Equipment:read")
     try:
         if payload.operation == "tolerance":
             if payload.measured_value is None:
@@ -946,7 +949,10 @@ class CheckSopComplianceRequest(_BaseModel):
 
 
 @app.post("/internal/check-sop-compliance")
-async def check_sop_compliance(payload: CheckSopComplianceRequest):
+async def check_sop_compliance(
+    payload: CheckSopComplianceRequest,
+    x_roles: Annotated[Optional[str], Header()] = None,
+):
     """Gate an SOP-compliance answer on its Definition of Done.
 
     Per docs/industrial/03_maintenance_records.md (cross-referencing) and
@@ -955,6 +961,7 @@ async def check_sop_compliance(payload: CheckSopComplianceRequest):
     The match verdict itself comes from the calling agent — this endpoint
     never decides match vs. no-match, only validates the presentation.
     """
+    _require_permission(x_roles, "Equipment:read")
     evaluation = evaluate_sop_compliance(
         action_evidence_ids=payload.action_evidence_ids,
         sop_evidence_ids=payload.sop_evidence_ids,

@@ -150,3 +150,30 @@ def validate_drawing_caveat(answer_text: str) -> bool:
     ]
     lower = answer_text.lower()
     return any(phrase in lower for phrase in required_phrases)
+
+
+VALID_ANSWER_KINDS = ("sop", "calculation", "drawing", "general")
+
+
+def validate_answer_disclaimers(answer_text: str, answer_kind: str) -> dict:
+    """Pure helper behind POST /internal/validate-answer.
+
+    Returns {"valid": bool, "missing": [str]}. Raises ValueError on an
+    unknown answer_kind — callers fail closed rather than passing an
+    unvalidated answer through as valid.
+    """
+    if answer_kind not in VALID_ANSWER_KINDS:
+        raise ValueError(
+            f"unknown answer_kind: {answer_kind!r} "
+            f"(expected one of {VALID_ANSWER_KINDS})"
+        )
+    checks: dict[str, bool] = {}
+    if answer_kind == "sop":
+        checks["sop_disclaimer"] = validate_sop_compliance_disclaimer(answer_text)
+    elif answer_kind == "calculation":
+        checks["calculation_framing"] = validate_calculation_framing(answer_text)
+    elif answer_kind == "drawing":
+        checks["drawing_caveat"] = validate_drawing_caveat(answer_text)
+    # "general" carries no kind-specific disclaimer requirement.
+    missing = [k for k, v in checks.items() if not v]
+    return {"valid": not missing, "missing": missing}
