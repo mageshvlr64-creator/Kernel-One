@@ -37,6 +37,23 @@ def test_aggregate():
     assert aggregate_values([1.0, 2.0, 3.0], "max")["result"] == 3.0
 
 
+def test_tolerance_requires_bounds():
+    try:
+        check_tolerance(5.0)
+        assert False, "should have raised"
+    except ValueError:
+        pass
+
+
+def test_aggregate_empty_and_unknown():
+    for kwargs in ({"values": []}, {"values": [1.0], "operation": "median"}):
+        try:
+            aggregate_values(**kwargs)
+            assert False, "should have raised"
+        except ValueError:
+            pass
+
+
 def test_drawing_caveat():
     assert validate_drawing_caveat(
         "Value read from drawing image, not independently verified."

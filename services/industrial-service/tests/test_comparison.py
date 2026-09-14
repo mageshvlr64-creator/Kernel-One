@@ -47,14 +47,19 @@ DOC_A = uuid.uuid4()
 DOC_B = uuid.uuid4()
 
 
-def _finding(parameter, value, location=None, confidence=1.0, evidence_id=None):
-    return {
+def _finding(
+    parameter, value, location=None, confidence=1.0, evidence_id=None, source_kind=None
+):
+    finding = {
         "parameter": parameter,
         "value": value,
         "location_reference": location,
         "confidence": confidence,
         "evidence_id": str(evidence_id) if evidence_id else None,
     }
+    if source_kind is not None:
+        finding["source_kind"] = source_kind
+    return finding
 
 
 class TestCompareFindings:
@@ -166,3 +171,33 @@ class TestIsLowConfidence:
             confidence=None,
         )
         assert is_low_confidence(entry) is False
+
+
+class TestMatchingEdges:
+    def test_location_mismatch_is_not_a_match(self):
+        """Same parameter, different locations → added, never silently matched."""
+        fa = [_finding("torque", "100 Nm", location="Flange A")]
+        fb = [_finding("torque", "110 Nm", location="Flange B")]
+        diff = compare_findings(DOC_A, DOC_B, fa, fb)
+        assert diff.changed == []
+        assert len(diff.added) == 1
+        assert len(diff.removed) == 1
+
+    def test_identical_values_produce_no_diff(self):
+        fa = [_finding("torque", "100 Nm", location="Flange A")]
+        fb = [_finding("torque", "100 Nm", location="Flange A")]
+        diff = compare_findings(DOC_A, DOC_B, fa, fb)
+        assert diff.added == [] and diff.removed == [] and diff.changed == []
+
+    def test_synonym_parameters_match(self):
+        fa = [_finding("torque", "100 Nm")]
+        fb = [_finding("bolt torque", "110 Nm")]
+        diff = compare_findings(DOC_A, DOC_B, fa, fb)
+        assert len(diff.changed) == 1
+        assert diff.changed[0].parameter == "tightening torque"
+
+    def test_table_cap_applies_to_added_entries(self):
+        diff = compare_findings(
+            DOC_A, DOC_B, [], [_finding("torque", "110 Nm", source_kind="table")]
+        )
+        assert diff.added[0].confidence == 0.6

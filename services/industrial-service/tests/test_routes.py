@@ -13,6 +13,8 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
+import pytest
+
 from app import main
 from app.models import EquipmentStatus
 
@@ -41,6 +43,12 @@ def _equipment_dict(eid: uuid.UUID, uid: uuid.UUID):
 def _make_client(overrides=None):
     main.app.dependency_overrides = overrides or {}
     return TestClient(main.app, raise_server_exceptions=False)
+
+
+@pytest.fixture(autouse=True)
+def _no_audit(monkeypatch):
+    """Isolate routes from the audit service (and skip its 2s timeouts)."""
+    monkeypatch.setattr(main, "_emit_audit_event", AsyncMock())
 
 
 def _equipment_repo(equipment=None):
@@ -280,3 +288,171 @@ class TestResolveConflict:
         )
         assert r.status_code == 201
         assert r.json()["resolved_by"] == "op-1"
+
+
+def _equipment_model(eid: uuid.UUID, uid: uuid.UUID):
+    from app.models import Equipment
+
+    return Equipment(
+        id=eid,
+        unit_id=uid,
+        tag_number="P-204",
+        name="Feed Pump P-204",
+        status=EquipmentStatus.operational,
+        created_at=NOW,
+    )
+
+
+class TestEquipmentCrudRoutes:
+    def test_create_201(self):
+        from app.models import EquipmentCreate
+
+        uid, eid = uuid.uuid4(), uuid.uuid4()
+        repo = AsyncMock()
+        repo.create.return_value = _equipment_model(eid, uid)
+        client = _make_client({main.equipment_repo: lambda: repo})
+        r = client.post(
+            f"/units/{uid}/equipment",
+            json={
+                "unit_id": str(uid),
+                "tag_number": "P-204",
+                "name": "Feed Pump P-204",
+            },
+            headers=WRITE,
+        )
+        assert r.status_code == 201
+        assert r.json()["tag_number"] == "P-204"
+
+    def test_create_unit_mismatch_400(self):
+        client = _make_client({main.equipment_repo: lambda: AsyncMock()})
+        r = client.post(
+            f"/units/{uuid.uuid4()}/equipment",
+            json={
+                "unit_id": str(uuid.uuid4()),
+                "tag_number": "P-204",
+                "name": "Feed Pump P-204",
+            },
+            headers=WRITE,
+        )
+        assert r.status_code == 400
+
+    def test_update_404(self):
+        repo = AsyncMock()
+        repo.update.return_value = None
+        client = _make_client({main.equipment_repo: lambda: repo})
+        r = client.patch(
+            f"/assets/{uuid.uuid4()}", json={"status": "down"}, headers=WRITE
+        )
+        assert r.status_code == 404
+
+    def test_delete_204_and_404(self):
+        repo = AsyncMock()
+        repo.soft_delete.return_value = True
+        client = _make_client({main.equipment_repo: lambda: repo})
+        assert (
+            client.delete(f"/assets/{uuid.uuid4()}", headers=WRITE).status_code == 204
+        )
+        repo.soft_delete.return_value = False
+        assert (
+            client.delete(f"/assets/{uuid.uuid4()}", headers=WRITE).status_code == 404
+        )
+
+
+class TestGraphRoutes:
+    def test_add_and_remove_governing_document(self):
+        from app.models import GoverningDocumentLink
+
+        eid, did = uuid.uuid4(), uuid.uuid4()
+        eq = AsyncMock()
+        eq.get.return_value = _equipment_model(eid, uuid.uuid4())
+        graph = AsyncMock()
+        graph.add_governing_document.return_value = GoverningDocumentLink(
+            equipment_id=eid, document_id=did, relationship_note="SOP"
+        )
+        graph.remove_governing_document.return_value = True
+        client = _make_client(
+            {main.equipment_repo: lambda: eq, main.graph_repo: lambda: graph}
+        )
+        r = client.post(
+            f"/assets/{eid}/governing-documents",
+            json={"document_id": str(did), "relationship_note": "SOP"},
+            headers=WRITE,
+        )
+        assert r.status_code == 201
+        r = client.delete(f"/assets/{eid}/governing-documents/{did}", headers=WRITE)
+        assert r.status_code == 204
+        graph.remove_governing_document.return_value = False
+        r = client.delete(f"/assets/{eid}/governing-documents/{did}", headers=WRITE)
+        assert r.status_code == 404
+
+    def test_documents_equipment_impact(self):
+        eid = uuid.uuid4()
+        graph = AsyncMock()
+        graph.get_equipment_for_document.return_value = [eid]
+        client = _make_client({main.graph_repo: lambda: graph})
+        r = client.get(f"/documents/{uuid.uuid4()}/equipment", headers=READ)
+        assert r.status_code == 200
+        assert r.json()["equipment_ids"] == [str(eid)]
+
+    def test_conflict_resolutions_list(self):
+        repo = AsyncMock()
+        repo.list_by_equipment.return_value = []
+        client = _make_client({main.conflict_resolution_repo: lambda: repo})
+        r = client.get(f"/assets/{uuid.uuid4()}/conflict-resolutions", headers=READ)
+        assert r.status_code == 200
+        assert r.json() == []
+
+
+class TestDetailSuccess:
+    def test_detail_200_aggregates(self):
+        from app.models import Plant, Unit
+
+        eid, uid, pid = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+        eq = AsyncMock()
+        eq.get.return_value = _equipment_model(eid, uid)
+        unit = AsyncMock()
+        unit.get.return_value = Unit(id=uid, plant_id=pid, name="CDU-2", created_at=NOW)
+        plant = AsyncMock()
+        plant.get.return_value = Plant(
+            id=pid, organization_id=uuid.uuid4(), name="Refinery", created_at=NOW
+        )
+        maint, insp, inci, graph, res = (AsyncMock() for _ in range(5))
+        maint.list_by_equipment.return_value = []
+        insp.list_by_equipment.return_value = []
+        insp.last_inspection_date.return_value = date(2024, 6, 1)
+        inci.list_by_equipment.return_value = []
+        graph.get_governing_documents.return_value = []
+        res.list_by_equipment.return_value = []
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: eq,
+                main.unit_repo: lambda: unit,
+                main.plant_repo: lambda: plant,
+                main.maintenance_repo: lambda: maint,
+                main.inspection_repo: lambda: insp,
+                main.incident_repo: lambda: inci,
+                main.graph_repo: lambda: graph,
+                main.conflict_resolution_repo: lambda: res,
+            }
+        )
+        r = client.get(f"/assets/{eid}/detail", headers=READ)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["plant"]["name"] == "Refinery"
+        assert body["last_inspection_date"] == "2024-06-01"
+        assert body["conflict_resolutions"] == []
+
+
+class TestValidateAnswerPositives:
+    def test_sop_with_disclaimer_valid(self):
+        client = _make_client()
+        r = client.post(
+            "/internal/validate-answer",
+            json={
+                "answer_text": "Matches Step 3, based on the text of the SOP "
+                "document provided, not an independent regulatory assessment.",
+                "answer_kind": "sop",
+            },
+            headers=READ,
+        )
+        assert r.json() == {"valid": True, "missing": []}

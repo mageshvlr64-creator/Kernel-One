@@ -305,6 +305,31 @@ Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
 
 ### [Character 4 — Industrial Intelligence] 2026-09-14
 
+**Built/changed (second full-test pass — remaining uncovered surface):**
+- `tests/test_database_extra.py` — NEW (12 tests): Plant/Unit repos, equipment
+  partial-update/no-op-update/missing-update/soft-delete/list-by-unit,
+  `init_schema` DDL smoke + all-tables-present check, audit helper success post
+  and swallowed-failure paths.
+- `tests/test_routes.py` — +9 (25 total): autouse audit mock (isolates routes,
+  suite back under 1s); equipment create 201/400, update 404, delete 204/404;
+  governing-doc add/remove/404; impact-analysis endpoint; resolutions list;
+  detail-200 aggregation; SOP positive validation.
+- Logic edges: tolerance-no-bounds and aggregate empty/unknown failures;
+  location-mismatch/identical/synonym diff cases; table cap on added entries;
+  primary-vs-secondary conflicts still surfaced unresolved.
+- Production change: history lists (maintenance/inspections/incidents)
+  paginated server-side in repo + routes.
+
+**Status:** 121 passed (`pytest tests/` in `services/industrial-service`),
+DB-free. Per-file counts verified: routes 25, repos 26, logic/detection 58,
+views/misc 12.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged.
+
+**Next:** Live-DB integration test once PostgreSQL is available.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
 **Built/changed (full-test pass — previously untested layers now covered):**
 - `tests/test_database.py` — NEW (14 tests): every repository against a fake
   asyncpg pool — equipment search filters/pagination SQL, `search_with_history`

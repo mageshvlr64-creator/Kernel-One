@@ -180,7 +180,32 @@ class TestDetectConflicts:
         conflicts = detect_conflicts(EQUIPMENT_ID, claims)
         assert conflicts == []
 
-    def test_different_parameters_no_conflict(self):
+    def test_mixed_authority_still_surfaced(self):
+        """
+        Primary vs secondary: surfaced (not discarded) per step 3 — the
+        secondary claim may mean a stale document needs updating.
+        """
+        claims = [
+            _claim(
+                DOC_A_ID,
+                "SOP-204",
+                "primary",
+                "filter replacement interval",
+                "30 days",
+                date(2024, 1, 1),
+            ),
+            _claim(
+                DOC_B_ID,
+                "Vendor note",
+                "secondary",
+                "filter replacement interval",
+                "45 days",
+                date(2024, 1, 1),
+            ),
+        ]
+        conflicts = detect_conflicts(EQUIPMENT_ID, claims)
+        assert len(conflicts) == 1
+        assert conflicts[0].status == "unresolved"
         claims = [
             _claim(
                 DOC_A_ID,
