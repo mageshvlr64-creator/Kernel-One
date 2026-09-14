@@ -434,3 +434,54 @@ COLUMN` note flagged for Character 1's migration authoring.
 **Blocked on / depends on (other characters' scope — not acted on):** unchanged.
 
 **Next:** Live-DB integration test once PostgreSQL is available.
+
+### [Character 1 — Foundation & Inference] 2026-09-14
+**Built/changed:**
+- `services/model-router/app/__init__.py` — package marker
+- `services/model-router/app/models.py` — Pydantic domain types matching `docs/schemas/06_model_schema.md` field-for-field: Model, Provider, Capability, DataClassification, CircuitState, ModelSelectionRequest/Response, ModelHealth, AuditEvent
+- `services/model-router/app/config.py` — environment-based configuration per `docs/16_ENVIRONMENT_AND_CONFIGURATION.md` (provider URLs, health polling intervals, circuit breaker thresholds, inference timeouts)
+- `services/model-router/app/circuit_breaker.py` — per-model circuit breaker per `runtime/11_retry_policy.md` (open after 5 failures in 60s, half-open probe every 15s, tracked per model ID)
+- `services/model-router/app/registry.py` — in-memory model registry with background health polling (vLLM: GET /health, Ollama: GET /api/tags, llama.cpp: GET /health), model CRUD, capability/classification filtering
+- `services/model-router/app/router.py` — model selection logic with fallback chain: filter by capabilities, classification, provider preference, size constraints; rank by provider preference then smallest sufficient model; circuit-breaker gating
+- `services/model-router/app/database.py` — asyncpg repository for model registry persistence and audit events; DDL for local/test bootstrapping with forward-only migration support
+- `services/model-router/app/main.py` — FastAPI application with 12 endpoints: model CRUD, selection, health, audit, availability toggle, inference result reporting, liveness/readiness probes; permission checks (fail closed), audit emission on every mutation
+- `services/model-router/requirements.txt` — production dependencies (fastapi, uvicorn, asyncpg, pydantic, httpx, python-dotenv)
+- `services/model-router/pyproject.toml` — pytest configuration
+- `services/model-router/models.json` — example model registry config (3 models: Llama 3.1 8B, Qwen 2.5 Coder 7B, LLaVA 7B vision)
+- `infra/docker/model-router.Dockerfile` — service Dockerfile, non-root user per security hardening
+- `services/model-router/README.md` — service-level documentation with endpoints, config, and usage
+- `services/model-router/tests/test_models.py` — 14 tests for domain types
+- `services/model-router/tests/test_circuit_breaker.py` — 9 tests for circuit breaker states, transitions, independence
+- `services/model-router/tests/test_registry.py` — 13 tests for registry CRUD, availability, capability/classification filtering
+- `services/model-router/tests/test_router.py` — 14 tests for selection logic, ranking, fallback, circuit-breaker integration
+- `services/model-router/tests/test_routes.py` — 20 tests for HTTP routes, permissions, probes
+**Status:** Implemented and tested — 70 tests passing (`pytest tests/` in `services/model-router`). All modules import cleanly. Routes verified via FastAPI TestClient. No live PostgreSQL integration test yet (DB optional — service runs without persistence).
+**Blocked on / depends on:**
+- Character 5 (identity-service): real JWT validation — currently trusts `x-roles` header forwarded by gateway
+- Character 2 (agent-kernel): the `POST /api/v1/models/select` endpoint is ready for the agent kernel to call for model selection
+- Character 3 (inference-gateway): the `POST /api/v1/models/report-result` endpoint is ready for the inference gateway to report success/failure per inference call
+**Next:** Live-DB integration test once PostgreSQL is available; formalize `docs/api/` endpoint contracts (Character 1 owns `docs/api/`); add `infra/migrations/0001_model_router.sql` forward-only migration for the models and audit_events tables
+
+### [Character 1 — Foundation & Inference] 2026-09-14 (session 2)
+**Built/changed:**
+- `services/inference-gateway/app/schemas.py` — wire schemas: InferenceRequest (messages, kind text/vision, model_id XOR selection, generation params), normalized InferenceResponse (content, model_id, provider, finish_reason, usage, latency_ms, fallback_used), GatewayError envelope with canonical error codes
+- `services/inference-gateway/app/adapter_base.py` — BaseAdapter abstract class (generate, health_check, shared httpx client, httpx-exception → error-code mapping) and ProviderError carrying docs/reference/01_error_codes.md codes
+- `services/inference-gateway/app/adapters/vllm.py` — vLLM adapter: POST /v1/chat/completions (OpenAI-compatible), 5xx → MODEL_RESOURCE_EXHAUSTED, /health probe
+- `services/inference-gateway/app/adapters/ollama.py` — Ollama adapter: POST /api/chat with options mapping (num_predict etc.), done_reason → finish_reason, eval_count → usage, /api/tags probe
+- `services/inference-gateway/app/adapters/llamacpp.py` — llama.cpp adapter: llama-server OpenAI-compatible endpoint, /health probe
+- `services/inference-gateway/app/adapters/__init__.py` — provider-keyed ADAPTERS registry populated at startup
+- `services/inference-gateway/app/router_client.py` — async client for the model-router: POST /api/v1/models/select (returns ModelRef + fallback chain; router 503 → MODEL_UNAVAILABLE) and best-effort POST /api/v1/models/report-result
+- `services/inference-gateway/app/gateway.py` — core pipeline: validate (exactly one of model_id/selection; empty selection dict allowed) → resolve via router → per-candidate execution under runtime timeout budget (30s text / 60s vision) → 1 retry with fixed 500ms backoff on MODEL_UNAVAILABLE/INFERENCE_TIMEOUT → walk router fallback chain → report every attempt to router → audit every call
+- `services/inference-gateway/app/config.py` — env-based GatewayConfig (router URL, provider URLs, timeout budgets, retry policy, fallback toggle, DATABASE_URL)
+- `services/inference-gateway/app/database.py` — asyncpg repository for inference_audit_events table (mirrors model-router audit shape)
+- `services/inference-gateway/app/main.py` — FastAPI app: POST /api/v1/infer (503 with canonical error envelope on provider/router failures, 422 on validation), GET /api/v1/providers/health, /healthz, /readyz; RBAC fail-closed (Operator/Engineer/Administrator may infer; Auditor read-only)
+- `services/inference-gateway/requirements.txt`, `pyproject.toml`, `README.md` — deps, pytest config (asyncio_mode=auto), service docs
+- `infra/docker/inference-gateway.Dockerfile` — non-root user, port 8003 (mirrors model-router hardening)
+- `services/inference-gateway/tests/` — 25 tests: gateway core (validation, explicit vs selection, retry, fallback walk, attempt reporting, vision budget, audit) and routes (success/fallback/503 envelope/422/RBAC fail-closed/probes/providers-health)
+**Also in this workspace:** recovered the prior session's model-router service (`services/model-router/`, `infra/docker/model-router.Dockerfile`) from the earlier workspace root into this repo root so both Character 1 services live together; its 70 tests still pass here.
+**Status:** Implemented and tested — 25 inference-gateway tests passing + 70 model-router tests passing (95 total) via `pytest tests/` in each service directory. No live providers or PostgreSQL; router client and adapters are faked/stubbed in tests. End-to-end wiring against real vLLM/Ollama/llama.cpp not yet exercised.
+**Blocked on / depends on:**
+- Character 5 (identity-service): real JWT validation — gateway trusts the `x-roles` header forwarded by the platform gateway, same stance as model-router
+- model-router (Character 1, done): uses `POST /api/v1/models/select` and `POST /api/v1/models/report-result` contracts as implemented
+- Character 2 (agent-kernel): `POST /api/v1/infer` is ready for the agent kernel to call
+**Next:** Provider resolution for unprefixed model IDs currently defaults to vLLM (DEC-004); add a model→provider lookup to the router (or include provider in select response payload consumed by the gateway) to remove the guess. Live integration test with real provider endpoints; formalize `docs/api/` contract for /infer (Character 1 owns docs/api/).
