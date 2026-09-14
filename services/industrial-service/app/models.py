@@ -50,9 +50,7 @@ class FindingSeverity(str, Enum):
 
 class PlantBase(BaseModel):
     name: str = Field(..., description="e.g. 'Vadodara Refinery'")
-    location: Optional[str] = Field(
-        None, description="Free text; not geocoded in V1"
-    )
+    location: Optional[str] = Field(None, description="Free text; not geocoded in V1")
 
 
 class PlantCreate(PlantBase):
@@ -296,6 +294,44 @@ class ConflictRecord(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Conflict resolution record (human decision, never automatic)
+# ---------------------------------------------------------------------------
+
+
+class ConflictResolutionKind(str, Enum):
+    """The three resolution paths in 14_knowledge_conflict_detection.md."""
+
+    downgrade_authority = "downgrade_authority"
+    set_effective_until = "set_effective_until"
+    acknowledge_both = "acknowledge_both"
+
+
+class ConflictResolutionCreate(BaseModel):
+    """Payload for recording a human's conflict resolution.
+
+    The actual Document.authority / effective_until edit belongs to
+    Character 3's document-pipeline — this service records the decision
+    (who, what, why, when) so future queries show the acknowledgment
+    rather than re-flagging the same conflict.
+    """
+
+    equipment_id: uuid.UUID
+    claim_description: str
+    source_a_document_id: uuid.UUID
+    source_b_document_id: uuid.UUID
+    resolution_kind: ConflictResolutionKind
+    resolution_note: Optional[str] = None
+
+
+class ConflictResolution(ConflictResolutionCreate):
+    id: uuid.UUID
+    resolved_by: str
+    resolved_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
 # Document comparison / change detection output
 # ---------------------------------------------------------------------------
 
@@ -306,9 +342,7 @@ class DiffEntry(BaseModel):
     See docs/industrial/05_document_comparison.md and 06_change_detection.md.
     """
 
-    change_type: str = Field(
-        ..., description="One of 'added', 'removed', 'changed'"
-    )
+    change_type: str = Field(..., description="One of 'added', 'removed', 'changed'")
     parameter: str
     location_reference: Optional[str] = None
     value_in_document_a: Optional[str] = None

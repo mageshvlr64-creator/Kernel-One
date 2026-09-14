@@ -18,6 +18,8 @@ from typing import Any, Optional
 import asyncpg
 
 from app.models import (
+    ConflictResolution,
+    ConflictResolutionCreate,
     Equipment,
     EquipmentCreate,
     EquipmentStatus,
@@ -128,6 +130,23 @@ CREATE INDEX IF NOT EXISTS idx_inspections_equip    ON inspections(equipment_id)
 CREATE INDEX IF NOT EXISTS idx_incidents_equip      ON incidents(equipment_id);
 CREATE INDEX IF NOT EXISTS idx_gov_docs_equip       ON equipment_governing_documents(equipment_id);
 CREATE INDEX IF NOT EXISTS idx_gov_docs_document    ON equipment_governing_documents(document_id);
+
+-- Conflict resolutions (human decisions per docs/industrial/14_knowledge_conflict_detection.md).
+-- ConflictRecord itself is NOT a table (an Evidence.verification_status pair);
+-- this table records the human's resolution so the same conflict is not re-flagged.
+CREATE TABLE IF NOT EXISTS conflict_resolutions (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    equipment_id            UUID NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    claim_description       TEXT NOT NULL,
+    source_a_document_id    UUID NOT NULL,
+    source_b_document_id    UUID NOT NULL,
+    resolution_kind         TEXT NOT NULL
+        CHECK (resolution_kind IN ('downgrade_authority','set_effective_until','acknowledge_both')),
+    resolution_note         TEXT,
+    resolved_by             TEXT NOT NULL,
+    resolved_at             TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_conflict_res_equip ON conflict_resolutions(equipment_id);
 """
 
 
@@ -741,3 +760,82 @@ class KnowledgeGraphRepository:
                 document_id_b,
             )
         return [r["equipment_id"] for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# ConflictResolution repository (human decisions — never automatic)
+# ---------------------------------------------------------------------------
+
+
+class ConflictResolutionRepository:
+    """Records human conflict resolutions per 14_knowledge_conflict_detection.md.
+
+    The resolution flow (downgrade authority / set effective_until /
+    acknowledge both) is a human decision gated by Document:reclassify.
+    This repo persists the decision; the Document-table edit itself (if any)
+    belongs to Character 3's document-pipeline.
+    """
+
+    def __init__(self, pool: asyncpg.Pool) -> None:
+        self._pool = pool
+
+    async def record(
+        self, payload: ConflictResolutionCreate, resolved_by: str
+    ) -> ConflictResolution:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO conflict_resolutions
+                    (equipment_id, claim_description, source_a_document_id,
+                     source_b_document_id, resolution_kind, resolution_note,
+                     resolved_by)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *
+                """,
+                payload.equipment_id,
+                payload.claim_description,
+                payload.source_a_document_id,
+                payload.source_b_document_id,
+                payload.resolution_kind.value,
+                payload.resolution_note,
+                resolved_by,
+            )
+        return ConflictResolution(
+            id=row["id"],
+            equipment_id=row["equipment_id"],
+            claim_description=row["claim_description"],
+            source_a_document_id=row["source_a_document_id"],
+            source_b_document_id=row["source_b_document_id"],
+            resolution_kind=row["resolution_kind"],
+            resolution_note=row["resolution_note"],
+            resolved_by=row["resolved_by"],
+            resolved_at=row["resolved_at"],
+        )
+
+    async def list_by_equipment(
+        self, equipment_id: uuid.UUID
+    ) -> list[ConflictResolution]:
+        """Newest first — the Known-conflicts panel shows acknowledgments inline."""
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT * FROM conflict_resolutions
+                WHERE equipment_id = $1
+                ORDER BY resolved_at DESC
+                """,
+                equipment_id,
+            )
+        return [
+            ConflictResolution(
+                id=r["id"],
+                equipment_id=r["equipment_id"],
+                claim_description=r["claim_description"],
+                source_a_document_id=r["source_a_document_id"],
+                source_b_document_id=r["source_b_document_id"],
+                resolution_kind=r["resolution_kind"],
+                resolution_note=r["resolution_note"],
+                resolved_by=r["resolved_by"],
+                resolved_at=r["resolved_at"],
+            )
+            for r in rows
+        ]

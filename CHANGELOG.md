@@ -210,3 +210,34 @@ for ui/23_asset_view.md /assets/:equipmentId — currently the UI would need to 
 
 **Next:** Live-DB integration test; governing-doc authority/effective-date enrichment
 (joins Character 3 Document rows); conflict resolve flow (`Document:reclassify`).
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed:**
+- `services/industrial-service/app/models.py` — `ConflictResolutionKind/Create/Resolution`
+  per `docs/industrial/14_knowledge_conflict_detection.md` resolution flow (three kinds:
+  downgrade_authority, set_effective_until, acknowledge_both).
+- `services/industrial-service/app/database.py` — `conflict_resolutions` table DDL +
+  `ConflictResolutionRepository` (record + list_by_equipment, newest first).
+- `services/industrial-service/app/main.py` — `POST /assets/{id}/conflicts/resolve`
+  (gated `Document:reclassify`, audited) + `GET /assets/{id}/conflict-resolutions`
+  (Known-conflicts panel history for `ui/23_asset_view.md`).
+- `services/industrial-service/app/comparison.py` — `apply_table_confidence_default()`
+  per `docs/industrial/07_engineering_documents.md` (table-derived values capped at 0.6
+  until verified); wired into changed/added/removed diff entries via `source_kind`.
+- `services/industrial-service/.gitignore` — NEW: stop `__pycache__` noise in own service.
+- `services/industrial-service/tests/test_resolution.py` — NEW: 4 tests (table cap,
+  prose passthrough, diff cap wiring, resolution kinds).
+
+**Status:** Implemented, unit-tested — 50 passed (`pytest tests/` in
+`services/industrial-service`).
+
+**Blocked on / depends on:**
+- Character 1: `conflict_resolutions` DDL lives in service `init_schema`; needs a
+  forward-only `infra/migrations/0011_*` counterpart (Character 1 owns `infra/`).
+- Character 3: actual Document.authority/effective_until edits stay in document-pipeline;
+  this service only records the human's decision.
+- Character 2/3: unchanged — call resolve/list endpoints from the conflict UI flow.
+
+**Next:** Live-DB integration test; governing-doc authority/effective-date enrichment
+(joins Character 3 Document rows); SOP-vs-maintenance cross-check helper (03+04).

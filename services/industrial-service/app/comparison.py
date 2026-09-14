@@ -48,6 +48,26 @@ SYNONYM_MAP: dict[str, str] = {
 # Threshold below which a diff entry is flagged as low-confidence.
 LOW_CONFIDENCE_THRESHOLD = 0.7
 
+# Cap applied to table-derived values per docs/industrial/07_engineering_documents.md:
+# "table-derived values [treated] as lower-confidence by default than
+#  directly-stated prose values, pending explicit verification."
+TABLE_CONFIDENCE_CAP = 0.6
+
+
+def apply_table_confidence_default(
+    confidence: float | None, source_kind: str | None
+) -> float | None:
+    """Cap confidence for table-derived extractions.
+
+    A mis-parsed spec table silently produces wrong "spec" values downstream,
+    so table-derived values start capped at TABLE_CONFIDENCE_CAP until
+    explicitly verified (11_calculation_verification.md). Prose values and
+    unknown kinds pass through unchanged.
+    """
+    if confidence is None or source_kind != "table":
+        return confidence
+    return min(confidence, TABLE_CONFIDENCE_CAP)
+
 
 def _normalize_parameter(raw: str) -> str:
     """Return the canonical parameter name for *raw*.
@@ -140,6 +160,11 @@ def compare_findings(
                         fa.get("confidence", 1.0) or 1.0,
                         fb.get("confidence", 1.0) or 1.0,
                     )
+                    for f in (fa, fb):
+                        capped = apply_table_confidence_default(
+                            confidence, f.get("source_kind")
+                        )
+                        confidence = capped if capped is not None else confidence
                     entry = DiffEntry(
                         change_type="changed",
                         parameter=_normalize_parameter(fa["parameter"]),
@@ -158,6 +183,8 @@ def compare_findings(
         if not matched:
             # Present in A but not matched in B — "removed"
             confidence = fa.get("confidence", 1.0) or 1.0
+            capped = apply_table_confidence_default(confidence, fa.get("source_kind"))
+            confidence = capped if capped is not None else confidence
             diff.removed.append(
                 DiffEntry(
                     change_type="removed",
@@ -175,6 +202,8 @@ def compare_findings(
     for i, fb in enumerate(findings_b):
         if i not in matched_b_indices:
             confidence = fb.get("confidence", 1.0) or 1.0
+            capped = apply_table_confidence_default(confidence, fb.get("source_kind"))
+            confidence = capped if capped is not None else confidence
             diff.added.append(
                 DiffEntry(
                     change_type="added",

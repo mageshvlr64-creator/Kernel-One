@@ -37,6 +37,7 @@ from app.calculations import aggregate_values, check_tolerance, convert_unit
 from app.comparison import compare_findings, is_low_confidence
 from app.conflict_detection import detect_conflicts, format_conflict_output
 from app.database import (
+    ConflictResolutionRepository,
     EquipmentRepository,
     IncidentRepository,
     InspectionRepository,
@@ -59,6 +60,8 @@ from app.inspection_logic import (
 )
 from app.models import (
     ConflictRecord,
+    ConflictResolution,
+    ConflictResolutionCreate,
     DocumentDiff,
     Equipment,
     EquipmentCreate,
@@ -158,6 +161,12 @@ def entity_resolver(
     kg_repo: KnowledgeGraphRepository = Depends(graph_repo),
 ) -> EntityResolver:
     return EntityResolver(eq_repo, kg_repo)
+
+
+def conflict_resolution_repo(
+    pool: asyncpg.Pool = Depends(get_db_pool),
+) -> ConflictResolutionRepository:
+    return ConflictResolutionRepository(pool)
 
 
 # ---------------------------------------------------------------------------
@@ -928,6 +937,65 @@ async def verify_calculation(payload: VerifyCalculationRequest):
         raise ValueError(f"unknown operation: {payload.operation}")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Conflict resolution (human decision — never automatic, principle 12)
+# ---------------------------------------------------------------------------
+
+
+@app.post(
+    "/assets/{equipment_id}/conflicts/resolve",
+    response_model=ConflictResolution,
+    status_code=status.HTTP_201_CREATED,
+)
+async def resolve_conflict(
+    equipment_id: uuid.UUID,
+    payload: ConflictResolutionCreate,
+    repo: ConflictResolutionRepository = Depends(conflict_resolution_repo),
+    eq_repo: EquipmentRepository = Depends(equipment_repo),
+    x_roles: Annotated[Optional[str], Header()] = None,
+    x_actor: Annotated[Optional[str], Header()] = None,
+):
+    """Record a human's conflict resolution.
+
+    Per docs/industrial/14_knowledge_conflict_detection.md resolution flow:
+    downgrade one source's authority, set effective_until on the outdated
+    source, or explicitly acknowledge both as valid. Gated by
+    Document:reclassify (same gate as changing Document.authority).
+    Every resolution is an audited event.
+    """
+    _require_permission(x_roles, "Document:reclassify")
+    if not await eq_repo.get(equipment_id):
+        raise HTTPException(status_code=404, detail="Equipment not found")
+    if payload.equipment_id != equipment_id:
+        raise HTTPException(
+            status_code=400, detail="equipment_id in path must match body"
+        )
+    actor = x_actor or "unknown"
+    resolution = await repo.record(payload, resolved_by=actor)
+    await _emit_audit_event(
+        "resolve_conflict",
+        "Equipment",
+        str(equipment_id),
+        actor,
+        detail=f"kind={payload.resolution_kind.value} claim={payload.claim_description}",
+    )
+    return resolution
+
+
+@app.get(
+    "/assets/{equipment_id}/conflict-resolutions",
+    response_model=list[ConflictResolution],
+)
+async def list_conflict_resolutions(
+    equipment_id: uuid.UUID,
+    repo: ConflictResolutionRepository = Depends(conflict_resolution_repo),
+    x_roles: Annotated[Optional[str], Header()] = None,
+):
+    """Resolution history for the Known-conflicts panel (ui/23_asset_view.md)."""
+    _require_permission(x_roles, "Equipment:read")
+    return await repo.list_by_equipment(equipment_id)
 
 
 # ---------------------------------------------------------------------------
