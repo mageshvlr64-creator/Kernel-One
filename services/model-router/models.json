@@ -1,0 +1,37 @@
+{
+  "models": [
+    {
+      "id": "llama-3.1-8b-instruct",
+      "display_name": "Llama 3.1 8B Instruct",
+      "provider": "llamacpp",
+      "total_parameters_billions": 8.0,
+      "quantization": "Q4_K_M",
+      "context_window": 128000,
+      "capabilities": ["coding", "tool_calling", "structured_output"],
+      "max_classification": "CONFIDENTIAL",
+      "is_available": true
+    },
+    {
+      "id": "qwen2.5-coder-7b-instruct",
+      "display_name": "Qwen 2.5 Coder 7B",
+      "provider": "vllm",
+      "total_parameters_billions": 7.6,
+      "quantization": "FP16",
+      "context_window": 32768,
+      "capabilities": ["coding", "tool_calling", "structured_output"],
+      "max_classification": "CONFIDENTIAL",
+      "is_available": true
+    },
+    {
+      "id": "llava-7b",
+      "display_name": "LLaVA 7B (Vision)",
+      "provider": "ollama",
+      "total_parameters_billions": 7.0,
+      "quantization": "FP16",
+      "context_window": 4096,
+      "capabilities": ["vision", "ocr_assist"],
+      "max_classification": "INTERNAL",
+      "is_available": true
+    }
+  ]
+}
