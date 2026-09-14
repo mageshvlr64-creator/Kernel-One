@@ -317,8 +317,8 @@ Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
 - Logic edges: tolerance-no-bounds and aggregate empty/unknown failures;
   location-mismatch/identical/synonym diff cases; table cap on added entries;
   primary-vs-secondary conflicts still surfaced unresolved.
-- Production change: history lists (maintenance/inspections/incidents)
-  paginated server-side in repo + routes.
+- History-list pagination (shipped in b5aff94) is now pinned by tests
+  (repo arg passthrough + route query passthrough).
 
 **Status:** 121 passed (`pytest tests/` in `services/industrial-service`),
 DB-free. Per-file counts verified: routes 25, repos 26, logic/detection 58,
