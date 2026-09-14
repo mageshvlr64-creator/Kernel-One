@@ -45,6 +45,19 @@ def test_tolerance_requires_bounds():
         pass
 
 
+def test_tolerance_below_min_deviation():
+    r = check_tolerance(0.5, spec_min=1.0, spec_max=10.0)
+    assert r.passed is False
+    assert r.deviation_percent == -50.0
+
+
+def test_tolerance_zero_bound_no_deviation():
+    """Zero bound: no percentage deviation computable — None, not a crash."""
+    r = check_tolerance(5.0, spec_min=0.0, spec_max=0.0)
+    assert r.passed is False
+    assert r.deviation_percent is None
+
+
 def test_aggregate_empty_and_unknown():
     for kwargs in ({"values": []}, {"values": [1.0], "operation": "median"}):
         try:

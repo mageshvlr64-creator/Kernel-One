@@ -257,6 +257,41 @@ class TestDetectConflicts:
 # ---------------------------------------------------------------------------
 
 
+class TestSameRankNonPrimary:
+    def test_secondary_pair_surfaces(self):
+        claims = [
+            _claim(DOC_A_ID, "Note A", "secondary", "interval", "30 days", date(2024, 1, 1)),
+            _claim(DOC_B_ID, "Note B", "secondary", "interval", "45 days", date(2024, 1, 1)),
+        ]
+        conflicts = detect_conflicts(EQUIPMENT_ID, claims)
+        assert len(conflicts) == 1
+        assert conflicts[0].status == "unresolved"
+
+
+class TestSameDocumentGuard:
+    def test_same_document_claims_never_conflict(self):
+        """Guard against double-counting one document as two sources."""
+        claims = [
+            _claim(
+                DOC_A_ID,
+                "SOP-204",
+                "primary",
+                "filter replacement interval",
+                "30 days",
+                date(2024, 1, 1),
+            ),
+            _claim(
+                DOC_A_ID,
+                "SOP-204",
+                "primary",
+                "filter replacement interval",
+                "45 days",
+                date(2024, 1, 1),
+            ),
+        ]
+        assert detect_conflicts(EQUIPMENT_ID, claims) == []
+
+
 class TestFormatConflictOutput:
     def test_output_matches_canonical_format(self):
         """The formatted output must match the exact format in the spec."""

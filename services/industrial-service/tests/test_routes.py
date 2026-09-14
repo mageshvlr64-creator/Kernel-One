@@ -456,3 +456,426 @@ class TestValidateAnswerPositives:
             headers=READ,
         )
         assert r.json() == {"valid": True, "missing": []}
+
+
+class TestPlantUnitRoutes:
+    def test_plant_crud(self):
+        from app.models import Plant
+
+        pid, oid = uuid.uuid4(), uuid.uuid4()
+        repo = AsyncMock()
+        repo.create.return_value = Plant(
+            id=pid, organization_id=oid, name="Refinery", created_at=NOW
+        )
+        repo.get.return_value = repo.create.return_value
+        repo.list_by_org.return_value = [repo.create.return_value]
+        client = _make_client({main.plant_repo: lambda: repo})
+        assert (
+            client.post(
+                "/plants",
+                json={"organization_id": str(oid), "name": "Refinery"},
+                headers=WRITE,
+            ).status_code
+            == 201
+        )
+        assert client.get(f"/plants/{pid}", headers=READ).status_code == 200
+        assert (
+            client.get(f"/organizations/{oid}/plants", headers=READ).status_code == 200
+        )
+
+    def test_unit_routes(self):
+        from app.models import Unit
+
+        uid, pid = uuid.uuid4(), uuid.uuid4()
+        repo = AsyncMock()
+        repo.create.return_value = Unit(
+            id=uid, plant_id=pid, name="CDU-2", created_at=NOW
+        )
+        repo.get.return_value = repo.create.return_value
+        repo.list_by_plant.return_value = [repo.create.return_value]
+        client = _make_client({main.unit_repo: lambda: repo})
+        assert (
+            client.post(
+                "/units", json={"plant_id": str(pid), "name": "CDU-2"}, headers=WRITE
+            ).status_code
+            == 201
+        )
+        assert client.get(f"/units/{uid}", headers=READ).status_code == 200
+        assert client.get(f"/plants/{pid}/units", headers=READ).status_code == 200
+
+
+class TestRemainingRoutes:
+    def test_equipment_get_200(self):
+        eid, uid = uuid.uuid4(), uuid.uuid4()
+        client = _make_client(
+            {main.equipment_repo: lambda: _equipment_repo(_equipment_model(eid, uid))}
+        )
+        r = client.get(f"/assets/{eid}", headers=READ)
+        assert r.status_code == 200
+        assert r.json()["tag_number"] == "P-204"
+
+    def test_equipment_get_404(self):
+        client = _make_client({main.equipment_repo: lambda: _equipment_repo()})
+        assert client.get(f"/assets/{uuid.uuid4()}", headers=READ).status_code == 404
+
+    def test_governing_documents_get(self):
+        graph = AsyncMock()
+        graph.get_governing_documents.return_value = []
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: _equipment_repo(),
+                main.graph_repo: lambda: graph,
+            }
+        )
+        assert (
+            client.get(
+                f"/assets/{uuid.uuid4()}/governing-documents", headers=READ
+            ).status_code
+            == 200
+        )
+
+    def test_healthz(self):
+        assert _make_client().get("/healthz").status_code == 200
+
+    def test_confirm_link_404_and_201(self):
+        from app.models import EntityResolutionResult
+
+        eq = AsyncMock()
+        eq.get.return_value = None
+        resolver = AsyncMock()
+        client = _make_client(
+            {main.equipment_repo: lambda: eq, main.entity_resolver: lambda: resolver}
+        )
+        body = {
+            "equipment_id": str(uuid.uuid4()),
+            "document_id": str(uuid.uuid4()),
+        }
+        assert (
+            client.post("/internal/confirm-link", json=body, headers=WRITE).status_code
+            == 404
+        )
+        eq.get.return_value = AsyncMock()
+        assert (
+            client.post("/internal/confirm-link", json=body, headers=WRITE).status_code
+            == 201
+        )
+
+    def test_resolve_tag_success(self):
+        from app.models import EntityResolutionResult
+
+        resolver = AsyncMock()
+        resolver.resolve.return_value = EntityResolutionResult(
+            tag_number="P-204",
+            confidence="exact_same_unit",
+            matched_equipment_id=uuid.uuid4(),
+            requires_human_confirmation=False,
+            reason="ok",
+        )
+        client = _make_client({main.entity_resolver: lambda: resolver})
+        r = client.post(
+            "/internal/resolve-tag",
+            json={
+                "tag_number": "P-204",
+                "within_unit_id": str(uuid.uuid4()),
+                "plant_id": str(uuid.uuid4()),
+            },
+            headers=READ,
+        )
+        assert r.status_code == 200
+        assert r.json()["confidence"] == "exact_same_unit"
+
+
+class TestHistoryCreateRoutes:
+    def _repos(self, equipment):
+        eq = AsyncMock()
+        eq.get.return_value = equipment
+        return eq
+
+    def test_maintenance_create_201_and_404(self):
+        from app.models import MaintenanceEvent
+
+        eid = uuid.uuid4()
+        repo = AsyncMock()
+        repo.create.return_value = MaintenanceEvent(
+            id=uuid.uuid4(),
+            equipment_id=eid,
+            performed_at=None,
+            created_at=NOW,
+        )
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: self._repos(AsyncMock()),
+                main.maintenance_repo: lambda: repo,
+            }
+        )
+        body = {"equipment_id": str(eid), "event_type": "service"}
+        assert (
+            client.post(
+                f"/assets/{eid}/maintenance-events", json=body, headers=WRITE
+            ).status_code
+            == 201
+        )
+        client2 = _make_client(
+            {
+                main.equipment_repo: lambda: self._repos(None),
+                main.maintenance_repo: lambda: repo,
+            }
+        )
+        assert (
+            client2.post(
+                f"/assets/{eid}/maintenance-events", json=body, headers=WRITE
+            ).status_code
+            == 404
+        )
+
+    def test_inspection_create_201(self):
+        from app.models import Inspection
+
+        eid = uuid.uuid4()
+        repo = AsyncMock()
+        repo.create.return_value = Inspection(
+            id=uuid.uuid4(), equipment_id=eid, created_at=NOW
+        )
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: self._repos(AsyncMock()),
+                main.inspection_repo: lambda: repo,
+            }
+        )
+        assert (
+            client.post(
+                f"/assets/{eid}/inspections",
+                json={"equipment_id": str(eid)},
+                headers=WRITE,
+            ).status_code
+            == 201
+        )
+
+    def test_incident_create_201(self):
+        from app.models import Incident
+
+        eid = uuid.uuid4()
+        repo = AsyncMock()
+        repo.create.return_value = Incident(
+            id=uuid.uuid4(), equipment_id=eid, created_at=NOW
+        )
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: self._repos(AsyncMock()),
+                main.incident_repo: lambda: repo,
+            }
+        )
+        assert (
+            client.post(
+                f"/assets/{eid}/incidents",
+                json={"equipment_id": str(eid)},
+                headers=WRITE,
+            ).status_code
+            == 201
+        )
+
+    def test_plant_unit_get_404(self):
+        plant, unit = AsyncMock(), AsyncMock()
+        plant.get.return_value = None
+        unit.get.return_value = None
+        client = _make_client(
+            {
+                main.plant_repo: lambda: plant,
+                main.unit_repo: lambda: unit,
+            }
+        )
+        assert client.get(f"/plants/{uuid.uuid4()}", headers=READ).status_code == 404
+        assert client.get(f"/units/{uuid.uuid4()}", headers=READ).status_code == 404
+
+    def test_resolve_equipment_mismatch_400(self):
+        eid = uuid.uuid4()
+        eq = AsyncMock()
+        eq.get.return_value = AsyncMock()
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: eq,
+                main.conflict_resolution_repo: lambda: AsyncMock(),
+            }
+        )
+        body = {
+            "equipment_id": str(uuid.uuid4()),
+            "claim_description": "x",
+            "source_a_document_id": str(uuid.uuid4()),
+            "source_b_document_id": str(uuid.uuid4()),
+            "resolution_kind": "acknowledge_both",
+        }
+        assert (
+            client.post(
+                f"/assets/{eid}/conflicts/resolve", json=body, headers=RECLASSIFY
+            ).status_code
+            == 400
+        )
+
+
+class TestRouteGapFillers:
+    def test_update_200(self):
+        eid = uuid.uuid4()
+        repo = AsyncMock()
+        repo.update.return_value = _equipment_model(eid, uuid.uuid4())
+        client = _make_client({main.equipment_repo: lambda: repo})
+        r = client.patch(f"/assets/{eid}", json={"status": "down"}, headers=WRITE)
+        assert r.status_code == 200
+        assert r.json()["tag_number"] == "P-204"
+
+    def test_history_create_404_and_mismatch(self):
+        eid = uuid.uuid4()
+        eq = AsyncMock()
+        eq.get.return_value = None
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: eq,
+                main.inspection_repo: lambda: AsyncMock(),
+                main.incident_repo: lambda: AsyncMock(),
+                main.maintenance_repo: lambda: AsyncMock(),
+            }
+        )
+        assert (
+            client.post(
+                f"/assets/{eid}/inspections",
+                json={"equipment_id": str(eid)},
+                headers=WRITE,
+            ).status_code
+            == 404
+        )
+        assert (
+            client.post(
+                f"/assets/{eid}/incidents",
+                json={"equipment_id": str(eid)},
+                headers=WRITE,
+            ).status_code
+            == 404
+        )
+        other = uuid.uuid4()
+        eq.get.return_value = AsyncMock()
+        assert (
+            client.post(
+                f"/assets/{eid}/maintenance-events",
+                json={"equipment_id": str(other)},
+                headers=WRITE,
+            ).status_code
+            == 400
+        )
+        assert (
+            client.post(
+                f"/assets/{eid}/inspections",
+                json={"equipment_id": str(other)},
+                headers=WRITE,
+            ).status_code
+            == 400
+        )
+        assert (
+            client.post(
+                f"/assets/{eid}/incidents",
+                json={"equipment_id": str(other)},
+                headers=WRITE,
+            ).status_code
+            == 400
+        )
+
+    def test_history_lists(self):
+        insp, inci = self._empty_history(), self._empty_history()
+        client = _make_client(
+            {
+                main.inspection_repo: lambda: insp,
+                main.incident_repo: lambda: inci,
+            }
+        )
+        eid = uuid.uuid4()
+        assert client.get(f"/assets/{eid}/inspections", headers=READ).status_code == 200
+        assert client.get(f"/assets/{eid}/incidents", headers=READ).status_code == 200
+
+    @staticmethod
+    def _empty_history():
+        repo = AsyncMock()
+        repo.list_by_equipment.return_value = []
+        return repo
+
+    def test_verify_convert_and_aggregate_200(self):
+        client = _make_client()
+        r = client.post(
+            "/internal/verify-calculation",
+            json={"operation": "convert", "value": 1000.0,
+                  "from_unit": "mm", "to_unit": "m"},
+            headers=READ,
+        )
+        assert r.json()["converted_value"] == 1.0
+        r = client.post(
+            "/internal/verify-calculation",
+            json={"operation": "aggregate", "values": [1.0, 2.0, 3.0]},
+            headers=READ,
+        )
+        assert r.json()["result"] == 2.0
+
+    def test_verify_calculation_missing_fields_400(self):
+        client = _make_client()
+        assert (
+            client.post(
+                "/internal/verify-calculation",
+                json={"operation": "tolerance"},
+                headers=READ,
+            ).status_code
+            == 400
+        )
+        assert (
+            client.post(
+                "/internal/verify-calculation",
+                json={"operation": "convert", "value": 1.0},
+                headers=READ,
+            ).status_code
+            == 400
+        )
+        assert (
+            client.post(
+                "/internal/verify-calculation",
+                json={"operation": "aggregate"},
+                headers=READ,
+            ).status_code
+            == 400
+        )
+
+    def test_resolve_unknown_equipment_404(self):
+        eid = uuid.uuid4()
+        eq = AsyncMock()
+        eq.get.return_value = None
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: eq,
+                main.conflict_resolution_repo: lambda: AsyncMock(),
+            }
+        )
+        body = {
+            "equipment_id": str(eid),
+            "claim_description": "x",
+            "source_a_document_id": str(uuid.uuid4()),
+            "source_b_document_id": str(uuid.uuid4()),
+            "resolution_kind": "acknowledge_both",
+        }
+        assert (
+            client.post(
+                f"/assets/{eid}/conflicts/resolve", json=body, headers=RECLASSIFY
+            ).status_code
+            == 404
+        )
+
+    def test_add_governing_document_unknown_equipment_404(self):
+        eq = AsyncMock()
+        eq.get.return_value = None
+        client = _make_client(
+            {
+                main.equipment_repo: lambda: eq,
+                main.graph_repo: lambda: AsyncMock(),
+            }
+        )
+        assert (
+            client.post(
+                f"/assets/{uuid.uuid4()}/governing-documents",
+                json={"document_id": str(uuid.uuid4())},
+                headers=WRITE,
+            ).status_code
+            == 404
+        )

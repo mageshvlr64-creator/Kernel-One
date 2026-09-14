@@ -46,6 +46,17 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8005
 ```
 
+## Testing
+
+```bash
+pip install -r requirements-test.txt
+python -m pytest tests/ -q
+python -m pytest tests/ -q --cov=app --cov-report=term-missing  # 100% line coverage
+```
+
+`tests/test_integration.py` runs against real PostgreSQL via embedded
+`pgserver` (no external DB needed) and skips automatically when unavailable.
+
 ## Environment variables
 
 See `docs/16_ENVIRONMENT_AND_CONFIGURATION.md` for the full list. Minimum required:

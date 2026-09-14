@@ -201,3 +201,12 @@ class TestMatchingEdges:
             DOC_A, DOC_B, [], [_finding("torque", "110 Nm", source_kind="table")]
         )
         assert diff.added[0].confidence == 0.6
+
+    def test_garbage_evidence_id_is_dropped(self):
+        diff = compare_findings(
+            DOC_A,
+            DOC_B,
+            [_finding("torque", "100 Nm", evidence_id="not-a-uuid")],
+            [_finding("torque", "110 Nm")],
+        )
+        assert diff.changed[0].evidence_id_a is None

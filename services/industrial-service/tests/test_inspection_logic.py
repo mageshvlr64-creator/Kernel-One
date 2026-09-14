@@ -163,6 +163,14 @@ class TestValidateAnswerDisclaimers:
             "missing": [],
         }
 
+    def test_drawing_kind_requires_caveat(self):
+        out = validate_answer_disclaimers("Dimension is 42mm.", "drawing")
+        assert out == {"valid": False, "missing": ["drawing_caveat"]}
+
+    def test_calculation_kind_requires_framing(self):
+        out = validate_answer_disclaimers("Deviation is 12.5%.", "calculation")
+        assert out == {"valid": False, "missing": ["calculation_framing"]}
+
     def test_unknown_kind_fails_closed(self):
         try:
             validate_answer_disclaimers("Anything.", "audit")

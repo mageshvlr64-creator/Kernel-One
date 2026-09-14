@@ -305,6 +305,34 @@ Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
 
 ### [Character 4 — Industrial Intelligence] 2026-09-14
 
+**Built/changed (coverage-driven pass — measured 83%, closed to 100%):**
+- `tests/test_integration.py` — NEW (11 tests): LIVE PostgreSQL via embedded
+  `pgserver` — full lifecycle (plant/unit/equipment CRUD, histories, entity
+  resolution cases, governed_by lifecycle, shared-equipment join, conflict
+  resolutions, app lifespan boot). Validates real SQL, not just mappings.
+  Skips cleanly when pgserver is unavailable.
+- `tests/test_contract.py` — NEW (13 tests): route inventory (34 routes),
+  repository method surface, cross-module invariants (answer kinds, resolution
+  kinds, table-cap < low-confidence threshold), pool fail-closed + DI factories.
+  Guards against silent deletions.
+- `tests/test_database.py` + `test_routes.py` — gap-fillers to 100% line
+  coverage: name filters, full-field update, history lists, all create 201/404/
+  400 paths, equipment get 200, convert/aggregate 200s, resolve/govern 404s.
+- `requirements-test.txt` — NEW; README documents the suite + 100% gate.
+- No production logic changes needed — the audit found code complete; one
+  test-only bug fixed (dependency-override values must be callables).
+
+**Status:** 181 passed, 100% line coverage across all 10 app modules
+(`pytest tests/ --cov=app`). Live-DB risk retired for Character 4's SQL.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged —
+Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
+(Document joins, ingest wiring), Character 2 (agent-side use, insights summary).
+
+**Next:** Cross-character wiring by the owning characters.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
 **Built/changed (second full-test pass — remaining uncovered surface):**
 - `tests/test_database_extra.py` — NEW (12 tests): Plant/Unit repos, equipment
   partial-update/no-op-update/missing-update/soft-delete/list-by-unit,
