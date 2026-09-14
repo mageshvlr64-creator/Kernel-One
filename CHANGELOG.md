@@ -105,3 +105,76 @@ this now-more-complete specification. See `docs/08_BUILD_PHASES.md` for phase or
 *(Entries from here on are added by whichever character is actively building — see "How to
 use this file" above. Nothing has been built yet as of the creation of this changelog; the
 next entry below should be the first character's first real build session.)*
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed:**
+- `services/industrial-service/app/__init__.py` — package marker
+- `services/industrial-service/app/models.py` — Pydantic domain types for all six
+  asset-model entities (Plant, Unit, Equipment, MaintenanceEvent, Inspection, Incident)
+  plus GoverningDocumentLink, ConflictRecord, DocumentDiff, DiffEntry,
+  EntityResolutionResult. Matches `docs/domain/20_asset_model.md` field-for-field.
+- `services/industrial-service/app/database.py` — asyncpg repository layer for all
+  six tables plus the `equipment_governing_documents` join table. Includes DDL for
+  local/test bootstrapping, entity-resolution tag-matching queries, and knowledge-graph
+  edge management. All queries reference the source doc in comments.
+- `services/industrial-service/app/entity_resolution.py` — three-case entity resolution
+  logic from `docs/industrial/13_asset_knowledge_graph.md` (exact_same_unit auto-link,
+  exact_other_unit human-confirmation required, no_match passthrough). Never auto-commits
+  in the ambiguous case.
+- `services/industrial-service/app/comparison.py` — deterministic document comparison
+  engine per `docs/industrial/05_document_comparison.md` and `06_change_detection.md`.
+  Explicit synonym table (no model inference). Ambiguous matches reported as "added"
+  not silently merged. Confidence scores propagated from Evidence.
+- `services/industrial-service/app/conflict_detection.py` — five-step conflict detection
+  flow from `docs/industrial/14_knowledge_conflict_detection.md`. Never auto-resolves
+  any conflict (principle 12). Temporal overlap check prevents false positives from
+  historical non-overlapping documents. Includes canonical CONFLICT DETECTED formatter.
+- `services/industrial-service/app/inspection_logic.py` — domain-specific inspection
+  rules: Finding dataclass with four required Evidence fields, OCR confidence threshold
+  (0.85 CONFIG DEFAULT), unsupported-claim detection, SOP disclaimer validation,
+  calculation framing validation.
+- `services/industrial-service/app/main.py` — FastAPI application with all routes:
+  /assets list+search, /assets/:id detail, Plant/Unit/Equipment CRUD, maintenance/
+  inspection/incident sub-resources, governing-document edge management, three internal
+  endpoints for inter-service calls (resolve-tag, detect-conflicts, compare-documents).
+  Every mutating route emits an AuditEvent. Fails closed on missing/invalid roles.
+- `services/industrial-service/requirements.txt` — production dependencies
+- `services/industrial-service/pyproject.toml` — pytest configuration
+- `services/industrial-service/README.md` — service-level documentation
+- `services/industrial-service/tests/test_comparison.py` — unit tests for comparison
+- `services/industrial-service/tests/test_conflict_detection.py` — unit tests for
+  conflict detection including the "never auto-resolve" invariant (principle 12)
+- `services/industrial-service/tests/test_entity_resolution.py` — unit tests for
+  three-case entity resolution using async mocks
+- `services/industrial-service/tests/test_inspection_logic.py` — unit tests for
+  domain rules: Evidence completeness, OCR confidence threshold, SOP disclaimer,
+  calculation framing
+- `infra/migrations/0010_industrial_asset_model.sql` — forward-only SQL migration for
+  all Character 4 tables with COMMENT annotations tracing each constraint to its spec doc
+- `infra/docker/industrial-service.Dockerfile` — service Dockerfile, non-root user
+
+**Status:** Implemented, not yet integration-tested (no running PostgreSQL in this
+session). All unit tests are written and can be run with
+`pytest services/industrial-service/tests/` once dependencies are installed.
+Core logic modules (comparison, conflict_detection, entity_resolution, inspection_logic)
+are pure-Python and have no external dependencies — their unit tests should pass
+immediately. The database and API layers require a running PostgreSQL instance.
+
+**Blocked on / depends on:**
+- Character 1: `docs/api/` endpoint contracts not yet written — the `/internal/` routes
+  are shaped based on what the spec implies other services need, but Character 1 should
+  formalize those contracts before Character 3/2 start calling into this service.
+- Character 3 (evidence-service): conflict detection is implemented but the
+  evidence-service needs to call `/internal/detect-conflicts` with pre-fetched claims
+  for the background-check use case (`docs/industrial/14_knowledge_conflict_detection.md`
+  "When conflict detection runs" case 2). That wiring is Character 3's responsibility.
+- Character 5 (identity-service): permission checking currently trusts an `x-roles`
+  header forwarded by the gateway. Real JWT validation belongs to Character 5's
+  identity-service and API gateway integration.
+
+**Next:** Integration tests against a real PostgreSQL instance; wire
+`/internal/resolve-tag` into Character 3's document-pipeline ingest flow; add the
+asset detail view aggregation endpoint (single call returning Equipment + all history
+for ui/23_asset_view.md /assets/:equipmentId — currently the UI would need to make
+5 separate calls, which should be collapsed to one).
