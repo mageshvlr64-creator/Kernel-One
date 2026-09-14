@@ -38,7 +38,7 @@ class Finding:
     parameter: str
     measured_value: Optional[str]
     specification: Optional[str]  # threshold / spec limit
-    pass_fail: Optional[str]      # e.g. "PASS", "FAIL", "15% below spec"
+    pass_fail: Optional[str]  # e.g. "PASS", "FAIL", "15% below spec"
     location_reference: Optional[str]  # e.g. "Flange B, page 4"
 
     # Evidence IDs — one per element (not just the overall claim)
@@ -96,13 +96,9 @@ def format_finding_answer_fragment(finding: Finding) -> str:
     verdict = finding.pass_fail or "—"
 
     if needs_ocr_confidence_warning(finding):
-        value = (
-            f"{value} ⚠ OCR confidence lower than usual — verify against the original document"
-        )
+        value = f"{value} ⚠ OCR confidence lower than usual — verify against the original document"
 
-    return (
-        f"{param}{location}: measured {value} vs. spec {spec} → {verdict}"
-    )
+    return f"{param}{location}: measured {value} vs. spec {spec} → {verdict}"
 
 
 def validate_sop_compliance_disclaimer(answer_text: str) -> bool:
@@ -134,6 +130,23 @@ def validate_calculation_framing(answer_text: str) -> bool:
         "formula selection",
         "require human confirmation",
         "input values require",
+    ]
+    lower = answer_text.lower()
+    return any(phrase in lower for phrase in required_phrases)
+
+
+def validate_drawing_caveat(answer_text: str) -> bool:
+    """Check that a drawing-derived answer carries the required caveat.
+
+    Per docs/industrial/09_drawing_understanding.md: values read from a
+    drawing image are "not independently verified" — the answer must say
+    so rather than stating them with document-text certainty.
+    """
+    required_phrases = [
+        "read from drawing",
+        "not independently verified",
+        "verify against the original drawing",
+        "from the drawing image",
     ]
     lower = answer_text.lower()
     return any(phrase in lower for phrase in required_phrases)

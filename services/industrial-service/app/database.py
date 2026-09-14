@@ -378,6 +378,8 @@ class EquipmentRepository:
         tag_number: Optional[str] = None,
         name_query: Optional[str] = None,
         status: Optional[EquipmentStatus] = None,
+        plant_id: Optional[uuid.UUID] = None,
+        unit_id: Optional[uuid.UUID] = None,
     ) -> list[Equipment]:
         """Search all equipment visible to an organization with optional filters.
 
@@ -403,6 +405,14 @@ class EquipmentRepository:
         if status:
             conditions.append(f"e.status = ${idx}")
             args.append(status.value)
+            idx += 1
+        if plant_id:
+            conditions.append(f"p.id = ${idx}")
+            args.append(plant_id)
+            idx += 1
+        if unit_id:
+            conditions.append(f"u.id = ${idx}")
+            args.append(unit_id)
             idx += 1
 
         where = " AND ".join(conditions)
@@ -440,9 +450,7 @@ class EquipmentRepository:
         set_clauses = ", ".join(
             f"{col} = ${i + 2}" for i, col in enumerate(updates.keys())
         )
-        sql = (
-            f"UPDATE equipment SET {set_clauses} WHERE id = $1 AND deleted_at IS NULL RETURNING *"
-        )
+        sql = f"UPDATE equipment SET {set_clauses} WHERE id = $1 AND deleted_at IS NULL RETURNING *"
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(sql, equipment_id, *updates.values())
         return _row_to_equipment(row) if row else None

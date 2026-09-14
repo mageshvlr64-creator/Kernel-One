@@ -178,3 +178,35 @@ immediately. The database and API layers require a running PostgreSQL instance.
 asset detail view aggregation endpoint (single call returning Equipment + all history
 for ui/23_asset_view.md /assets/:equipmentId — currently the UI would need to make
 5 separate calls, which should be collapsed to one).
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed:**
+- `services/industrial-service/app/calculations.py` — NEW: deterministic tolerance/spec
+  checking, explicit unit conversion, aggregate stats per
+  `docs/industrial/10_engineering_calculations.md` + input traceability shape per
+  `docs/industrial/11_calculation_verification.md`. Fails closed, never estimates.
+- `services/industrial-service/app/inspection_logic.py` — added `validate_drawing_caveat()`
+  per `docs/industrial/09_drawing_understanding.md`.
+- `services/industrial-service/app/database.py` — `EquipmentRepository.search()` now
+  supports `plant_id` + `unit_id` filters (list view per `docs/ui/23_asset_view.md`).
+- `services/industrial-service/app/main.py` — removed duplicate `ResolveTagRequest`
+  class bug; added `GET /assets/{id}/detail` (single aggregated call for the detail
+  view), `GET /documents/{id}/equipment` (impact analysis), `POST /internal/validate-finding`
+  (wires `inspection_logic` into pipeline), `POST /internal/validate-answer`
+  (SOP/calculation/drawing disclaimer gates), `POST /internal/verify-calculation`
+  (tolerance/convert/aggregate); `/assets` search accepts `plant_id` + `unit_id`.
+- `services/industrial-service/tests/test_calculations.py` — NEW: 6 tests for the above.
+
+**Status:** Implemented, unit-tested — 46 passed (`pytest tests/` in
+`services/industrial-service`). DB/API layers still need live PostgreSQL integration test.
+
+**Blocked on / depends on:**
+- Character 3: call `/internal/validate-finding` + `/internal/resolve-tag` from ingest;
+  call `/internal/detect-conflicts` from evidence-service.
+- Character 2: call `/internal/verify-calculation` + `/internal/compare-documents` from
+  agent workflows.
+- Character 1/5: formalize `/internal/*` contracts in `docs/api/`; real JWT validation.
+
+**Next:** Live-DB integration test; governing-doc authority/effective-date enrichment
+(joins Character 3 Document rows); conflict resolve flow (`Document:reclassify`).

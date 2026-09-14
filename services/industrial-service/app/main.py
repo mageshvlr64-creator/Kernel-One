@@ -33,6 +33,7 @@ import asyncpg
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Header, Query, status
 
+from app.calculations import aggregate_values, check_tolerance, convert_unit
 from app.comparison import compare_findings, is_low_confidence
 from app.conflict_detection import detect_conflicts, format_conflict_output
 from app.database import (
@@ -48,7 +49,12 @@ from app.database import (
 )
 from app.entity_resolution import EntityResolver
 from app.inspection_logic import (
+    Finding,
+    format_finding_answer_fragment,
+    is_supported_finding,
+    needs_ocr_confidence_warning,
     validate_calculation_framing,
+    validate_drawing_caveat,
     validate_sop_compliance_disclaimer,
 )
 from app.models import (
@@ -310,13 +316,15 @@ async def list_assets(
     tag_number: Optional[str] = Query(None),
     name: Optional[str] = Query(None),
     equipment_status: Optional[EquipmentStatus] = Query(None, alias="status"),
+    plant_id: Optional[uuid.UUID] = Query(None),
+    unit_id: Optional[uuid.UUID] = Query(None),
     repo: EquipmentRepository = Depends(equipment_repo),
     x_roles: Annotated[Optional[str], Header()] = None,
 ):
     """Search all equipment visible to the organization.
 
     Implements the list view from docs/ui/23_asset_view.md:
-    Filter by tag number, name, status.
+    Filter by tag number, name, Plant, Unit, status.
     """
     _require_permission(x_roles, "Equipment:read")
     return await repo.search(
@@ -324,6 +332,8 @@ async def list_assets(
         tag_number=tag_number,
         name_query=name,
         status=equipment_status,
+        plant_id=plant_id,
+        unit_id=unit_id,
     )
 
 
@@ -622,11 +632,6 @@ async def get_governing_documents(
 # ---------------------------------------------------------------------------
 
 
-class ResolveTagRequest(PlantCreate):
-    """Re-using PlantCreate is wrong here — use a proper schema."""
-    pass
-
-
 from pydantic import BaseModel as _BaseModel
 
 
@@ -741,6 +746,188 @@ async def compare_documents_endpoint(
         findings_a=payload.findings_a,
         findings_b=payload.findings_b,
     )
+
+
+# ---------------------------------------------------------------------------
+# Aggregated asset detail (single call for ui/23_asset_view.md detail view)
+# ---------------------------------------------------------------------------
+
+
+class AssetDetail(_BaseModel):
+    equipment: Equipment
+    plant: Optional[Plant] = None
+    unit: Optional[Unit] = None
+    maintenance_events: list[MaintenanceEvent] = []
+    inspections: list[Inspection] = []
+    incidents: list[Incident] = []
+    governing_documents: list[dict] = []
+    last_inspection_date: Optional[date] = None
+
+
+@app.get("/assets/{equipment_id}/detail", response_model=AssetDetail)
+async def get_asset_detail(
+    equipment_id: uuid.UUID,
+    eq_repo: EquipmentRepository = Depends(equipment_repo),
+    unit_repo_: UnitRepository = Depends(unit_repo),
+    plant_repo_: PlantRepository = Depends(plant_repo),
+    maint_repo: MaintenanceEventRepository = Depends(maintenance_repo),
+    insp_repo: InspectionRepository = Depends(inspection_repo),
+    inci_repo: IncidentRepository = Depends(incident_repo),
+    kg_repo: KnowledgeGraphRepository = Depends(graph_repo),
+    x_roles: Annotated[Optional[str], Header()] = None,
+):
+    """Single aggregated call for /assets/:equipmentId detail view.
+
+    Per docs/ui/23_asset_view.md: header + identity + maintenance +
+    inspection + incident histories + governing docs, one round trip.
+    """
+    _require_permission(x_roles, "Equipment:read")
+    equipment = await eq_repo.get(equipment_id)
+    if not equipment:
+        raise HTTPException(status_code=404, detail="Equipment not found")
+    unit = await unit_repo_.get(equipment.unit_id)
+    plant = await plant_repo_.get(unit.plant_id) if unit else None
+    return AssetDetail(
+        equipment=equipment,
+        plant=plant,
+        unit=unit,
+        maintenance_events=await maint_repo.list_by_equipment(equipment_id),
+        inspections=await insp_repo.list_by_equipment(equipment_id),
+        incidents=await inci_repo.list_by_equipment(equipment_id),
+        governing_documents=[
+            link.model_dump()
+            for link in await kg_repo.get_governing_documents(equipment_id)
+        ],
+        last_inspection_date=await insp_repo.last_inspection_date(equipment_id),
+    )
+
+
+@app.get("/documents/{document_id}/equipment")
+async def get_equipment_for_document(
+    document_id: uuid.UUID,
+    repo: KnowledgeGraphRepository = Depends(graph_repo),
+    x_roles: Annotated[Optional[str], Header()] = None,
+):
+    """Impact analysis: which equipment is governed by this document."""
+    _require_permission(x_roles, "Equipment:read")
+    return {
+        "document_id": str(document_id),
+        "equipment_ids": await repo.get_equipment_for_document(document_id),
+    }
+
+
+class ValidateFindingRequest(_BaseModel):
+    parameter: str
+    measured_value: Optional[str] = None
+    specification: Optional[str] = None
+    pass_fail: Optional[str] = None
+    location_reference: Optional[str] = None
+    evidence_id_parameter: Optional[str] = None
+    evidence_id_measured_value: Optional[str] = None
+    evidence_id_specification: Optional[str] = None
+    evidence_id_pass_fail: Optional[str] = None
+    ocr_confidence: Optional[float] = None
+
+
+@app.post("/internal/validate-finding")
+async def validate_finding(payload: ValidateFindingRequest):
+    """Validate one inspection finding per docs/industrial/02_inspection_reports.md.
+
+    Called by document-pipeline (Character 3) after extraction, before
+    persisting an Inspection row. Returns supported/ocr-warning flags plus
+    the formatted answer fragment.
+    """
+    finding = Finding(**payload.model_dump())
+    return {
+        "supported": is_supported_finding(finding),
+        "ocr_warning": needs_ocr_confidence_warning(finding),
+        "fragment": format_finding_answer_fragment(finding),
+    }
+
+
+class ValidateAnswerRequest(_BaseModel):
+    answer_text: str
+    answer_kind: str = "general"
+
+
+@app.post("/internal/validate-answer")
+async def validate_answer(payload: ValidateAnswerRequest):
+    """Check required disclaimers per 04_sop_compliance / 09 / 11.
+
+    answer_kind: 'sop' | 'calculation' | 'drawing' | 'general'.
+    Returns {valid, missing} — caller rejects or flags when not valid.
+    """
+    checks: dict[str, bool] = {}
+    if payload.answer_kind in ("sop", "general"):
+        checks["sop_disclaimer"] = (
+            validate_sop_compliance_disclaimer(payload.answer_text)
+            if payload.answer_kind == "sop"
+            else True
+        )
+    if payload.answer_kind in ("calculation", "general"):
+        checks["calculation_framing"] = (
+            validate_calculation_framing(payload.answer_text)
+            if payload.answer_kind == "calculation"
+            else True
+        )
+    if payload.answer_kind in ("drawing", "general"):
+        checks["drawing_caveat"] = (
+            validate_drawing_caveat(payload.answer_text)
+            if payload.answer_kind == "drawing"
+            else True
+        )
+    missing = [k for k, v in checks.items() if not v]
+    return {"valid": not missing, "missing": missing}
+
+
+class VerifyCalculationRequest(_BaseModel):
+    operation: str
+    measured_value: Optional[float] = None
+    spec_min: Optional[float] = None
+    spec_max: Optional[float] = None
+    nominal: Optional[float] = None
+    tolerance: Optional[float] = None
+    value: Optional[float] = None
+    from_unit: Optional[str] = None
+    to_unit: Optional[str] = None
+    values: Optional[list[float]] = None
+    aggregate: Optional[str] = "mean"
+
+
+@app.post("/internal/verify-calculation")
+async def verify_calculation(payload: VerifyCalculationRequest):
+    """Deterministic calculation check per 10_engineering_calculations.md.
+
+    operation: 'tolerance' | 'convert' | 'aggregate'. Fails closed (400)
+    on bad inputs — never estimates. Caller cites the returned inputs
+    as Evidence (input traceability, 11_calculation_verification.md).
+    """
+    try:
+        if payload.operation == "tolerance":
+            if payload.measured_value is None:
+                raise ValueError("measured_value required")
+            result = check_tolerance(
+                measured_value=payload.measured_value,
+                spec_min=payload.spec_min,
+                spec_max=payload.spec_max,
+                nominal=payload.nominal,
+                tolerance=payload.tolerance,
+            )
+            return {
+                **result.__dict__,
+                "framing_hint": "arithmetic verified; formula selection and input values require human confirmation",
+            }
+        if payload.operation == "convert":
+            if payload.value is None or not payload.from_unit or not payload.to_unit:
+                raise ValueError("value/from_unit/to_unit required")
+            return convert_unit(payload.value, payload.from_unit, payload.to_unit)
+        if payload.operation == "aggregate":
+            if payload.values is None:
+                raise ValueError("values required")
+            return aggregate_values(payload.values, payload.aggregate or "mean")
+        raise ValueError(f"unknown operation: {payload.operation}")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # ---------------------------------------------------------------------------
