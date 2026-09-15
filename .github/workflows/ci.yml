@@ -30,6 +30,7 @@ jobs:
           - model-router
           - inference-gateway
           - industrial-service
+          - knowledge-fabric
     defaults:
       run:
         working-directory: services/${{ matrix.service }}
