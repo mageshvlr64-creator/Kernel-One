@@ -105,3 +105,36 @@ this now-more-complete specification. See `docs/08_BUILD_PHASES.md` for phase or
 *(Entries from here on are added by whichever character is actively building — see "How to
 use this file" above. Nothing has been built yet as of the creation of this changelog; the
 next entry below should be the first character's first real build session.)*
+
+### [Character 3 — Knowledge & Documents] 2026-09-15
+
+**Built/changed:**
+- `services/document-pipeline/` — first service code in the repo (build-order #14, Phase 5):
+  upload validation (size/MIME/extension, sha256 dedup per `runtime/15_idempotency.md`,
+  malware-signature reject), file-type detection (magic bytes + PyMuPDF probing), native PDF
+  parsing, scanned-PDF detection (text-layer heuristic per `failures/21_pdf_failures.md`),
+  page extraction, metadata extraction — the seven feature ops of `features/10_document_ingestion/`
+  exposed both as `POST /api/v1/document-ingestion/<op>` and via the canonical REST surface
+  `POST/GET/DELETE /api/v1/documents` (`api/11_documents_api.md`)
+- Wire conformance: canonical error registry verbatim (`reference/01_error_codes.md`), API
+  envelope (`schemas/02`, error shape per `api/26`), audit event per invocation incl. denials
+  (`schemas/15`), Document state-machine guard (`runtime/_state_machines_canonical.md`),
+  permission-matrix policy for Document (`reference/05`)
+- Explicit stubs per the dependency-graph rule: document store, blob storage, audit sink
+  (injectable); dev token auth (`Bearer role:<role>`) with deny-by-default
+- Test suite: 58 pytest tests covering all Failure-modes rows, permission denials per role,
+  and the exactly-one-audit-event invariant — all passing (run 2026-09-15)
+- `docs/20_DECISION_LOG.md`: added **DEC-023** (stdlib HTTP choice, stub strategy, dev-token
+  auth) — decision-log touch noted here as a shared-contract file
+
+**Status:** Document ingestion works end-to-end locally: a PDF/text/markdown upload is
+validated, typed, parsed, routed (native vs. scanned), page-extracted, and left INDEXING —
+with one audit event per call and full envelope/error conformance. Not deployed, no real
+database/storage behind the stubs yet. Requires Python 3.12 + PyMuPDF (per the stack table).
+
+**Blocked on / depends on:** Real persistence (document store, blob storage) from the
+Foundation/Character 1 layer; audit persistence + tamper-evident chain from Character 5's
+audit-service; real authentication mechanism replacing `resolve_actor` (single seam).
+
+**Next:** Build-order #15 — Knowledge Fabric (`services/knowledge-fabric/`, chunking +
+pgvector indexing handoff that consumes this service's INDEXING state).
