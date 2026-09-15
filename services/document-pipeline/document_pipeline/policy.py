@@ -74,6 +74,8 @@ def check(resource: str, action: str, actor: Actor, *,
     if matrix is None:
         return PolicyDecision(False, "POLICY_DENIED", f"no matrix row for {resource}:{action}")
 
+    # Layered condition 0: role — denied roles are TOOL_NOT_ALLOWED regardless of
+    # classification, so the denial reason is never misattributed to clearance.
     if actor.role not in matrix:
         # TOOL_NOT_ALLOWED per registry: "Caller's role/policy does not permit this"
         return PolicyDecision(False, "TOOL_NOT_ALLOWED",

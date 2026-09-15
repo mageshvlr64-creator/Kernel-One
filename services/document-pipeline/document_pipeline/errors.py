@@ -30,6 +30,7 @@ REGISTRY: Dict[str, RegistryEntry] = {
     "RESOURCE_CONFLICT": RegistryEntry("RESOURCE_CONFLICT", 409, "This item was already updated by someone else.", True),
     "RAG_INDEX_UNAVAILABLE": RegistryEntry("RAG_INDEX_UNAVAILABLE", 503, "Search is temporarily unavailable.", True),
     "DEPENDENCY_UNAVAILABLE": RegistryEntry("DEPENDENCY_UNAVAILABLE", 503, "A required service is temporarily unavailable.", True),
+    "TOOL_EXECUTION_FAILED": RegistryEntry("TOOL_EXECUTION_FAILED", 500, "One of the steps in this task failed.", True),
     "INTERNAL_ERROR": RegistryEntry("INTERNAL_ERROR", 500, "Something went wrong on our end.", True),
 }
 
