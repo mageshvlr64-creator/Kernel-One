@@ -61,6 +61,24 @@ class PdfParseError(Exception):
         self.reason = reason
 
 
+def render_page_png(data: bytes, page_number: int) -> bytes:
+    """Render one page (1-based) to PNG bytes for the OCR engine (features/11_ocr/04:
+    page processing renders each page; pymupdf pixmap at 150 DPI — CPU-friendly default)."""
+    try:
+        doc = pymupdf.Document(stream=data, filetype="pdf")
+        if doc.needs_pass or doc.is_encrypted:
+            raise PdfParseError("password-protected/encrypted PDFs are not supported")
+        if not 1 <= page_number <= doc.page_count:
+            raise PdfParseError(f"page {page_number} out of range (1..{doc.page_count})")
+        page = doc.load_page(page_number - 1)
+        pix = page.get_pixmap(dpi=150)
+        return pix.tobytes("png")
+    except PdfParseError:
+        raise
+    except Exception as exc:
+        raise PdfParseError(f"page render failed: {exc}") from exc
+
+
 def parse_pdf(data: bytes) -> ParseOutcome:
     """Parse a PDF blob into structured pages with citations-grade coordinates."""
     try:

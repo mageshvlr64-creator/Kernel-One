@@ -579,3 +579,38 @@ stubs behind every external seam until Characters 1/5 land their layers.
 
 **Next:** OCR integration (feature group 11) feeds INDEXING docs from scanned PDFs into
 this pipeline; pgvector swap-in behind ChunkIndex when the platform layer lands.
+
+### [Character 3 — Knowledge & Documents] 2026-09-15 (session 4)
+
+**Built/changed:**
+- **OCR pipeline — build-order #15** (`features/11_ocr`, 9 ops): implemented inside
+  `document-pipeline` per `15_CODEBASE_TARGET_STRUCTURE.md` (feature 11 belongs to that
+  service; a standalone `services/ocr` was considered and rejected — see DEC-025).
+  `scanned_pdf_detection` → **EXTRACTING→OCR** on scanned candidates; page/region
+  processing (pymupdf 150 DPI rendering, bbox regions, per-page/mean confidence,
+  low-confidence flagging per `failures/22`), text reconstruction, coordinate mapping,
+  confidence report, failure report, language handling, engine selection, and
+  `complete_ocr` → **OCR→INDEXING** with the canonical `document.ocr_completed` event —
+  the hand-off into knowledge-fabric (#16).
+- Engine seam per `integrations/08`: lazy `PaddleOcrEngine` fails closed with
+  DEPENDENCY_UNAVAILABLE when absent; deterministic stub transcribes **real rendered
+  PNGs** (pixel-digest pseudo-regions) so stub and real engine share one code path.
+- **Policy layering fix** (cross-cutting, shared module): role-denied actors now get
+  TOOL_NOT_ALLOWED before the classification layer instead of a misattributed
+  FILE_CLASSIFICATION_DENIED — matches every existing test's expectation and the
+  registry's code definitions.
+- **Audit-contract hardening**: unhandled engine crashes inside an OCR op are mapped to
+  DEPENDENCY_UNAVAILABLE with exactly one error audit event, instead of escaping bare.
+- `docs/20_DECISION_LOG.md`: added **DEC-025** (+ errata noting the canonical build order
+  is OCR=#15, knowledge-fabric=#16; session 3's changelog said #15 for knowledge-fabric).
+
+**Verification:** OCR suite 26/26; full document-pipeline 84/84; whole-repo regression
+**416/416** (document-pipeline 84, knowledge-fabric 56, model-router 70,
+inference-gateway 25, industrial-service 181). Live HTTP run of the scanned→OCR→INDEXING
+pipeline on :8080 — upload → detection (EXTRACTING) → page-processing (OCR, 2 pages) →
+text-reconstruction (100 chars) → complete-ocr (INDEXING hand-off) → GET confirms state;
+unauthenticated request correctly 401 AUTH_REQUIRED.
+
+**Status:** Scanned PDFs now flow upload → EXTRACTING → OCR (flagged pages persist) →
+INDEXING, where knowledge-fabric takes over. Not deployed; PaddleOCR adapter and
+Postgres/pgvector seams remain explicit stubs until Characters 1/5 land.
