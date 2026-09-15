@@ -546,3 +546,36 @@ in repo code). Known deferred: `DTZ011 date.today()` in conflict_detection is de
 third-party DeprecationWarnings are upstream packages' to fix.
 
 **Next:** unchanged — build-order #15, Knowledge Fabric.
+
+### [Character 3 — Knowledge & Documents] 2026-09-15 (session 3)
+
+**Built/changed:**
+- `services/knowledge-fabric/` — build-order **#15** (Phase 6): all fifteen feature ops of
+  `features/13_knowledge_fabric/` (document_store, document_normalization, chunking,
+  embeddings, keyword_index, vector_index, metadata_index, hybrid_search, reranking,
+  document_hierarchy, permission_filtering, context_assembly, knowledge_overview,
+  retrieval_quality, retrieval_failures), exposed as `POST
+  /api/v1/knowledge-fabric/<op>` + `GET /api/v1/knowledge-fabric/<op>/{document_id}` and
+  as in-process entry points (`service.invoke` — one implementation, feature §12)
+- Canonical conformance: DocumentChunk schema (768-dim embedding, bbox, ocr_confidence —
+  `schemas/08`), chunk window 200–800 tokens (`domain/07`), Document state machine guard
+  limited to this service's owned transitions (INDEXING→READY with `document.indexed`,
+  INDEXING→FAILED), permission matrix per `reference/05`, exactly-one invocation audit
+  event per call incl. denials, registry-verbatim errors/envelopes
+- Explicit stubs (DEC-023/DEC-024): DocumentSource (document-pipeline view), ChunkIndex
+  (in-memory cosine; pgvector HNSW later), hash-based 768-dim embeddings
+  (model-inference seam later), audit sink, dev-token auth
+- Test suite: **56 pytest tests** (indexing pipeline, retrieval + per-chunk permission
+  filtering, contracts incl. exactly-one-audit-event and matrix-per-role, HTTP API over a
+  live in-process server) — all passing; full repo regression 390/390 green
+- `docs/20_DECISION_LOG.md`: added **DEC-024** (stub embeddings; per-chunk policy
+  baseline for corpus reads)
+
+**Status:** A document left INDEXING by document-pipeline can be normalized, chunked,
+embedded, keyword/vector/metadata indexed, and moved to READY — then searched with
+hybrid keyword+vector scoring under per-chunk classification/workspace filtering, reranked,
+assembled into token-budgeted context, and diagnosed on empty results. Not deployed;
+stubs behind every external seam until Characters 1/5 land their layers.
+
+**Next:** OCR integration (feature group 11) feeds INDEXING docs from scanned PDFs into
+this pipeline; pgvector swap-in behind ChunkIndex when the platform layer lands.

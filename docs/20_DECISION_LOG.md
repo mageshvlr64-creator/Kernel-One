@@ -305,6 +305,33 @@ module's docstring so replacement is mechanical.
 exists — rejected because it serializes all six characters behind one unspecified choice and
 the spec's own build order has document ingestion in Phase 5, ahead of any such decision.
 
+### DEC-024 — Knowledge-fabric first increment: stub embeddings, per-chunk policy baseline
+**Date:** 2026-09-15 · **Status:** Accepted · **Owner:** Character 3 (Knowledge & Documents)
+**Context:** `services/knowledge-fabric/` (build-order #15) implements feature group 13 on
+the same seams as document-pipeline (DEC-023). Two choices needed an entry:
+
+1. **Embeddings.** The canonical embedding model is pinned via model management
+   (`features/01`), whose selection machinery does not exist yet. Until it does, the
+   service uses a deterministic hash-based 768-dim stub (`storage.embed_text`) with real
+   similarity semantics (shared tokens → higher cosine), injected via the `embedder`
+   constructor seam. Dimension stays 768 per `schemas/08` / `domain/07` so swapping in the
+   real provider cannot break the chunk schema.
+2. **Retrieval policy baseline.** Corpus-level read ops (hybrid_search, reranking,
+   context_assembly, quality/failures) authorize the role/action row against a PUBLIC
+   classification baseline, then apply classification + workspace filtering **per chunk**
+   at scoring time. Document-scoped ops (chunking, embeddings, indexes) authorize against
+   the actual document. This matches `domain/07`'s Notes ("never queried without that
+   filter") — the per-chunk filter is the security boundary, not a corpus-level denial —
+   and the canonical matrix's Auditor row (Document:read ❌) still denies corpus reads
+   outright via the role row.
+
+**Decision:** Both as described. DocumentChunk field validation, the INDEXING→READY
+transition (event `document.indexed`, owner knowledge_fabric), and the 200–800-token
+window (approximated at 4 chars/token, env-tunable) follow the canonical docs verbatim.
+**Rejected:** Authorizing corpus reads against the caller's clearance — rejected because
+it duplicates the per-chunk filter as a corpus-level gate and would deny Restricted User
+searches the matrix explicitly grants (Document:read ✅ up to own clearance).
+
 ## Open decisions (DECISION REQUIRED)
 
 ### DEC-013 — Exact model checkpoints to pin for V1 demo
