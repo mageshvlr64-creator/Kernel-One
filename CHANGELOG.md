@@ -106,6 +106,386 @@ this now-more-complete specification. See `docs/08_BUILD_PHASES.md` for phase or
 use this file" above. Nothing has been built yet as of the creation of this changelog; the
 next entry below should be the first character's first real build session.)*
 
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed:**
+- `services/industrial-service/app/__init__.py` — package marker
+- `services/industrial-service/app/models.py` — Pydantic domain types for all six
+  asset-model entities (Plant, Unit, Equipment, MaintenanceEvent, Inspection, Incident)
+  plus GoverningDocumentLink, ConflictRecord, DocumentDiff, DiffEntry,
+  EntityResolutionResult. Matches `docs/domain/20_asset_model.md` field-for-field.
+- `services/industrial-service/app/database.py` — asyncpg repository layer for all
+  six tables plus the `equipment_governing_documents` join table. Includes DDL for
+  local/test bootstrapping, entity-resolution tag-matching queries, and knowledge-graph
+  edge management. All queries reference the source doc in comments.
+- `services/industrial-service/app/entity_resolution.py` — three-case entity resolution
+  logic from `docs/industrial/13_asset_knowledge_graph.md` (exact_same_unit auto-link,
+  exact_other_unit human-confirmation required, no_match passthrough). Never auto-commits
+  in the ambiguous case.
+- `services/industrial-service/app/comparison.py` — deterministic document comparison
+  engine per `docs/industrial/05_document_comparison.md` and `06_change_detection.md`.
+  Explicit synonym table (no model inference). Ambiguous matches reported as "added"
+  not silently merged. Confidence scores propagated from Evidence.
+- `services/industrial-service/app/conflict_detection.py` — five-step conflict detection
+  flow from `docs/industrial/14_knowledge_conflict_detection.md`. Never auto-resolves
+  any conflict (principle 12). Temporal overlap check prevents false positives from
+  historical non-overlapping documents. Includes canonical CONFLICT DETECTED formatter.
+- `services/industrial-service/app/inspection_logic.py` — domain-specific inspection
+  rules: Finding dataclass with four required Evidence fields, OCR confidence threshold
+  (0.85 CONFIG DEFAULT), unsupported-claim detection, SOP disclaimer validation,
+  calculation framing validation.
+- `services/industrial-service/app/main.py` — FastAPI application with all routes:
+  /assets list+search, /assets/:id detail, Plant/Unit/Equipment CRUD, maintenance/
+  inspection/incident sub-resources, governing-document edge management, three internal
+  endpoints for inter-service calls (resolve-tag, detect-conflicts, compare-documents).
+  Every mutating route emits an AuditEvent. Fails closed on missing/invalid roles.
+- `services/industrial-service/requirements.txt` — production dependencies
+- `services/industrial-service/pyproject.toml` — pytest configuration
+- `services/industrial-service/README.md` — service-level documentation
+- `services/industrial-service/tests/test_comparison.py` — unit tests for comparison
+- `services/industrial-service/tests/test_conflict_detection.py` — unit tests for
+  conflict detection including the "never auto-resolve" invariant (principle 12)
+- `services/industrial-service/tests/test_entity_resolution.py` — unit tests for
+  three-case entity resolution using async mocks
+- `services/industrial-service/tests/test_inspection_logic.py` — unit tests for
+  domain rules: Evidence completeness, OCR confidence threshold, SOP disclaimer,
+  calculation framing
+- `infra/migrations/0010_industrial_asset_model.sql` — forward-only SQL migration for
+  all Character 4 tables with COMMENT annotations tracing each constraint to its spec doc
+- `infra/docker/industrial-service.Dockerfile` — service Dockerfile, non-root user
+
+**Status:** Implemented, not yet integration-tested (no running PostgreSQL in this
+session). All unit tests are written and can be run with
+`pytest services/industrial-service/tests/` once dependencies are installed.
+Core logic modules (comparison, conflict_detection, entity_resolution, inspection_logic)
+are pure-Python and have no external dependencies — their unit tests should pass
+immediately. The database and API layers require a running PostgreSQL instance.
+
+**Blocked on / depends on:**
+- Character 1: `docs/api/` endpoint contracts not yet written — the `/internal/` routes
+  are shaped based on what the spec implies other services need, but Character 1 should
+  formalize those contracts before Character 3/2 start calling into this service.
+- Character 3 (evidence-service): conflict detection is implemented but the
+  evidence-service needs to call `/internal/detect-conflicts` with pre-fetched claims
+  for the background-check use case (`docs/industrial/14_knowledge_conflict_detection.md`
+  "When conflict detection runs" case 2). That wiring is Character 3's responsibility.
+- Character 5 (identity-service): permission checking currently trusts an `x-roles`
+  header forwarded by the gateway. Real JWT validation belongs to Character 5's
+  identity-service and API gateway integration.
+
+**Next:** Integration tests against a real PostgreSQL instance; wire
+`/internal/resolve-tag` into Character 3's document-pipeline ingest flow; add the
+asset detail view aggregation endpoint (single call returning Equipment + all history
+for ui/23_asset_view.md /assets/:equipmentId — currently the UI would need to make
+5 separate calls, which should be collapsed to one).
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed:**
+- `services/industrial-service/app/calculations.py` — NEW: deterministic tolerance/spec
+  checking, explicit unit conversion, aggregate stats per
+  `docs/industrial/10_engineering_calculations.md` + input traceability shape per
+  `docs/industrial/11_calculation_verification.md`. Fails closed, never estimates.
+- `services/industrial-service/app/inspection_logic.py` — added `validate_drawing_caveat()`
+  per `docs/industrial/09_drawing_understanding.md`.
+- `services/industrial-service/app/database.py` — `EquipmentRepository.search()` now
+  supports `plant_id` + `unit_id` filters (list view per `docs/ui/23_asset_view.md`).
+- `services/industrial-service/app/main.py` — removed duplicate `ResolveTagRequest`
+  class bug; added `GET /assets/{id}/detail` (single aggregated call for the detail
+  view), `GET /documents/{id}/equipment` (impact analysis), `POST /internal/validate-finding`
+  (wires `inspection_logic` into pipeline), `POST /internal/validate-answer`
+  (SOP/calculation/drawing disclaimer gates), `POST /internal/verify-calculation`
+  (tolerance/convert/aggregate); `/assets` search accepts `plant_id` + `unit_id`.
+- `services/industrial-service/tests/test_calculations.py` — NEW: 6 tests for the above.
+
+**Status:** Implemented, unit-tested — 46 passed (`pytest tests/` in
+`services/industrial-service`). DB/API layers still need live PostgreSQL integration test.
+
+**Blocked on / depends on:**
+- Character 3: call `/internal/validate-finding` + `/internal/resolve-tag` from ingest;
+  call `/internal/detect-conflicts` from evidence-service.
+- Character 2: call `/internal/verify-calculation` + `/internal/compare-documents` from
+  agent workflows.
+- Character 1/5: formalize `/internal/*` contracts in `docs/api/`; real JWT validation.
+
+**Next:** Live-DB integration test; governing-doc authority/effective-date enrichment
+(joins Character 3 Document rows); conflict resolve flow (`Document:reclassify`).
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed:**
+- `services/industrial-service/app/models.py` — `ConflictResolutionKind/Create/Resolution`
+  per `docs/industrial/14_knowledge_conflict_detection.md` resolution flow (three kinds:
+  downgrade_authority, set_effective_until, acknowledge_both).
+- `services/industrial-service/app/database.py` — `conflict_resolutions` table DDL +
+  `ConflictResolutionRepository` (record + list_by_equipment, newest first).
+- `services/industrial-service/app/main.py` — `POST /assets/{id}/conflicts/resolve`
+  (gated `Document:reclassify`, audited) + `GET /assets/{id}/conflict-resolutions`
+  (Known-conflicts panel history for `ui/23_asset_view.md`).
+- `services/industrial-service/app/comparison.py` — `apply_table_confidence_default()`
+  per `docs/industrial/07_engineering_documents.md` (table-derived values capped at 0.6
+  until verified); wired into changed/added/removed diff entries via `source_kind`.
+- `services/industrial-service/.gitignore` — NEW: stop `__pycache__` noise in own service.
+- `services/industrial-service/tests/test_resolution.py` — NEW: 4 tests (table cap,
+  prose passthrough, diff cap wiring, resolution kinds).
+
+**Status:** Implemented, unit-tested — 50 passed (`pytest tests/` in
+`services/industrial-service`).
+
+**Blocked on / depends on:**
+- Character 1: `conflict_resolutions` DDL lives in service `init_schema`; needs a
+  forward-only `infra/migrations/0011_*` counterpart (Character 1 owns `infra/`).
+- Character 3: actual Document.authority/effective_until edits stay in document-pipeline;
+  this service only records the human's decision.
+- Character 2/3: unchanged — call resolve/list endpoints from the conflict UI flow.
+
+**Next:** Live-DB integration test; governing-doc authority/effective-date enrichment
+(joins Character 3 Document rows); SOP-vs-maintenance cross-check helper (03+04).
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (deep audit pass, Character 4 paths only):**
+- Audited all 14 `docs/industrial/*`, `docs/domain/20_asset_model.md`, all 14
+  `docs/workflows/*`, `docs/ui/23_asset_view.md` against `services/industrial-service/`.
+  Workflows 02-05/09-14 impose no Character 4 obligations (other characters' features);
+  workflow 07's asset/conflict sections are fed by existing endpoints. No cross-boundary
+  files touched.
+- `services/industrial-service/app/sop.py` — NEW: `evaluate_sop_compliance()` per
+  03+04 (dual-sided evidence gate + disclaimer gate; never decides match itself).
+- `services/industrial-service/app/main.py` — `POST /internal/check-sop-compliance`;
+  moved mid-file pydantic import to top imports.
+- `services/industrial-service/tests/test_sop.py` — NEW: 4 tests; fixed
+  `test_resolution.py` enum type nit.
+- `services/industrial-service/README.md` — corrected stale "all calculations delegated
+  to tool-gateway" claim to describe local deterministic helpers + ToolInvocation
+  migration path (was inaccurate vs. `app/calculations.py`).
+
+**Status:** Implemented, unit-tested — 54 passed (`pytest tests/` in
+`services/industrial-service`); all modules import cleanly.
+
+**Blocked on / depends on (unchanged, other characters' scope — not acted on):**
+- Character 1: `conflict_resolutions` migration counterpart in `infra/`; `/internal/*`
+  contracts in `docs/api/`; real JWT validation.
+- Character 3: Document.authority/effective-date joins; ingest wiring for
+  validate-finding/resolve-tag/check-sop-compliance.
+- Character 2: agent-side use of verify-calculation/compare-documents; Risks/AI-insights
+  panel summary (uses `GET /assets/{id}/detail`).
+
+**Next:** Live-DB integration test; superseded-SOP grey-out data (needs Character 3
+Document validity windows).
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (second deep audit, line-level, Character 4 paths only):**
+- `services/industrial-service/app/main.py` — all 7 `/internal/*` endpoints now
+  fail closed on permissions (`Equipment:read`; `confirm-link` keeps
+  `Equipment:write`): previously resolve-tag/detect-conflicts/compare-documents/
+  validate-finding/validate-answer/verify-calculation/check-sop-compliance took
+  no roles header at all, violating principle 11. `confirm-link` now 404s on
+  unknown equipment instead of leaking a DB FK error as a 500.
+- `services/industrial-service/app/inspection_logic.py` — new pure
+  `validate_answer_disclaimers()`; unknown `answer_kind` now raises (400) instead
+  of passing through as valid (was fail-open for any unrecognized kind).
+- `services/industrial-service/app/main.py` — removed dead imports
+  (`is_low_confidence`, `format_conflict_output` — both stay tested in their own
+  modules, just not used by routes).
+- `services/industrial-service/requirements.txt` — dropped unused `sqlalchemy`
+  and `opentelemetry*` deps (nothing imports them).
+- `services/industrial-service/tests/test_inspection_logic.py` — 3 new tests for
+  the disclaimer helper incl. the fail-closed case.
+
+**Status:** Implemented, unit-tested — 57 passed (`pytest tests/` in
+`services/industrial-service`); all modules import cleanly.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged —
+Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
+(Document joins, ingest wiring), Character 2 (agent-side use, insights summary).
+
+**Next:** Live-DB integration test once PostgreSQL is available.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (coverage-driven pass — measured 83%, closed to 100%):**
+- `tests/test_integration.py` — NEW (11 tests): LIVE PostgreSQL via embedded
+  `pgserver` — full lifecycle (plant/unit/equipment CRUD, histories, entity
+  resolution cases, governed_by lifecycle, shared-equipment join, conflict
+  resolutions, app lifespan boot). Validates real SQL, not just mappings.
+  Skips cleanly when pgserver is unavailable.
+- `tests/test_contract.py` — NEW (13 tests): route inventory (34 routes),
+  repository method surface, cross-module invariants (answer kinds, resolution
+  kinds, table-cap < low-confidence threshold), pool fail-closed + DI factories.
+  Guards against silent deletions.
+- `tests/test_database.py` + `test_routes.py` — gap-fillers to 100% line
+  coverage: name filters, full-field update, history lists, all create 201/404/
+  400 paths, equipment get 200, convert/aggregate 200s, resolve/govern 404s.
+- `requirements-test.txt` — NEW; README documents the suite + 100% gate.
+- No production logic changes needed — the audit found code complete; one
+  test-only bug fixed (dependency-override values must be callables).
+
+**Status:** 181 passed, 100% line coverage across all 10 app modules
+(`pytest tests/ --cov=app`). Live-DB risk retired for Character 4's SQL.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged —
+Character 1 (`infra/` migration, `docs/api/` contracts, JWT), Character 3
+(Document joins, ingest wiring), Character 2 (agent-side use, insights summary).
+
+**Next:** Cross-character wiring by the owning characters.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (second full-test pass — remaining uncovered surface):**
+- `tests/test_database_extra.py` — NEW (12 tests): Plant/Unit repos, equipment
+  partial-update/no-op-update/missing-update/soft-delete/list-by-unit,
+  `init_schema` DDL smoke + all-tables-present check, audit helper success post
+  and swallowed-failure paths.
+- `tests/test_routes.py` — +9 (25 total): autouse audit mock (isolates routes,
+  suite back under 1s); equipment create 201/400, update 404, delete 204/404;
+  governing-doc add/remove/404; impact-analysis endpoint; resolutions list;
+  detail-200 aggregation; SOP positive validation.
+- Logic edges: tolerance-no-bounds and aggregate empty/unknown failures;
+  location-mismatch/identical/synonym diff cases; table cap on added entries;
+  primary-vs-secondary conflicts still surfaced unresolved.
+- History-list pagination (shipped in b5aff94) is now pinned by tests
+  (repo arg passthrough + route query passthrough).
+
+**Status:** 121 passed (`pytest tests/` in `services/industrial-service`),
+DB-free. Per-file counts verified: routes 25, repos 26, logic/detection 58,
+views/misc 12.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged.
+
+**Next:** Live-DB integration test once PostgreSQL is available.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (full-test pass — previously untested layers now covered):**
+- `tests/test_database.py` — NEW (14 tests): every repository against a fake
+  asyncpg pool — equipment search filters/pagination SQL, `search_with_history`
+  tuple mapping + LATERAL, maintenance create (technician/work-order passthrough),
+  history pagination args, last-inspection value/None, incident ordering,
+  governing-doc upsert idempotency, remove true/false, conflict record round-trip.
+- `tests/test_routes.py` — NEW (16 tests): HTTP layer with all repo deps
+  overridden (no DB, no network) — asset list/table allow+deny, detail 404,
+  history pagination passthrough, all `/internal/*` allow/deny incl. unknown-kind
+  400 and bad-operation 400, resolve-tag deny, conflict resolve gate (403 on
+  wrong permission) + 201 record path.
+- `app/database.py` + `app/main.py` — history lists (maintenance/inspections/
+  incidents) paginated server-side (`limit` 1–200, `offset`), matching the asset
+  list rule in `docs/ui/23_asset_view.md`.
+
+**Status:** 94 passed (`pytest tests/` in `services/industrial-service`) — full
+Character 4 suite, DB-free. Remaining DB risk is live-PostgreSQL SQL validity
+only (syntax), not logic.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged.
+
+**Next:** Live-DB integration test once PostgreSQL is available.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (feature-completeness sweep — every owned spec re-checked):**
+- `docs/domain/20_asset_model.md` + `app/models.py` + `app/database.py` —
+  `MaintenanceEvent.technician` + `work_order_id` (nullable) per
+  `docs/industrial/03_maintenance_records.md` precise-citation rule. DDL, row
+  mapper (tolerant of pre-migration rows), and create path updated.
+- `app/inspection_logic.py` + `POST /internal/validate-answer` — new `pid`
+  answer kind with `validate_pid_caveat()` per `docs/industrial/08_p_and_id_intelligence.md`
+  ("description, not structured extraction").
+- `app/database.py` — new `EquipmentRepository.search_with_history()` (single query,
+  `LEFT JOIN LATERAL`, no N+1); `app/main.py` — new `GET /assets/table`
+  (`AssetListItem`: equipment + unit_name + last_inspection_date) per the
+  `docs/ui/23_asset_view.md` list-view columns. Bare `GET /assets` unchanged.
+- `app/main.py` — `GET /assets/{id}/detail` now includes `conflict_resolutions`
+  (Known-conflicts panel data we own) alongside histories and governing docs.
+- `tests/test_asset_views.py` — NEW (3 tests); `test_inspection_logic.py` — pid tests.
+
+**Status:** Implemented, unit-tested — 61 passed (`pytest tests/` in
+`services/industrial-service`); all modules import cleanly; routes verified.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged —
+Character 1 (`infra/` migration incl. new columns, `docs/api/` contracts, JWT),
+Character 3 (Document authority/validity joins, ingest wiring), Character 2
+(agent-side use, insights summary).
+
+**Next:** Live-DB integration test; existing-DB `ALTER TABLE maintenance_events ADD
+COLUMN` note flagged for Character 1's migration authoring.
+
+### [Character 4 — Industrial Intelligence] 2026-09-14
+
+**Built/changed (correctness audit — every module re-read line by line):**
+- `app/calculations.py` — temperature conversion is now absolute-scale (F↔C with
+  32 offset); previously `f` used a bare 5/9 ratio, silently wrong for absolute
+  readings. Dead ratio-table entries removed.
+- `app/models.py` + `app/conflict_detection.py` — `ConflictRecord` gains
+  `source_{a,b}_effective_until`; formatter renders closed windows as ranges
+  (`2020-01-01–2024-02-29`) instead of always `–present`, per the spec's output
+  example. Detection passes both windows through.
+- `app/models.py` + `app/entity_resolution.py` — case-2 results now carry ALL
+  `candidate_equipment_ids`, not just the first match (spec: human UI shows all
+  candidates when tags are reused across units).
+- `app/database.py` + `app/main.py` — server-driven pagination (`limit` 1–200,
+  default 50; `offset`) on `GET /assets` and `GET /assets/table` per
+  `docs/ui/23_asset_view.md` ("never client-sliced").
+- Tests: +3 (absolute temperature, closed-window rendering, all-candidates).
+
+**Status:** Implemented, unit-tested — 64 passed (`pytest tests/` in
+`services/industrial-service`); all modules import cleanly.
+
+**Blocked on / depends on (other characters' scope — not acted on):** unchanged.
+
+**Next:** Live-DB integration test once PostgreSQL is available.
+
+### [Character 1 — Foundation & Inference] 2026-09-14
+**Built/changed:**
+- `services/model-router/app/__init__.py` — package marker
+- `services/model-router/app/models.py` — Pydantic domain types matching `docs/schemas/06_model_schema.md` field-for-field: Model, Provider, Capability, DataClassification, CircuitState, ModelSelectionRequest/Response, ModelHealth, AuditEvent
+- `services/model-router/app/config.py` — environment-based configuration per `docs/16_ENVIRONMENT_AND_CONFIGURATION.md` (provider URLs, health polling intervals, circuit breaker thresholds, inference timeouts)
+- `services/model-router/app/circuit_breaker.py` — per-model circuit breaker per `runtime/11_retry_policy.md` (open after 5 failures in 60s, half-open probe every 15s, tracked per model ID)
+- `services/model-router/app/registry.py` — in-memory model registry with background health polling (vLLM: GET /health, Ollama: GET /api/tags, llama.cpp: GET /health), model CRUD, capability/classification filtering
+- `services/model-router/app/router.py` — model selection logic with fallback chain: filter by capabilities, classification, provider preference, size constraints; rank by provider preference then smallest sufficient model; circuit-breaker gating
+- `services/model-router/app/database.py` — asyncpg repository for model registry persistence and audit events; DDL for local/test bootstrapping with forward-only migration support
+- `services/model-router/app/main.py` — FastAPI application with 12 endpoints: model CRUD, selection, health, audit, availability toggle, inference result reporting, liveness/readiness probes; permission checks (fail closed), audit emission on every mutation
+- `services/model-router/requirements.txt` — production dependencies (fastapi, uvicorn, asyncpg, pydantic, httpx, python-dotenv)
+- `services/model-router/pyproject.toml` — pytest configuration
+- `services/model-router/models.json` — example model registry config (3 models: Llama 3.1 8B, Qwen 2.5 Coder 7B, LLaVA 7B vision)
+- `infra/docker/model-router.Dockerfile` — service Dockerfile, non-root user per security hardening
+- `services/model-router/README.md` — service-level documentation with endpoints, config, and usage
+- `services/model-router/tests/test_models.py` — 14 tests for domain types
+- `services/model-router/tests/test_circuit_breaker.py` — 9 tests for circuit breaker states, transitions, independence
+- `services/model-router/tests/test_registry.py` — 13 tests for registry CRUD, availability, capability/classification filtering
+- `services/model-router/tests/test_router.py` — 14 tests for selection logic, ranking, fallback, circuit-breaker integration
+- `services/model-router/tests/test_routes.py` — 20 tests for HTTP routes, permissions, probes
+**Status:** Implemented and tested — 70 tests passing (`pytest tests/` in `services/model-router`). All modules import cleanly. Routes verified via FastAPI TestClient. No live PostgreSQL integration test yet (DB optional — service runs without persistence).
+**Blocked on / depends on:**
+- Character 5 (identity-service): real JWT validation — currently trusts `x-roles` header forwarded by gateway
+- Character 2 (agent-kernel): the `POST /api/v1/models/select` endpoint is ready for the agent kernel to call for model selection
+- Character 3 (inference-gateway): the `POST /api/v1/models/report-result` endpoint is ready for the inference gateway to report success/failure per inference call
+**Next:** Live-DB integration test once PostgreSQL is available; formalize `docs/api/` endpoint contracts (Character 1 owns `docs/api/`); add `infra/migrations/0001_model_router.sql` forward-only migration for the models and audit_events tables
+
+### [Character 1 — Foundation & Inference] 2026-09-14 (session 2)
+**Built/changed:**
+- `services/inference-gateway/app/schemas.py` — wire schemas: InferenceRequest (messages, kind text/vision, model_id XOR selection, generation params), normalized InferenceResponse (content, model_id, provider, finish_reason, usage, latency_ms, fallback_used), GatewayError envelope with canonical error codes
+- `services/inference-gateway/app/adapter_base.py` — BaseAdapter abstract class (generate, health_check, shared httpx client, httpx-exception → error-code mapping) and ProviderError carrying docs/reference/01_error_codes.md codes
+- `services/inference-gateway/app/adapters/vllm.py` — vLLM adapter: POST /v1/chat/completions (OpenAI-compatible), 5xx → MODEL_RESOURCE_EXHAUSTED, /health probe
+- `services/inference-gateway/app/adapters/ollama.py` — Ollama adapter: POST /api/chat with options mapping (num_predict etc.), done_reason → finish_reason, eval_count → usage, /api/tags probe
+- `services/inference-gateway/app/adapters/llamacpp.py` — llama.cpp adapter: llama-server OpenAI-compatible endpoint, /health probe
+- `services/inference-gateway/app/adapters/__init__.py` — provider-keyed ADAPTERS registry populated at startup
+- `services/inference-gateway/app/router_client.py` — async client for the model-router: POST /api/v1/models/select (returns ModelRef + fallback chain; router 503 → MODEL_UNAVAILABLE) and best-effort POST /api/v1/models/report-result
+- `services/inference-gateway/app/gateway.py` — core pipeline: validate (exactly one of model_id/selection; empty selection dict allowed) → resolve via router → per-candidate execution under runtime timeout budget (30s text / 60s vision) → 1 retry with fixed 500ms backoff on MODEL_UNAVAILABLE/INFERENCE_TIMEOUT → walk router fallback chain → report every attempt to router → audit every call
+- `services/inference-gateway/app/config.py` — env-based GatewayConfig (router URL, provider URLs, timeout budgets, retry policy, fallback toggle, DATABASE_URL)
+- `services/inference-gateway/app/database.py` — asyncpg repository for inference_audit_events table (mirrors model-router audit shape)
+- `services/inference-gateway/app/main.py` — FastAPI app: POST /api/v1/infer (503 with canonical error envelope on provider/router failures, 422 on validation), GET /api/v1/providers/health, /healthz, /readyz; RBAC fail-closed (Operator/Engineer/Administrator may infer; Auditor read-only)
+- `services/inference-gateway/requirements.txt`, `pyproject.toml`, `README.md` — deps, pytest config (asyncio_mode=auto), service docs
+- `infra/docker/inference-gateway.Dockerfile` — non-root user, port 8003 (mirrors model-router hardening)
+- `services/inference-gateway/tests/` — 25 tests: gateway core (validation, explicit vs selection, retry, fallback walk, attempt reporting, vision budget, audit) and routes (success/fallback/503 envelope/422/RBAC fail-closed/probes/providers-health)
+**Also in this workspace:** recovered the prior session's model-router service (`services/model-router/`, `infra/docker/model-router.Dockerfile`) from the earlier workspace root into this repo root so both Character 1 services live together; its 70 tests still pass here.
+**Status:** Implemented and tested — 25 inference-gateway tests passing + 70 model-router tests passing (95 total) via `pytest tests/` in each service directory. No live providers or PostgreSQL; router client and adapters are faked/stubbed in tests. End-to-end wiring against real vLLM/Ollama/llama.cpp not yet exercised.
+**Blocked on / depends on:**
+- Character 5 (identity-service): real JWT validation — gateway trusts the `x-roles` header forwarded by the platform gateway, same stance as model-router
+- model-router (Character 1, done): uses `POST /api/v1/models/select` and `POST /api/v1/models/report-result` contracts as implemented
+- Character 2 (agent-kernel): `POST /api/v1/infer` is ready for the agent kernel to call
+**Next:** Provider resolution for unprefixed model IDs currently defaults to vLLM (DEC-004); add a model→provider lookup to the router (or include provider in select response payload consumed by the gateway) to remove the guess. Live integration test with real provider endpoints; formalize `docs/api/` contract for /infer (Character 1 owns docs/api/).
+
 ### [Character 3 — Knowledge & Documents] 2026-09-15
 
 **Built/changed:**
