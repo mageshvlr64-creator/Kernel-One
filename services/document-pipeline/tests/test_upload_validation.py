@@ -29,7 +29,6 @@ class TestSuccessPath:
         # Client claims pdf; content is text -> server detects text/csv (not the header).
         payload = text_payload(actors, content="a,b\n1,2\n", mime_type="application/pdf")
         result = call(actors["analyst"], "upload_validation", payload)
-        doc = result.data  # no extra data; check via metadata op
         meta = call(actors["analyst"], "metadata_extraction",
                     {"document_id": result.resource_id})
         assert meta.data["metadata"]["mime_type"] == "text/csv"

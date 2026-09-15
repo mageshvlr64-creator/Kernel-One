@@ -207,19 +207,3 @@ def format_conflict_output(conflict: ConflictRecord) -> str:
         f'effective {window_b}) — "{conflict.source_b_claim}"\n'
         f"Status: Unresolved — requires human review"
     )
-    from_b = (
-        conflict.source_b_effective_from.isoformat()
-        if conflict.source_b_effective_from
-        else "unknown date"
-    )
-    return (
-        f"CONFLICT DETECTED\n"
-        f"Claim: {conflict.claim_description}\n"
-        f"Source A: {conflict.source_a_document_name} "
-        f"(authority: {conflict.source_a_authority}, "
-        f'effective {from_a}–present) — "{conflict.source_a_claim}"\n'
-        f"Source B: {conflict.source_b_document_name} "
-        f"(authority: {conflict.source_b_authority}, "
-        f'effective {from_b}–present) — "{conflict.source_b_claim}"\n'
-        f"Status: Unresolved — requires human review"
-    )

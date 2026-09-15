@@ -9,6 +9,7 @@ These tests use mock repositories rather than a real database.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -24,7 +25,7 @@ def _make_equipment(unit_id: uuid.UUID, tag: str) -> Equipment:
         tag_number=tag,
         name=f"Equipment {tag}",
         status=EquipmentStatus.operational,
-        created_at=__import__("datetime").datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
 

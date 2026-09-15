@@ -228,8 +228,6 @@ class TestVisionTimeoutBudget:
     async def test_vision_uses_longer_budget(self, monkeypatch):
         from app.gateway import _RETRYABLE_CODES  # noqa: F401  (import sanity)
 
-        budgets_seen = []
-
         class BudgetProbeAdapter(StubAdapter):
             async def generate(self, model_id, request):
                 # Indirectly confirm kind-driven budget by checking config
