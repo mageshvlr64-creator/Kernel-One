@@ -270,6 +270,41 @@ solve the actual problem (agents editing the same files simultaneously); assigni
 number alone without also assigning the corresponding `services/` code path — rejected because
 half the point is preventing collisions in the actual codebase, not just the spec.
 
+### DEC-023 — Document-pipeline first increment: stdlib HTTP, explicit stubs, dev token auth
+**Date:** 2026-09-15 · **Status:** Accepted · **Owner:** Character 3 (Knowledge & Documents)
+**Context:** `services/document-pipeline/` is the first code built in the repo (build-order
+item #14, Phase 5). Three foundations were unspecified by the spec and had to be chosen now:
+
+1. **HTTP layer.** The stack table (`06_TECHNOLOGY_STACK.md`) pins Python and PyMuPDF but
+   names no HTTP framework, and no `docs/api/` file commits to one. The first increment uses
+   the standard library (`http.server` + a thin route table in `document_pipeline/api.py`)
+   rather than pulling FastAPI/uvicorn into a brand-new service with no other service yet
+   deployed beside it. The wire shape is fully envelope-conformant either way, so migrating
+   to a framework later is a contained change behind the ops layer.
+2. **Unbuilt dependencies.** Per the dependency-graph rule, document-pipeline's dependencies
+   (document store, blob storage, audit sink) do not exist yet — no other service does. They
+   are explicit, labeled stubs (`document_pipeline/storage.py`, the in-memory store in
+   `store.py`, the injectable audit sink in `audit.py`) that the consuming service will
+   replace; they never silently fake behavior the spec requires (e.g. the tamper-evident
+   audit chain is Character 5's audit-service concern and is deliberately not implemented
+   here).
+3. **Authentication for tests/dev.** The permission matrix (`reference/05`) pins role→
+   Document decisions but the spec does not yet spec an authentication mechanism (the API
+   contract's `actor` is a shape, not a mechanism). The service resolves actors from dev
+   bearer tokens of the form `Authorization: Bearer role:<role>` and DENIES everything it
+   cannot resolve (AUTH_REQUIRED), so no request is ever treated as implicitly authorized.
+   Real authn replaces `resolve_actor` in one place.
+
+**Decision:** All three as described. `/healthz` is deliberately unauthenticated (liveness
+probe); every other route requires a resolvable actor and enforces the canonical matrix.
+**Consequences:** First framework decision to revisit when Character 1's platform layer lands
+or a second service needs to share HTTP middleware (correlation ids, audit-on-deny, envelope
+serialization currently live per-service). Stub seams are narrow and documented in each
+module's docstring so replacement is mechanical.
+**Rejected:** Waiting for a platform team to pick the HTTP framework before any service code
+exists — rejected because it serializes all six characters behind one unspecified choice and
+the spec's own build order has document ingestion in Phase 5, ahead of any such decision.
+
 ## Open decisions (DECISION REQUIRED)
 
 ### DEC-013 — Exact model checkpoints to pin for V1 demo
