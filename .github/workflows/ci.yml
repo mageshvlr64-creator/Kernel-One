@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Static checks (ruff — error rules)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Ruff (F821 undefined names, F841 unused vars, E9 syntax errors)
+        run: ruff check services/ --select F821,F841,E9
+
+  test:
+    name: Tests — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - document-pipeline
+          - model-router
+          - inference-gateway
+          - industrial-service
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+          pip install pytest pytest-asyncio
+          if [ "${{ matrix.service }}" = "document-pipeline" ]; then pip install pymupdf; fi
+      - name: Run test suite
+        run: python -m pytest tests/ -q
