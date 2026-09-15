@@ -6,9 +6,12 @@ returning degraded results silently.
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from .domain import DocumentChunk, SearchHit
+
+if TYPE_CHECKING:  # forward ref only — the runtime import happens in __init__ (cycle)
+    from .storage import ChunkIndex
 
 
 class KnowledgeStore:

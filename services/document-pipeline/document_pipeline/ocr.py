@@ -181,8 +181,7 @@ class PaddleOcrEngine(OcrEngine):
         engine = self._get_engine()
         try:
             import numpy as np  # paddleocr returns numpy arrays
-            from PIL import Image  # noqa: F401 (paddle needs it for bytes input)
-            arr = np.frombuffer(image_png, dtype=np.uint8)
+            from PIL import Image  # paddle needs PIL for bytes input
             img = None
             try:
                 img = np.array(Image.open(__import__("io").BytesIO(image_png))
