@@ -518,3 +518,31 @@ audit-service; real authentication mechanism replacing `resolve_actor` (single s
 
 **Next:** Build-order #15 — Knowledge Fabric (`services/knowledge-fabric/`, chunking +
 pgvector indexing handoff that consumes this service's INDEXING state).
+
+### [Character 3 — Knowledge & Documents] 2026-09-15 (session 2)
+
+**Built/changed:**
+- Bug fix (cross-character touch, with permission): `services/industrial-service/app/
+  conflict_detection.py` — removed an unreachable dead draft block at the end of
+  `format_conflict_output` that referenced an undefined `from_a`. It was inert (dead code
+  after the real `return`), but any future edit that un-reached it would raise `NameError`.
+  No behavior change; ruff F821 now clean repo-wide.
+- Deprecation fix (cross-character touch): `tests/test_entity_resolution.py` — replaced
+  `datetime.utcnow()` with `datetime.now(timezone.utc)` (schema uses TIMESTAMPTZ; aware
+  UTC matches). In-repo DeprecationWarnings now zero; remaining suite warnings originate
+  inside the fastapi/starlette/anyio packages themselves.
+- Test hygiene in own files: removed an unused variable (F841) in
+  `test_upload_validation.py`, replaced an unclosed `open()` with `Path.read_text`
+  (SIM115) in `test_pdf_ops.py`.
+- Verified this session: static compile + ruff sweep of all four services, then all 334
+  tests passing (58 + 70 + 25 + 181), then all four services live-run over HTTP
+  (document-pipeline full upload/GET/auth round-trip; industrial-service create/read
+  against a real embedded Postgres; model-router and inference-gateway healthz/readyz,
+  auth guards, and graceful degradation confirmed).
+
+**Status:** Repo is green and lint-clean on the actionable rules (F821/F841/DTZ-deprecation
+in repo code). Known deferred: `DTZ011 date.today()` in conflict_detection is deliberate
+(normalized date-window overlap semantics per the spec's examples; tests assert it), and
+third-party DeprecationWarnings are upstream packages' to fix.
+
+**Next:** unchanged — build-order #15, Knowledge Fabric.

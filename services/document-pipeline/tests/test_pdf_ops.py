@@ -101,7 +101,8 @@ class TestNativePdfParsing:
         """Acceptance criterion: no outbound network call occurs during execution.
         The only third-party import is pymupdf, which parses in-memory bytes."""
         import document_pipeline.pdf as pdf_mod
-        source = open(pdf_mod.__file__, encoding="utf-8").read()
+        from pathlib import Path
+        source = Path(pdf_mod.__file__).read_text(encoding="utf-8")
         assert "requests" not in source and "urllib" not in source
         assert "http.client" not in source and "socket" not in source
 
