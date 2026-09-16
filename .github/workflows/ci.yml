@@ -17,7 +17,23 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: Ruff (F821 undefined names, F841 unused vars, E9 syntax errors)
-        run: ruff check services/ --select F821,F841,E9
+        run: |
+          set -o pipefail
+          ruff check services/ --select F821,F841,E9 2>&1 | tee ruff-output.txt
+      - name: Record lint outcome
+        if: always()
+        env:
+          OUTCOME: ${{ job.status }}
+        run: printf '%s' "$OUTCOME" > outcome.txt
+      - name: Upload lint result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-result-lint
+          path: |
+            ruff-output.txt
+            outcome.txt
+          if-no-files-found: ignore
 
   test:
     name: Tests — ${{ matrix.service }}
@@ -49,4 +65,58 @@ jobs:
           pip install pytest pytest-asyncio
           if [ "${{ matrix.service }}" = "document-pipeline" ]; then pip install pymupdf; fi
       - name: Run test suite
-        run: python -m pytest tests/ -q
+        run: |
+          set -o pipefail
+          python -m pytest tests/ -q 2>&1 | tee pytest-output.txt
+      - name: Record suite outcome
+        if: always()
+        env:
+          OUTCOME: ${{ job.status }}
+        run: printf '%s' "$OUTCOME" > outcome.txt
+      - name: Upload suite result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-result-${{ matrix.service }}
+          # upload-artifact is a `uses` step: defaults.run.working-directory does
+          # not apply, so paths are relative to the workspace root.
+          path: |
+            services/${{ matrix.service }}/pytest-output.txt
+            services/${{ matrix.service }}/outcome.txt
+          if-no-files-found: ignore
+
+  test-summary:
+    name: Test summary (PR comment)
+    needs: [lint, test]
+    # Post on pull requests even when a leg failed — the table must show it.
+    if: github.event_name == 'pull_request' && always()
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: test-result-*
+          path: test-results
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build summary markdown
+        run: python scripts/ci_test_summary.py test-results > summary.md
+      - name: Post or update the PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          MARKER='<!-- ci-per-service-test-summary -->'
+          COMMENT_ID=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)
+          if [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH "repos/$REPO/issues/$COMMENT_ID" \
+              -f body="$(cat summary.md)" --silent
+            echo "updated existing comment $COMMENT_ID"
+          else
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file summary.md
+          fi
