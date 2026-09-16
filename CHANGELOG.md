@@ -839,3 +839,5 @@ across all six suites, exit 0. Ruff clean (CI scope).
 
 **Next:** none pending from this - per-service invocation was already CI's shape; the
 guard only makes local mistakes loud and cheap.
+
+- **Preflight script + test docs (Character 3).** Added `scripts/preflight.py`, a developer preflight that runs CI's exact ruff gate (`ruff check services/ --select F821,F841,E9`) and then only the per-service test suites affected by uncommitted changes (staged, unstaged, and untracked files): service-file changes select that service's suite, files outside any single service (`conftest.py`, `pytest.ini`, `scripts/`) force all suites, docs-only changes skip the suites, and `--dry-run` shows the selection without running. Documented the per-service pytest rule and both runners in the root README's new "Running the tests" section. Git and ruff subprocess calls are bounded with one retry because this workstation's OneDrive-backed checkout intermittently wedges child processes.

@@ -54,6 +54,22 @@ chatbot or RAG assistant.
 9. **`../CHANGELOG.md`** (repo root) — check your character's most recent entry before
    starting, and append a new one before you finish.
 
+## Running the tests
+
+Each service's suite must run in its own pytest process: all six services name their top-level
+test package `tests`, so one pytest process collecting across services collides. The root
+`conftest.py` guard refuses such runs with an explanation instead of a pile of collection
+errors.
+
+```bash
+cd services/evidence-service && python -m pytest tests/ -q   # one suite — the exact CI invocation
+python scripts/run_tests.py                                  # every suite, in CI matrix order
+python scripts/preflight.py                                  # ruff (CI scope) + only the suites your uncommitted changes affect
+```
+
+CI's lint gate is `ruff check services/ --select F821,F841,E9`; `preflight.py` runs that exact
+command plus the affected suites before you commit.
+
 ## Ground rules
 
 - **Docs are the source of truth.** If code disagrees with a doc, that is a bug in one of the
