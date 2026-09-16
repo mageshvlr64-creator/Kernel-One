@@ -63,6 +63,17 @@ class Settings:
     # answer's task before counting as support (op 09).
     min_supporting_evidence: int = field(default_factory=lambda: _int_env("EV_MIN_SUPPORT", 1))
 
+    # Cross-service enrichment (Character-3 side of the industrial-service
+    # boundary): evidence-service ingest calls /internal/resolve-tag and
+    # /internal/validate-finding during op 01 when the payload carries the
+    # optional equipment_tag/finding extensions. Kept explicit and optional —
+    # the endpoints stay additive; a payload without them never touches the
+    # dependency.
+    industrial_base_url: str = field(default_factory=lambda: os.getenv(
+        "EV_INDUSTRIAL_BASE_URL", "http://127.0.0.1:8005"))
+    industrial_timeout_seconds: float = field(default_factory=lambda: _float_env(
+        "EV_INDUSTRIAL_TIMEOUT_SECONDS", 5.0))
+
 
 def load_settings() -> Settings:
     return Settings()

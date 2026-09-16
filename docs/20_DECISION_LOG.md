@@ -425,3 +425,27 @@ this session: 503 repo tests passing, ruff clean, evidence-service live over HTT
 date/test counts are re-stated on each service-affecting change. Cross-character wiring
 (pipeline→industrial resolve-tag, evidence→industrial detect-conflicts) remains owned by
 the caller's character per TEAM.md.
+
+### DEC-027 - Evidence-service calls industrial-service /internal endpoints at ingest
+
+**Date:** 2026-09-16
+**Status:** Accepted
+**Context:** The industrial-service changelog names Character 3 as the caller of record
+for `/internal/resolve-tag` + `/internal/validate-finding` during ingest; no service had
+shipped the caller side yet.
+**Decision:** evidence-service op 01 (`evidence_system`) enriches BEFORE persisting via a
+stdlib HTTP client (`industrial_gateway.py`): optional `equipment_tag`/`finding` payload
+extensions trigger `/internal/resolve-tag` + `/internal/validate-finding`
+(`X-Roles: Equipment:read`); any dependency failure raises `DEPENDENCY_UNAVAILABLE`
+(retryable per runtime/11 interactive-read) and persists nothing (fail closed); a 403
+from the dependency maps to `POLICY_DENIED`; case-2 (ambiguous) resolutions are surfaced
+verbatim for human confirmation - evidence-service never persists governed_by edges;
+finding flags are surfaced, not gated. Payloads without the extensions never touch the
+dependency. `EV_INDUSTRIAL_BASE_URL` / `EV_INDUSTRIAL_TIMEOUT_SECONDS` configure the
+endpoint. Also: correction of record - the endpoints live on industrial-service (:8005),
+not inference-gateway (which is the LLM routing path).
+**Consequences:** ingest latency now includes up to two HTTP calls when enrichment is
+requested; industrial-service becomes a hard dependency for enriched ingests only;
+document-pipeline should adopt the same pattern for its own ingest
+(`docs/23_SERVICE_MAP_AS_BUILT.md` wiring section updated); the /internal contracts
+await Character 1's formalization in `docs/api/`.

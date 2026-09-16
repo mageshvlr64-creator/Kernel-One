@@ -11,7 +11,7 @@ Character 3 (Knowledge & Documents) owns this service, per `TEAM.md`.
 
 | Route (`POST /api/v1/evidence-and-provenance/<op>`) | Feature file | What it does |
 |---|---|---|
-| `evidence_system` | `01_evidence_system.md` | create an Evidence row (schemas/09 validated) |
+| `evidence_system` | `01_evidence_system.md` | create an Evidence row (schemas/09 validated) + optional industrial-service enrichment (see below) |
 | `claim_extraction` | `02_claim_extraction.md` | segment an agent answer into spans + claims |
 | `claim_to_source_mapping` | `03_claim_to_source_mapping.md` | link a claim to its supporting Evidence |
 | `page_level_citations` | `04_page_level_citations.md` | Source → Version → Page citation |
@@ -24,6 +24,25 @@ Character 3 (Knowledge & Documents) owns this service, per `TEAM.md`.
 
 Read paths: `GET /api/v1/evidence-and-provenance/<op>/{id}` (evidence_id,
 claim_id, or task_id depending on the op) plus unauthenticated `GET /healthz`.
+
+## Ingest enrichment (live cross-service wiring)
+
+Op 01 (`evidence_system`) doubles as the ingest path: when a payload carries the
+optional `equipment_tag` (+ `within_unit_id`, `plant_id`) and/or `finding`
+extensions, evidence-service calls industrial-service's
+`/internal/resolve-tag` and `/internal/validate-finding` (`industrial_gateway.py`)
+**before** persisting the Evidence row:
+
+- enrichment failure (transport, timeout, non-2xx) fails closed —
+  `DEPENDENCY_UNAVAILABLE`, no row persisted; a 403 from the dependency
+  translates to `POLICY_DENIED`;
+- ambiguous (case-2) tag resolutions are surfaced verbatim
+  (`requires_human_confirmation`) — governed_by edges are never persisted here;
+- `finding_validation` flags (`supported`, `ocr_warning`) are surfaced, not gated;
+- payloads without the extensions never touch the dependency.
+
+Config: `EV_INDUSTRIAL_BASE_URL` (default `http://127.0.0.1:8005`),
+`EV_INDUSTRIAL_TIMEOUT_SECONDS` (default 5).
 
 ## Contracts honored
 
@@ -49,6 +68,7 @@ claim_id, or task_id depending on the op) plus unauthenticated `GET /healthz`.
 | chunk coordinates | seeded in-process view | knowledge-fabric API |
 | audit sink | in-memory, hash-chained | audit-service (Character 5) |
 | auth | dev bearer tokens | identity-service (Character 5) |
+| industrial enrichment client | **live HTTP client** (`industrial_gateway.py`) | n/a — first real inter-service call; `docs/api/` formalization pending (Character 1) |
 
 ## Tests
 
@@ -59,4 +79,6 @@ python -m pytest tests/ -q
 
 Coverage maps to the feature docs' Test requirements (§24) and Acceptance
 criteria (§25): unit tests per Failure-modes row, integration tests per success
-path, permission tests per role, and the exactly-one-audit-event invariant.
+path, permission tests per role, the exactly-one-audit-event invariant, and the
+industrial enrichment wiring (header/body contract, error translation,
+fail-closed persistence, retry, HTTP path). **106 tests.**

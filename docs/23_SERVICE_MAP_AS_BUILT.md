@@ -16,8 +16,9 @@ so any contributor (human or AI) can orient without diffing `CHANGELOG.md`
 against the build order. It is updated in the same change that adds or changes a
 service, and every claim here is backed by a `CHANGELOG.md` entry.
 
-**Snapshot date: 2026-09-16** (build order through #17, plus Character 4's
-parallel industrial track).
+**Snapshot date: 2026-09-16** (build order through #17, Character 4's
+parallel industrial track, and the first live cross-service wiring:
+evidence-service ingest → industrial-service `/internal/*` enrichment).
 
 ## 2. Service map (what exists)
 
@@ -27,7 +28,7 @@ parallel industrial track).
 | `inference-gateway/` | 1 — Foundation & Inference | 03 inference gateway (one provider path) | #7 | 25 | provider adapters (vLLM/Ollama/llama.cpp shapes), retry + fallback walk |
 | `document-pipeline/` | 3 — Knowledge & Documents | 10 document ingestion, 11 OCR | #14, #15 | 84 | upload→parse→OCR→INDEXING; scanned-PDF path live over HTTP |
 | `knowledge-fabric/` | 3 — Knowledge & Documents | 13 knowledge fabric | #16 | 56 | chunk → embed → index → hybrid search → context assembly |
-| `evidence-service/` | 3 — Knowledge & Documents | 14 evidence and provenance | #17 | 87 | Evidence rows, claims, citations, source chains, confidence axes, unsupported-claim detection |
+| `evidence-service/` | 3 — Knowledge & Documents | 14 evidence and provenance | #17 | 106 | Evidence rows, claims, citations, source chains, confidence axes, unsupported-claim detection; ingest calls industrial-service `/internal/resolve-tag` + `/internal/validate-finding` (fail-closed enrichment) |
 | `industrial-service/` | 4 — Industrial Intelligence | industrial/* (assets, comparison, conflicts, calculations, SOP) | parallel track | 181 | 7 `/internal/*` endpoints, all fail closed on permissions |
 
 Not yet built (no `services/` directory, per build order #3–#5, #9–#13, #18+):
@@ -77,13 +78,16 @@ The document-to-evidence flow that works end-to-end today (all transitions per
  │     → evidence_failures (structured diagnosis)                           │
  └───────────────────────────────┬──────────────────────────────────────────┘
                                  ▼
-                    Character 4 — industrial-service
+                    Character 4 — industrial-service (:8005)
  ┌──────────────────────────────────────────────────────────────────────────┐
  │ cross-checks over Evidence/Document rows via its /internal/* endpoints:  │
  │ validate-finding, detect-conflicts, compare-documents,                   │
  │ validate-answer, verify-calculation, check-sop-compliance, resolve-tag   │
- │ (Character 3's services are the callers of record for the wiring; the    │
- │ HTTP contracts exist and are tested)                                     │
+ │ LIVE callers today: evidence-service ingest (op 01) calls                │
+ │ /internal/resolve-tag + /internal/validate-finding when a payload        │
+ │ carries the optional equipment_tag/finding extensions — enrichment       │
+ │ runs BEFORE persistence, fail closed (DEPENDENCY_UNAVAILABLE; 403 →      │
+ │ POLICY_DENIED). detect-conflicts wiring still pending.                   │
  └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -94,9 +98,11 @@ paths is build order #11 — not built.
 
 Wiring still pending between built services (each owned by the caller's
 character, per `TEAM.md`): document-pipeline → industrial-service
-`/internal/resolve-tag` + `/internal/validate-finding` calls during ingest;
-evidence-service → industrial-service `/internal/detect-conflicts` for the
-contradiction path.
+`/internal/resolve-tag` + `/internal/validate-finding` calls during its own
+ingest flow; evidence-service → industrial-service `/internal/detect-conflicts`
+for the contradiction path. (Done this session: evidence-service ingest →
+`/internal/resolve-tag` + `/internal/validate-finding` — the first live
+cross-service HTTP call in the platform.)
 
 ## 4. Conformance contract every built service implements
 
@@ -134,11 +140,11 @@ services land:
 | evidence-service | 8091 | `python server.py` | `pytest tests/` in `services/evidence-service` |
 | model-router | 8002 | `python -m app` or Dockerfile | `pytest tests/` in `services/model-router` |
 | inference-gateway | 8003 | `python -m app` or Dockerfile | `pytest tests/` in `services/inference-gateway` |
-| industrial-service | (uvicorn) | `uvicorn app.main:app` | `pytest tests/` in `services/industrial-service` |
+| industrial-service | 8005 | `uvicorn app.main:app --port 8005` | `pytest tests/` in `services/industrial-service` |
 
 CI (`.github/workflows/ci.yml`) lints all services with ruff (F821/F841/E9) and
-runs each service's suite in its own matrix job. Current repo total: **503
-passing tests** (84 + 56 + 87 + 70 + 25 + 181), ruff clean.
+runs each service's suite in its own matrix job. Current repo total: **522
+passing tests** (84 + 56 + 106 + 70 + 25 + 181), ruff clean.
 
 ## 6. Open seams (what is deliberately not real yet)
 
@@ -150,7 +156,7 @@ passing tests** (84 + 56 + 87 + 70 + 25 + 181), ruff clean.
 | Vector index | brute-force cosine over in-memory chunks | pgvector HNSW (Character 1 `infra/`) |
 | Embeddings | deterministic hash vectors | model-inference seam (Character 1) |
 | OCR engine | deterministic stub on real rendered PNGs | PaddleOCR adapter (`integrations/08`) |
-| Inter-service calls | seeded in-process views of other services' data | documented `docs/api/` contracts (Character 1) |
+| Inter-service calls | evidence ingest → industrial `/internal/*` is a live HTTP client (`industrial_gateway.py`); all other cross-service reads are seeded in-process views | documented `docs/api/` contracts (Character 1) |
 | Permission decisions | in-process matrix mirror | policy-engine (Character 5, build #4) |
 
 ## 7. Maintenance

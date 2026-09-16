@@ -666,3 +666,49 @@ path — caller-side, per TEAM.md).
 
 **Next:** wire evidence-service into the agent answer path once agent-kernel (#11)
 exists; otherwise the V1 remaining track is Character 5's governance services.
+
+### [Character 3 - Knowledge & Documents] 2026-09-16
+
+**Built/changed (cross-service wiring - the industrial changelog's pending Character-3 item):**
+- `services/evidence-service/evidence_service/industrial_gateway.py` - NEW: client for
+  industrial-service `/internal/resolve-tag` + `/internal/validate-finding`
+  (`X-Roles: Equipment:read`, stdlib transport, injectable opener seam for tests).
+  Note: the endpoints live on industrial-service (:8005), not inference-gateway -
+  inference-gateway is the LLM routing path.
+- `evidence_service/ops.py` - op 01 `evidence_system` (the ingest path) now enriches
+  BEFORE persisting when a payload carries the optional `equipment_tag`
+  (+ `within_unit_id`, `plant_id`) / `finding` extensions: fail closed on any
+  dependency failure (`DEPENDENCY_UNAVAILABLE`, retryable per runtime/11
+  interactive-read), 403 from the dependency maps to `POLICY_DENIED`; ambiguous
+  (case-2) resolutions surfaced verbatim for human confirmation - governed_by edges
+  are never persisted here; `finding_validation` flags surfaced, not gated; payloads
+  without the extensions never touch the dependency.
+- `evidence_service/config.py` - `EV_INDUSTRIAL_BASE_URL` (default
+  `http://127.0.0.1:8005`) + `EV_INDUSTRIAL_TIMEOUT_SECONDS` (default 5).
+- `server.py` - builds the live client from settings.
+- Tests: `tests/test_industrial_wiring.py` - NEW, **19 tests** (header/body contract,
+  canonical error translation, fail-closed no-persist on dependency failure, exactly-one
+  audit event on success AND error paths, transient-failure retry under the canonical
+  policy, HTTP-path 403 translation, no-dependency-call for plain payloads).
+  evidence-service now 106 tests; repo regression **522/522**
+  (evidence 106, document-pipeline 84, knowledge-fabric 56, model-router 70,
+  inference-gateway 25, industrial-service 181); ruff F821/F841/E9 clean.
+- `docs/23_SERVICE_MAP_AS_BUILT.md` - pipeline diagram now marks the live callers;
+  test totals updated (522); industrial-service port recorded.
+- `services/evidence-service/README.md` - new "Ingest enrichment" section + seams row.
+
+**Verification:** evidence-service 106/106, full repo 522/522, ruff clean under CI's
+exact scope (`ruff check services/ --select F821,F841,E9`). Client transport verified
+via stub opener + one HTTP-level test (urllib path, 403 translation); no live
+industrial-service was running, so no socket-level cross-service run was performed.
+
+**Status:** First live inter-service call in the platform: evidence-service ingest can
+enrich Evidence rows with equipment resolution + finding validation from
+industrial-service, failing closed when the dependency is down. Not deployed.
+
+**Blocked on / depends on:** Character 1 (`docs/api/` formalization of the /internal
+contracts), Character 4 (industrial-service deployed alongside), Character 3
+(document-pipeline's own ingest wiring + the detect-conflicts contradiction path).
+
+**Next:** document-pipeline ingest wiring (same pattern), then
+`/internal/detect-conflicts` from the evidence contradiction path.

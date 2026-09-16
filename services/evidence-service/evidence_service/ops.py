@@ -8,7 +8,12 @@ denial — feature docs §22/§28: the store write and the audit event are one
 operation, never two independently-failable writes).
 
 Ops (slug → feature file):
-- evidence_system (01)             create an Evidence row
+- evidence_system (01)             create an Evidence row (+ optional enrichment from
+                                   industrial-service /internal/resolve-tag and
+                                   /internal/validate-finding when the payload carries
+                                   the optional `equipment_tag` / `finding` extensions —
+                                   the Character-3 ingest wiring named in the industrial
+                                   changelog; fail closed, see industrial_gateway.py)
 - claim_extraction (02)            segment an agent answer into checkable claims
 - claim_to_source_mapping (03)     link a claim to its supporting Evidence
 - page_level_citations (04)        Source→Version→Page citation for a claim
@@ -38,9 +43,10 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .audit import AuditSink, build_audit_event
 from .config import Settings
-from .domain import (Citation, Evidence, now_iso, validate_citation_fields,
-                     validate_evidence_fields)
+from .domain import (Citation, Evidence, is_uuid, now_iso,
+                     validate_citation_fields, validate_evidence_fields)
 from .errors import RegistryError
+from .industrial_gateway import IndustrialGatewayClient
 from .policy import Actor, enforce
 from .retry import run_with_retry
 from .storage import EvidenceLinks, RetrievalView, SourceChainStore
@@ -131,6 +137,48 @@ def _chunk_view(service: "EvidenceService", chunk_id: str) -> Dict[str, Any]:
     return view
 
 
+def _enrich_from_industrial(service: "EvidenceService",
+                            payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Cross-service enrichment for ingest (op 01) — industrial-service.
+
+    When the payload carries `equipment_tag` (+ `within_unit_id`, `plant_id`)
+    and/or a `finding` object, both /internal endpoints are called BEFORE the
+    Evidence row is persisted: enrichment failure raises (DEPENDENCY_UNAVAILABLE
+    or POLICY_DENIED), so ingest never silently stores an unenriched row
+    (fail closed). Payloads without these optional keys never touch the
+    dependency. Resolution case-2 (ambiguous) results are surfaced verbatim for
+    human confirmation — this service never persists governed_by edges.
+    """
+    tag = payload.get("equipment_tag")
+    unit = payload.get("within_unit_id")
+    plant = payload.get("plant_id")
+    finding = payload.get("finding")
+    if tag is None and finding is None:
+        return None
+    out: Dict[str, Any] = {}
+    if tag is not None:
+        if not isinstance(tag, str) or not tag.strip() or not is_uuid(unit) \
+                or not is_uuid(plant):
+            raise RegistryError(
+                "INVALID_REQUEST",
+                details=[{"field": "equipment_tag",
+                          "issue": "required non-empty string"},
+                         {"field": "within_unit_id/plant_id",
+                          "issue": "required uuids when equipment_tag is present"}],
+                operator_detail="industrial enrichment requires equipment_tag "
+                                "with within_unit_id and plant_id")
+        out["equipment_resolution"] = service.industrial.resolve_tag(
+            tag_number=tag.strip(), within_unit_id=unit, plant_id=plant)
+    if finding is not None:
+        if not isinstance(finding, dict):
+            raise RegistryError(
+                "INVALID_REQUEST",
+                details=[{"field": "finding", "issue": "must be an object"}],
+                operator_detail="finding enrichment requires a JSON object")
+        out["finding_validation"] = service.industrial.validate_finding(finding)
+    return out
+
+
 def _attach_citation_if_requested(service: "EvidenceService", ev: Evidence,
                                   payload: Dict[str, Any]) -> Optional[Citation]:
     """Render a Citation (schemas/10) when the payload carries a text span."""
@@ -153,9 +201,15 @@ def _attach_citation_if_requested(service: "EvidenceService", ev: Evidence,
 
 def handle_evidence_system(service: "EvidenceService", ctx: Context,
                            payload: Dict[str, Any]) -> Dict[str, Any]:
+    # Enrichment precedes persistence (fail closed); additive to the base op —
+    # payloads without the optional extensions behave exactly as before.
+    enrichment = _enrich_from_industrial(service, payload)
     ev = _new_evidence_from_payload(service, payload)
     service.links.add(ev)
-    return {"evidence": ev.to_dict(), "evidence_id": ev.id}
+    result = {"evidence": ev.to_dict(), "evidence_id": ev.id}
+    if enrichment is not None:
+        result["industrial_enrichment"] = enrichment
+    return result
 
 
 # -------------------------------------------------------------- 02 claim_extraction
@@ -529,13 +583,21 @@ class EvidenceService:
 
     def __init__(self, *, links: EvidenceLinks, claims_store,
                  chains: SourceChainStore, retrieval: RetrievalView,
-                 audit_sink: AuditSink, settings: Settings) -> None:
+                 audit_sink: AuditSink, settings: Settings,
+                 industrial: Optional[IndustrialGatewayClient] = None) -> None:
         self.links = links
         self.claims = claims_store
         self.chains = chains
         self.retrieval = retrieval
         self.audit_sink = audit_sink
         self.settings = settings
+        # Cross-service enrichment client (industrial-service). Defaults from
+        # settings; tests inject a stub, server.py uses the settings-built one.
+        if industrial is None:
+            industrial = IndustrialGatewayClient(
+                base_url=settings.industrial_base_url,
+                timeout_seconds=settings.industrial_timeout_seconds)
+        self.industrial = industrial
         self.invocations: Dict[str, dict] = {}   # audit_event_id -> invocation summary
         self._idempotency: Dict[str, OpResult] = {}
 
