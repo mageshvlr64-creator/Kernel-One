@@ -816,3 +816,26 @@ Characters 1/5 land.
 
 **Status:** the contradiction pass no longer carries any caller-side memory of ingest
 time; scoping is entirely the knowledge graph's fact. Not deployed.
+
+### [Character 3 - Knowledge & Documents] 2026-09-16 (root pytest guard + repo-wide runner)
+
+**Built/changed:**
+- `pytest.ini` + `conftest.py` (repo root) - running pytest from the repo root used to
+  die with 22 collection errors: all six services ship a same-named `tests` package
+  whose conftest.py prepends its own service root to sys.path, so one process across
+  services mixes the packages up (ImportPathMismatchError). A bare root run now prints
+  the remedy once and exits non-zero; pointing pytest at ONE service's suite works from
+  the root or in-dir (CI-style); requesting two or more services in one process is
+  refused up front with the same explanation. Remove this guard together with any
+  future root-level suite (docs/15 reserves tests/unit, integration, security, e2e).
+- `scripts/run_tests.py` - repo-wide runner reproducing CI's per-service isolation
+  (same `python -m pytest tests/ -q` invocation from each service dir), with per-suite
+  summaries, subset selection, --fail-fast, and non-zero exit on any failure.
+
+**Status:** the repo-level "pytest is broken" failure mode is gone. Verified: bare root
+run = clean remedy, zero collection errors; single-service runs pass (evidence 123);
+multi-service run refused with the remedy; `python scripts/run_tests.py` = **550/550**
+across all six suites, exit 0. Ruff clean (CI scope).
+
+**Next:** none pending from this - per-service invocation was already CI's shape; the
+guard only makes local mistakes loud and cheap.
