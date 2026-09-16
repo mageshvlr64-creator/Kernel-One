@@ -546,3 +546,40 @@ in repo code). Known deferred: `DTZ011 date.today()` in conflict_detection is de
 third-party DeprecationWarnings are upstream packages' to fix.
 
 **Next:** unchanged — build-order #15, Knowledge Fabric.
+
+### [Character 3 — Knowledge & Documents] 2026-09-15 (session 3)
+
+**Built/changed:**
+- **OCR pipeline — build-order #15** (`features/11_ocr`, 9 ops): implemented inside
+  `document-pipeline` per `15_CODEBASE_TARGET_STRUCTURE.md` (feature 11 belongs to that
+  service; a standalone `services/ocr` was considered and rejected — see DEC-024).
+  `scanned_pdf_detection` → **EXTRACTING→OCR** on scanned candidates; page/region
+  processing (pymupdf 150 DPI rendering, bbox regions, per-page/mean confidence,
+  low-confidence flagging per `failures/22`), text reconstruction, coordinate mapping,
+  confidence report, failure report, language handling, engine selection, and
+  `complete_ocr` → **OCR→INDEXING** with the canonical `document.ocr_completed` event —
+  the hand-off into knowledge-fabric (#16, not yet built upstream).
+- Engine seam per `integrations/08`: lazy `PaddleOcrEngine` fails closed with
+  DEPENDENCY_UNAVAILABLE when absent; deterministic stub transcribes **real rendered
+  PNGs** (pixel-digest pseudo-regions) so stub and real engine share one code path.
+- **Policy layering fix** (shared module): role-denied actors now get
+  TOOL_NOT_ALLOWED before the classification layer instead of a misattributed
+  FILE_CLASSIFICATION_DENIED — matches the registry's code definitions.
+- **Audit-contract hardening**: unhandled engine crashes inside an OCR op are mapped to
+  DEPENDENCY_UNAVAILABLE with exactly one error audit event, instead of escaping bare.
+- **CI hygiene** on the same files: dead `arr` buffer (ruff F841) removed from the
+  PaddleOCR adapter, and industrial-service's requirements-test.txt no longer pins
+  `pgserver>=2.0.0` (no Linux wheels exist; its live-Postgres tests already skip when
+  the package is absent — install it locally to run them).
+- `docs/20_DECISION_LOG.md`: added **DEC-024** (this increment's decisions).
+
+**Verification:** OCR suite 26/26; full document-pipeline 84/84; ruff
+`--select F821,F841,E9` clean. Live HTTP run of the scanned→OCR→INDEXING pipeline on
+:8080 — upload → detection (EXTRACTING) → page-processing (OCR, 2 pages) →
+text-reconstruction (100 chars) → complete-ocr (INDEXING hand-off) → GET confirms state;
+unauthenticated request correctly 401 AUTH_REQUIRED.
+
+**Status:** Scanned PDFs now flow upload → EXTRACTING → OCR (flagged pages persist) →
+INDEXING, where knowledge-fabric takes over once that service is built upstream. Not
+deployed; PaddleOCR adapter and Postgres/pgvector seams remain explicit stubs until
+Characters 1/5 land.

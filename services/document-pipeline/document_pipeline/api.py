@@ -45,6 +45,21 @@ _OP_SLUGS = {
     "metadata-extraction": "metadata_extraction",
 }
 
+# OCR feature-file slugs (features/11_ocr §11) -> ocr_ops op names, plus the service's
+# explicit pipeline-completion op (OCR -> INDEXING hand-off to knowledge-fabric).
+_OCR_OP_SLUGS = {
+    "ocr-overview": "ocr_overview",
+    "engine-selection": "engine_selection",
+    "language-handling": "language_handling",
+    "page-processing": "page_processing",
+    "region-processing": "region_processing",
+    "confidence-scores": "confidence_scores",
+    "text-reconstruction": "text_reconstruction",
+    "coordinate-mapping": "coordinate_mapping",
+    "ocr-failures": "ocr_failures",
+    "complete-ocr": "complete_ocr",
+}
+
 _UUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE
 )
@@ -70,6 +85,46 @@ class Api:
 
     def __init__(self, service: DocumentIngestionService) -> None:
         self.service = service
+        from .ocr_ops import OcrService
+        self.ocr = OcrService(service)  # feature group 11 shares this service
+
+    # ---- POST /api/v1/ocr/{op} (features/11_ocr §11) ----
+
+    def handle_ocr_op(self, actor: Actor, op_slug: str, body: Dict[str, Any],
+                      *, session_id: Optional[str] = None,
+                      source_ip: Optional[str] = None,
+                      idempotency_key: Optional[str] = None) -> Tuple[int, Dict[str, Any]]:
+        from .ocr_ops import execute_ocr
+        op = _OCR_OP_SLUGS.get(op_slug)
+        if op is None:
+            err = RegistryError("INVALID_REQUEST",
+                                operator_detail=f"unknown ocr operation {op_slug!r}")
+            return err.http_status, _error_body(err, str(uuid.uuid4()))
+        ctx = Context(actor=actor, session_id=session_id,
+                      source_ip=source_ip, idempotency_key=idempotency_key)
+        try:
+            result = execute_ocr(self.ocr, ctx, op, body)
+        except OpError as op_err:
+            return op_err.err.http_status, {
+                "error": {
+                    "code": op_err.err.code,
+                    "message": op_err.err.user_message,
+                    "details": {"field_errors": op_err.err.details}
+                    if op_err.err.details else None,
+                    "correlation_id": op_err.correlation_id,
+                }
+            }
+        except RegistryError as err:
+            return err.http_status, _error_body(err, ctx.correlation_id)
+        data = {
+            "status": result.status,
+            "resource_id": result.resource_id,
+            "state": result.state,
+            "audit_event_id": result.audit_event_id,
+            "timestamp": result.timestamp,
+            **({"data": result.data} if result.data else {}),
+        }
+        return 200, {"data": data}
 
     # ---- POST /api/v1/document-ingestion/{op} ----
 
@@ -381,6 +436,14 @@ def make_handler(api: Api):
             m = re.match(r"^/api/v1/document-ingestion/([a-z0-9\-]+)$", route)
             if m:
                 status, resp = api.handle_op(
+                    actor, m.group(1), body, session_id=None,
+                    source_ip=self.client_address[0],
+                    idempotency_key=self.headers.get("Idempotency-Key"))
+                self._send(status, resp)
+                return
+            m = re.match(r"^/api/v1/ocr/([a-z0-9\-]+)$", route)
+            if m:
+                status, resp = api.handle_ocr_op(
                     actor, m.group(1), body, session_id=None,
                     source_ip=self.client_address[0],
                     idempotency_key=self.headers.get("Idempotency-Key"))

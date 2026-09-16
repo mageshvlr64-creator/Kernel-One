@@ -305,6 +305,39 @@ module's docstring so replacement is mechanical.
 exists — rejected because it serializes all six characters behind one unspecified choice and
 the spec's own build order has document ingestion in Phase 5, ahead of any such decision.
 
+### DEC-024 — OCR pipeline first increment: inside document-pipeline, stub engine with real-image transcription
+**Date:** 2026-09-15 · **Status:** Accepted · **Owner:** Character 3 (Knowledge & Documents)
+**Context:** Build-order #15 (feature group 11) — the OCR pipeline feeding scanned PDFs into
+INDEXING for knowledge-fabric (#16). `15_CODEBASE_TARGET_STRUCTURE.md` places feature 11
+inside `document-pipeline`, so this extends that service rather than adding a new one. Four
+decisions:
+
+1. **Scope.** OCR lives in `document-pipeline/document_pipeline/ocr*.py` (module per the
+target-structure doc), exposing the nine `ocr.<op>` routes under the same stdlib HTTP
+server, sharing the store, audit sink, policy layer, and state machine. Owns the canonical
+EXTRACTING→OCR and OCR→INDEXING transitions (event `document.ocr_completed`).
+2. **Engine.** `PaddleOcrEngine` per `integrations/08` is lazy-imported and fails closed
+with DEPENDENCY_UNAVAILABLE when absent (feature §14 — no silent stub fallback). The test
+engine is deterministic **on real rendered PNGs** (pymupdf 150 DPI): pseudo-regions derive
+from a bounded pixel-digest hash, so the stub exercises the identical code path the real
+engine will. An early marker-payload special case was removed — scanned candidates have
+text-empty pages by definition, so text-driven stubbing produced zero-content OCR rows.
+3. **Low-confidence pages.** Per `failures/22`: pages below the 0.60 mean-confidence
+threshold are flagged (persisted `flagged_reason`), not failed — indexing proceeds.
+4. **Policy layering fix.** `policy.check` previously fell through to the classification
+condition for role-denied actors, misattributing e.g. a RestrictedUser execute denial as
+FILE_CLASSIFICATION_DENIED. Role denial now short-circuits as TOOL_NOT_ALLOWED before the
+classification layer (matching every existing expectation and the registry's code
+definitions); the layered checks then apply in order to role-granted actors.
+
+**Decision:** As above. Unknown ops, missing ocr_pages, and wrong-state calls raise
+registry-verbatim errors; every invocation — success, denial, error, or engine crash —
+emits exactly one `ocr.<op>` audit event; unhandled exceptions are mapped to
+DEPENDENCY_UNAVAILABLE rather than escaping as bare tracebacks.
+**Rejected:** A standalone `services/ocr` package — rejected because the target-structure
+doc pins feature 11 inside document-pipeline; duplicating the store/auth/audit seams there
+would fork the pipeline's contracts for no capability gain.
+
 ## Open decisions (DECISION REQUIRED)
 
 ### DEC-013 — Exact model checkpoints to pin for V1 demo
