@@ -783,3 +783,36 @@ conflict-target registry; `docs/api/` formalization (Character 1).
 INDEXING, where knowledge-fabric takes over once that service is built upstream. Not
 deployed; PaddleOCR adapter and Postgres/pgvector seams remain explicit stubs until
 Characters 1/5 land.
+
+### [Character 3 - Knowledge & Documents] 2026-09-16 (KG-backed contradiction scoping)
+
+**Built/changed:**
+- `evidence_service/ops.py` - the op-01 task->equipment in-process registry is GONE.
+  Op 09's contradiction pass now scopes itself with the REAL knowledge-graph lookup:
+  for each evidence source document it calls industrial-service
+  `GET /documents/{document_id}/equipment` (the equipment_governing_documents table -
+  which equipment a document governs is the graph's fact, not the caller's), then runs
+  `/internal/detect-conflicts` per governed equipment. Documents governing no equipment
+  skip the detector entirely. This also covers documents ingested by ANY path (enriched
+  or not) - the old registry only knew about enriched ingests.
+- `evidence_service/industrial_gateway.py` - new `equipment_for_document()` (GET, no
+  body, `X-Roles: Equipment:read`, equipment_ids-array validation, 403 ->
+  POLICY_DENIED, transport failures -> DEPENDENCY_UNAVAILABLE) over the shared
+  `_request` transport (GET/POST unified; opener seam unchanged).
+- Caching: KG lookups are read-through cached per (task_id, document_id) - a governed_by
+  fact cannot change under a repeated op-09 run - and failures are NEVER cached, so a
+  later run catches up. Detector calls are NOT cached (their inputs can change).
+- Failure posture unchanged where it matters: a KG-lookup or detector outage SKIPS that
+  document (fail-open detection, never a fabricated status; POLICY_DENIED on the scope
+  lookup skips too); the `contradicted` upgrade remains upgrade-only.
+- Tests: contradiction suite rewritten for the KG flow + 8 new cases (KG contract/parsing,
+  malformed body, 403, transport failure, no-equipment skip, lookup outage skip, policy
+  denial skip, per-(task,document) caching, op-01 registry removal pin). evidence-service
+  115 -> 123; repo regression **550/550** (evidence 123, document-pipeline 93,
+  knowledge-fabric 56, industrial-service 183, model-router 70, inference-gateway 25);
+  ruff clean (CI scope).
+- `docs/23_SERVICE_MAP_AS_BUILT.md` + evidence-service README updated; decision
+  recorded as **DEC-029**.
+
+**Status:** the contradiction pass no longer carries any caller-side memory of ingest
+time; scoping is entirely the knowledge graph's fact. Not deployed.

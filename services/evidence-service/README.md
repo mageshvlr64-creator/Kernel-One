@@ -42,23 +42,27 @@ the Evidence row:
 - `finding_validation` flags (`supported`, `ocr_warning`) are surfaced, not gated;
 - payloads without the extensions never touch the dependency.
 
-### Contradiction pass (op 09 → `/internal/detect-conflicts`)
+### Contradiction pass (op 09 → KG lookup + `/internal/detect-conflicts`)
 
-When op 01 resolved a task's evidence to an equipment (case-1 or
-human-confirmed case-2), op 09 (`unsupported_claim_detection`) additionally
-runs industrial's deterministic conflict detector over that task's resolvable
-evidence rows: parameter = section reference, value = chunk text, authority +
-validity windows from the source-chain store. Every row whose source document
-participates in a `ConflictRecord` is upgraded to `verification_status:
-contradicted` — an upgrade only (`supported` is never downgraded; nothing
-downgrades `contradicted`). If the detector is unavailable the pass is
-**skipped, not fabricated** (fail-open for detection, never for persistence):
-no status is invented and the next op-09 run catches up. The detector itself
-never auto-resolves; human review resolves (industrial/14).
+For each of a task's evidence source documents, op 09
+(`unsupported_claim_detection`) first asks industrial-service's **real
+knowledge graph** which equipment that document governs
+(`GET /documents/{id}/equipment`, backed by its `equipment_governing_documents`
+table): scoping is the graph's fact, not ours — no in-process registry
+substitutes for it, and it covers documents ingested by *any* path, enriched
+or not. Documents that govern no equipment are skipped without touching the
+detector. For the rest it runs industrial's deterministic conflict detector
+over the task's resolvable evidence rows: parameter = section reference,
+value = chunk text, authority + validity windows from the source-chain store.
+Every row whose source document participates in a `ConflictRecord` is
+upgraded to `verification_status: contradicted` — an upgrade only
+(`supported` is never downgraded; nothing downgrades `contradicted`).
 
-The equipment→task association is an in-process registry stub today (DEC-023);
-the real lookup joins the knowledge graph's `governed_by` edges once
-PostgreSQL/KG land.
+Failure posture: a KG-lookup or detector outage **skips that document** —
+detection failure must never fabricate a status; the next op-09 run catches
+up. KG lookups are read-through cached per (task, document) — a graph fact
+cannot change under a repeated op-09 run — and failures are never cached.
+The detector itself never auto-resolves; human review resolves (industrial/14).
 
 Config: `EV_INDUSTRIAL_BASE_URL` (default `http://127.0.0.1:8005`),
 `EV_INDUSTRIAL_TIMEOUT_SECONDS` (default 5).
@@ -101,4 +105,5 @@ criteria (§25): unit tests per Failure-modes row, integration tests per success
 path, permission tests per role, the exactly-one-audit-event invariant, the
 industrial enrichment wiring (header/body contract, error translation,
 fail-closed persistence, retry, HTTP path), and the op-09 contradiction pass
-(contradicted upgrade, never-downgrade, fail-open detection). **115 tests.**
+(KG-scoped, contradicted upgrade, never-downgrade, fail-open detection,
+caching). **123 tests.**

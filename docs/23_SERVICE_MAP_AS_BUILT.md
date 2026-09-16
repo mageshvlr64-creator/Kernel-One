@@ -19,8 +19,9 @@ service, and every claim here is backed by a `CHANGELOG.md` entry.
 **Snapshot date: 2026-09-16** (build order through #17, Character 4's
 parallel industrial track, and ALL THREE named cross-service wiring items now
 live over real HTTP: evidence-service ingest → `/internal/resolve-tag` +
-`/internal/validate-finding`; evidence-service op 09 →
-`/internal/detect-conflicts` (contradiction pass); document-pipeline upload →
+`/internal/validate-finding`; evidence-service op 09 → KG lookup +
+`/internal/detect-conflicts` (contradiction pass, scoped by the real
+knowledge graph — no in-process registry); document-pipeline upload →
 `/internal/resolve-tag` + `/internal/validate-finding`. Verified end-to-end
 with both services running: case-1/case-2 resolution, finding flags, fail-closed
 on dependency outage, `contradicted` upgrade through the detector).
@@ -33,7 +34,7 @@ on dependency outage, `contradicted` upgrade through the detector).
 | `inference-gateway/` | 1 — Foundation & Inference | 03 inference gateway (one provider path) | #7 | 25 | provider adapters (vLLM/Ollama/llama.cpp shapes), retry + fallback walk |
 | `document-pipeline/` | 3 — Knowledge & Documents | 10 document ingestion, 11 OCR | #14, #15 | 93 | upload→parse→OCR→INDEXING; scanned-PDF path live over HTTP; upload calls industrial `/internal/resolve-tag` + `/internal/validate-finding` (fail-closed enrichment, after sha256 dedup) |
 | `knowledge-fabric/` | 3 — Knowledge & Documents | 13 knowledge fabric | #16 | 56 | chunk → embed → index → hybrid search → context assembly |
-| `evidence-service/` | 3 — Knowledge & Documents | 14 evidence and provenance | #17 | 115 | Evidence rows, claims, citations, source chains, confidence axes, unsupported-claim detection; ingest enrichment + op-09 contradiction pass via industrial `/internal/*` (both live, fail-closed/fail-open respectively) |
+| `evidence-service/` | 3 — Knowledge & Documents | 14 evidence and provenance | #17 | 123 | Evidence rows, claims, citations, source chains, confidence axes, unsupported-claim detection; ingest enrichment + op-09 contradiction pass scoped by the real KG lookup (both live, fail-closed/fail-open respectively) |
 | `industrial-service/` | 4 — Industrial Intelligence | industrial/* (assets, comparison, conflicts, calculations, SOP) | parallel track | 181 | 7 `/internal/*` endpoints, all fail closed on permissions |
 
 Not yet built (no `services/` directory, per build order #3–#5, #9–#13, #18+):
@@ -76,9 +77,10 @@ The document-to-evidence flow that works end-to-end today (all transitions per
  │   → evidence_system / claim_to_source_mapping (Evidence rows, schemas/09)│
  │     → unsupported_claim_detection (verification_status: unverified →     │
  │        supported; → contradicted via industrial /internal/detect-conflicts│
- │        when op 01 resolved the task's evidence to an equipment — upgrade  │
- │        only, fail-open if the detector is down; contradiction detection   │
- │        never auto-resolves, humans do)                                   │
+ │        scoped by the REAL knowledge-graph lookup (GET                    │
+ │        /documents/{id}/equipment) — upgrade only, fail-open if the       │
+ │        graph or detector is down; detection never auto-resolves,         │
+ │        humans do)                                                        │
  │     → page_level_citations / coordinate_level_citations                  │
  │        (Source → Version → Page → Chunk → bbox)                          │
  │     → source_chain (supersession walk) → evidence_graph                  │
@@ -93,8 +95,9 @@ The document-to-evidence flow that works end-to-end today (all transitions per
  │ validate-answer, verify-calculation, check-sop-compliance, resolve-tag   │
  │ LIVE callers today (all wiring named in the changelogs is done):         │
  │  • evidence-service op 01 → resolve-tag + validate-finding (fail closed) │
- │  • evidence-service op 09 → detect-conflicts (contradiction pass;        │
- │    participants become `contradicted`; fail-open on detector outage)     │
+ │  • evidence-service op 09 → KG lookup (GET /documents/{id}/equipment)    │
+ │    + detect-conflicts (contradiction pass; participants become           │
+ │    `contradicted`; fail-open on dependency outage)                       │
  │  • document-pipeline upload → resolve-tag + validate-finding             │
  │    (fail closed, after the sha256 dedup short-circuit)                   │
  │ Still internal-only: compare-documents, verify-calculation,              │
@@ -156,8 +159,8 @@ services land:
 | industrial-service | 8005 | `uvicorn app.main:app --port 8005` | `pytest tests/` in `services/industrial-service` |
 
 CI (`.github/workflows/ci.yml`) lints all services with ruff (F821/F841/E9) and
-runs each service's suite in its own matrix job. Current repo total: **542
-passing tests** (115 + 93 + 56 + 183 + 70 + 25), ruff clean.
+runs each service's suite in its own matrix job. Current repo total: **550
+passing tests** (123 + 93 + 56 + 183 + 70 + 25), ruff clean.
 
 ## 6. Open seams (what is deliberately not real yet)
 
@@ -169,7 +172,7 @@ passing tests** (115 + 93 + 56 + 183 + 70 + 25), ruff clean.
 | Vector index | brute-force cosine over in-memory chunks | pgvector HNSW (Character 1 `infra/`) |
 | Embeddings | deterministic hash vectors | model-inference seam (Character 1) |
 | OCR engine | deterministic stub on real rendered PNGs | PaddleOCR adapter (`integrations/08`) |
-| Inter-service calls | evidence + document-pipeline ingest → industrial `/internal/*` are live HTTP clients (`industrial_gateway.py` per service, DEC-023 no-shared-code); all other cross-service reads are seeded in-process views | documented `docs/api/` contracts (Character 1) |
+| Inter-service calls | evidence + document-pipeline ingest → industrial `/internal/*` are live HTTP clients, and op 09's contradiction pass reads the real KG (`GET /documents/{id}/equipment`); all other cross-service reads are seeded in-process views | documented `docs/api/` contracts (Character 1) |
 | Permission decisions | in-process matrix mirror | policy-engine (Character 5, build #4) |
 
 ## 7. Maintenance

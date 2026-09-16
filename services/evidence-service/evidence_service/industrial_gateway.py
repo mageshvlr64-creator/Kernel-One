@@ -88,7 +88,58 @@ class IndustrialGatewayClient:
                           {"equipment_id": str(equipment_id), "claims": claims},
                           expect_list=True)
 
+    def equipment_for_document(self, document_id: str) -> List[str]:
+        """GET /documents/{document_id}/equipment — the real knowledge-graph lookup.
+
+        Returns the equipment_ids governed_by this document (industrial's
+        KnowledgeGraphRepository.get_equipment_for_document — the
+        equipment_governing_documents table). This is the canonical way to
+        scope the contradiction pass (industrial/14): which equipment a
+        document governs is the knowledge graph's fact, not the caller's —
+        no in-process registry can substitute for it.
+        """
+        payload = self._request("GET", f"/documents/{document_id}/equipment",
+                                body=None)
+        ids = payload.get("equipment_ids")
+        if not isinstance(ids, list):
+            raise RegistryError(
+                "DEPENDENCY_UNAVAILABLE",
+                operator_detail="industrial-service KG lookup returned a body "
+                                "without an equipment_ids array")
+        return [str(x) for x in ids]
+
     # -------------------------------------------------------------- internals
+    def _request(self, method: str, path: str, body: Optional[Dict[str, Any]],
+                 expect_list: bool = False) -> Any:
+        headers = {"X-Roles": self.roles_header}
+        try:
+            if self._opener is not None:
+                raw = self._opener(method, self.base_url + path, body, headers)
+            else:
+                raw = self._request_http(method, path, body, headers)
+            status, payload = raw
+        except RegistryError:
+            raise
+        except Exception as exc:  # noqa: BLE001 — translated below, fail closed
+            raise RegistryError(
+                "DEPENDENCY_UNAVAILABLE",
+                operator_detail=f"industrial-service {path} unreachable: "
+                                f"{type(exc).__name__}: {exc}") from exc
+        if status == 403:
+            raise RegistryError(
+                "POLICY_DENIED",
+                operator_detail=f"industrial-service {path} rejected the "
+                                f"{self.roles_header} role header")
+        expected = list if expect_list else dict
+        if not 200 <= status < 300 or not isinstance(payload, expected):
+            shape = "a JSON array" if expect_list else "a JSON object"
+            raise RegistryError(
+                "DEPENDENCY_UNAVAILABLE",
+                operator_detail=f"industrial-service {path} returned HTTP "
+                                f"{status}" + ("" if isinstance(payload, expected)
+                                               else f" with a non-{shape} body"))
+        return payload
+
     def _post(self, path: str, body: Dict[str, Any],
               expect_list: bool = False) -> Any:
         headers = {"X-Roles": self.roles_header}
@@ -122,10 +173,15 @@ class IndustrialGatewayClient:
 
     def _post_http(self, path: str, body: Dict[str, Any],
                    headers: Dict[str, str]) -> Any:
-        data = json.dumps(body).encode("utf-8")
+        return self._request_http("POST", path, body, headers)
+
+    def _request_http(self, method: str, path: str, body: Optional[Dict[str, Any]],
+                      headers: Dict[str, str]) -> Any:
+        data = None if body is None else json.dumps(body).encode("utf-8")
         req = urllib.request.Request(
-            self.base_url + path, data=data, method="POST",
-            headers={**headers, "Content-Type": "application/json"})
+            self.base_url + path, data=data, method=method,
+            headers={**headers, **({"Content-Type": "application/json"}
+                                   if data is not None else {})})
         try:
             with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:
                 return resp.status, json.loads(resp.read().decode("utf-8"))

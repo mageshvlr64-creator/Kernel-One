@@ -25,8 +25,10 @@ Ops (slug → feature file):
 - unsupported_claim_detection (09) claims without Evidence rows (domain/13:
                                    an agent MUST NOT emit a claim without one); also runs
                                    the cross-source contradiction pass via industrial
-                                   /internal/detect-conflicts when op 01 ingested
-                                   evidence for an equipment (industrial/14 case 2) —
+                                   /internal/detect-conflicts, scoped by the REAL
+                                   knowledge-graph lookup (GET
+                                   /documents/{id}/equipment: which equipment a
+                                   document governs is the graph's fact, not ours) —
                                    conflicting rows become 'contradicted' (upgrade only;
                                    never downgraded by anything)
 - evidence_failures (10)           structured diagnosis of evidence problems
@@ -44,7 +46,7 @@ from __future__ import annotations
 import re
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .audit import AuditSink, build_audit_event
 from .config import Settings
@@ -140,6 +142,25 @@ def _chunk_view(service: "EvidenceService", chunk_id: str) -> Dict[str, Any]:
                             operator_detail=f"chunk {chunk_id} not present in the "
                             f"retrieval view (knowledge-fabric seam down or unindexed)")
     return view
+
+
+def _governed_equipment(service: "EvidenceService", task_id: str,
+                        document_id: str) -> set:
+    """Equipment governed_by a document — the real knowledge-graph fact.
+
+    Reads industrial-service's KG (GET /documents/{id}/equipment, backed by
+    its equipment_governing_documents table): which equipment a document
+    governs is the graph's fact, not the caller's, so no in-process registry
+    substitutes for it. Read-through cached per (task, document); failures
+    are never cached (a later run catches up).
+    """
+    key = (task_id, document_id)
+    cached = service._conflict_scope_cache.get(key)
+    if cached is not None:
+        return cached
+    equipment_ids = set(service.industrial.equipment_for_document(document_id))
+    service._conflict_scope_cache[key] = equipment_ids
+    return equipment_ids
 
 
 def _contradicted_document_ids(service: "EvidenceService", equipment_id: str,
@@ -272,14 +293,6 @@ def handle_evidence_system(service: "EvidenceService", ctx: Context,
     result = {"evidence": ev.to_dict(), "evidence_id": ev.id}
     if enrichment is not None:
         result["industrial_enrichment"] = enrichment
-        # Record which equipment this task's evidence was resolved against so
-        # op 09 can run the contradiction pass later (industrial/14 case 2).
-        # STUB: in-process registry; the real lookup joins the knowledge graph's
-        # governed_by edges once PostgreSQL/KG land (DEC-023 seam).
-        resolution = enrichment.get("equipment_resolution")
-        if isinstance(resolution, dict) and resolution.get("matched_equipment_id"):
-            service.conflict_targets.setdefault(ev.task_id, set()).add(
-                str(resolution["matched_equipment_id"]))
     return result
 
 
@@ -575,26 +588,42 @@ def handle_unsupported_claim_detection(service: "EvidenceService", ctx: Context,
                 service.links.set_verification_status(eid, "supported")
                 verification_updates += 1
 
-    # Cross-source contradiction pass (industrial/14 case 2, via
-    # /internal/detect-conflicts): when op 01 ingested evidence for an
-    # equipment, the deterministic detector arbitrates cross-document
-    # disagreement over the same section. Every Evidence row whose source
-    # document participates in a ConflictRecord becomes 'contradicted' — an
-    # UPGRADE only: the supported-loop above touches 'unverified' rows, and
-    # nothing in this service ever downgrades 'contradicted' (industrial/14's
-    # output). Detector unavailable: skip the pass — detection failure must
-    # never fabricate a status; the next op-09 run catches up.
+    # Cross-source contradiction pass (industrial/14, via
+    # /internal/detect-conflicts): scope = the REAL knowledge-graph lookup
+    # (which equipment each source document governs), then the deterministic
+    # detector arbitrates cross-document disagreement over the same section.
+    # Every Evidence row whose source document participates in a
+    # ConflictRecord becomes 'contradicted' — an UPGRADE only: the
+    # supported-loop above touches 'unverified' rows, and nothing in this
+    # service ever downgrades 'contradicted' (industrial/14's output).
+    # Dependency unavailable for a document (lookup or detector): SKIP that
+    # document — detection failure must never fabricate a status; the next
+    # op-09 run catches up (failures are never cached).
     verification_contradictions = 0
     evidence_rows = service.links.for_task(task_id)
-    for equipment_id in sorted(service.conflict_targets.get(task_id, set())):
+    skip_codes = {"DEPENDENCY_UNAVAILABLE", "RAG_INDEX_UNAVAILABLE",
+                  "POLICY_DENIED"}
+    for document_id in sorted({ev.source_document_id for ev in evidence_rows}):
         try:
-            contradicted_docs = _contradicted_document_ids(service, equipment_id,
-                                                           evidence_rows)
+            equipment_ids = _governed_equipment(service, task_id, document_id)
         except RegistryError as err:
-            if err.code not in ("DEPENDENCY_UNAVAILABLE", "RAG_INDEX_UNAVAILABLE"):
+            if err.code not in skip_codes:
                 raise
             continue
-        for ev in evidence_rows:
+        if not equipment_ids:
+            continue  # document governs no equipment: nothing to contradict
+        rows_for_doc = [ev for ev in evidence_rows
+                        if ev.source_document_id == document_id]
+        contradicted_docs: set = set()
+        for equipment_id in sorted(equipment_ids):
+            try:
+                contradicted_docs |= _contradicted_document_ids(
+                    service, equipment_id, evidence_rows)
+            except RegistryError as err:
+                if err.code not in skip_codes:
+                    raise
+                continue
+        for ev in rows_for_doc:
             if (ev.source_document_id in contradicted_docs
                     and ev.verification_status != "contradicted"):
                 service.links.set_verification_status(ev.id, "contradicted")
@@ -697,10 +726,14 @@ class EvidenceService:
         self.industrial = industrial
         self.invocations: Dict[str, dict] = {}   # audit_event_id -> invocation summary
         self._idempotency: Dict[str, OpResult] = {}
-        # task_id -> equipment ids whose evidence op 01 resolved for it. Read by
-        # op 09's contradiction pass (industrial/14 case 2). STUB: in-process
-        # registry; replaced by the knowledge-graph governed_by lookup later.
-        self.conflict_targets: Dict[str, set] = {}
+        # (task_id, document_id) -> governed equipment ids, per the REAL
+        # knowledge-graph lookup (GET /documents/{id}/equipment on
+        # industrial-service). Read-through cache for op 09's contradiction
+        # pass: repeated op-09 runs on the same task do not re-ask the graph
+        # for a fact that cannot change under them. Failures are never
+        # cached — a later run catches up. (In-process stub-bounded storage;
+        # the canonical cache lives with PostgreSQL persistence, DEC-023.)
+        self._conflict_scope_cache: Dict[Tuple[str, str], set] = {}
 
     # ---- central dispatcher -------------------------------------------------------
     def invoke(self, op: str, actor: Actor, payload: Optional[Dict[str, Any]],

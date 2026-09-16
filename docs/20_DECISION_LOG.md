@@ -477,3 +477,22 @@ dedup short-circuit so duplicate uploads never hit the dependency.
 both services running); the task->equipment association in evidence-service is an
 in-process registry stub until the KG governed_by lookup lands; /internal endpoints
 remain informally contracted until Character 1's `docs/api/`.
+
+### DEC-029 - Contradiction-pass scoping moves to the real knowledge graph lookup
+
+**Date:** 2026-09-16
+**Status:** Accepted
+**Context:** DEC-028 shipped the contradiction pass with a task->equipment in-process
+registry fed by op-01 resolve-tag enrichment. That stub had two defects: it remembered
+ingest-time associations in process memory (lost on restart, blind to documents ingested
+by any other path), and it duplicated a fact the knowledge graph already owns.
+**Decision:** op 09 scopes the contradiction pass per source document via industrial
+GET /documents/{document_id}/equipment (equipment_governing_documents), then runs the
+detector per governed equipment. No caller-side registry remains. Lookups are read-through
+cached per (task, document); failures are never cached. Dependency failures (transport,
+5xx, POLICY_DENIED) skip the document - consistent with DEC-028's fail-open posture for
+detection. Detector calls are not cached.
+**Consequences:** the pass now covers all documents with governed_by edges regardless of
+ingest path; restarts lose nothing; op-01 payloads shrink back to pure enrichment. The
+lookup adds one HTTP GET per (task, document) per cold run; the /internal + KG contracts
+remain informally specified until Character 1's docs/api/ land.
