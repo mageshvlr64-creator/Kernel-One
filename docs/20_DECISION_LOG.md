@@ -337,6 +337,8 @@ places **OCR at #15 and knowledge-fabric at #16**. The knowledge-fabric entry pr
 service's build slot being renumbered; content of the decision is unaffected.
 
 ### DEC-025 — OCR pipeline first increment: inside document-pipeline, stub engine with real-image transcription
+
+### DEC-024 — OCR pipeline first increment: inside document-pipeline, stub engine with real-image transcription
 **Date:** 2026-09-15 · **Status:** Accepted · **Owner:** Character 3 (Knowledge & Documents)
 **Context:** Build-order #15 (feature group 11) — the OCR pipeline feeding scanned PDFs into
 INDEXING for knowledge-fabric (#16). `15_CODEBASE_TARGET_STRUCTURE.md` places feature 11
@@ -350,6 +352,8 @@ EXTRACTING→OCR and OCR→INDEXING transitions (event `document.ocr_completed`)
 2. **Engine.** `PaddleOcrEngine` per `integrations/08` is lazy-imported and fails closed
 with DEPENDENCY_UNAVAILABLE when absent (feature §14 — no silent stub fallback). The test
 gine is deterministic **on real rendered PNGs** (pymupdf 150 DPI): pseudo-regions derive
+
+engine is deterministic **on real rendered PNGs** (pymupdf 150 DPI): pseudo-regions derive
 from a bounded pixel-digest hash, so the stub exercises the identical code path the real
 engine will. An early marker-payload special case was removed — scanned candidates have
 text-empty pages by definition, so text-driven stubbing produced zero-content OCR rows.

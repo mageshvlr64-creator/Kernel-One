@@ -586,6 +586,10 @@ this pipeline; pgvector swap-in behind ChunkIndex when the platform layer lands.
 - **OCR pipeline — build-order #15** (`features/11_ocr`, 9 ops): implemented inside
   `document-pipeline` per `15_CODEBASE_TARGET_STRUCTURE.md` (feature 11 belongs to that
   service; a standalone `services/ocr` was considered and rejected — see DEC-025).
+
+- **OCR pipeline — build-order #15** (`features/11_ocr`, 9 ops): implemented inside
+  `document-pipeline` per `15_CODEBASE_TARGET_STRUCTURE.md` (feature 11 belongs to that
+  service; a standalone `services/ocr` was considered and rejected — see DEC-024).
   `scanned_pdf_detection` → **EXTRACTING→OCR** on scanned candidates; page/region
   processing (pymupdf 150 DPI rendering, bbox regions, per-page/mean confidence,
   low-confidence flagging per `failures/22`), text reconstruction, coordinate mapping,
@@ -608,6 +612,25 @@ this pipeline; pgvector swap-in behind ChunkIndex when the platform layer lands.
 **416/416** (document-pipeline 84, knowledge-fabric 56, model-router 70,
 inference-gateway 25, industrial-service 181). Live HTTP run of the scanned→OCR→INDEXING
 pipeline on :8080 — upload → detection (EXTRACTING) → page-processing (OCR, 2 pages) →
+
+  the hand-off into knowledge-fabric (#16, not yet built upstream).
+- Engine seam per `integrations/08`: lazy `PaddleOcrEngine` fails closed with
+  DEPENDENCY_UNAVAILABLE when absent; deterministic stub transcribes **real rendered
+  PNGs** (pixel-digest pseudo-regions) so stub and real engine share one code path.
+- **Policy layering fix** (shared module): role-denied actors now get
+  TOOL_NOT_ALLOWED before the classification layer instead of a misattributed
+  FILE_CLASSIFICATION_DENIED — matches the registry's code definitions.
+- **Audit-contract hardening**: unhandled engine crashes inside an OCR op are mapped to
+  DEPENDENCY_UNAVAILABLE with exactly one error audit event, instead of escaping bare.
+- **CI hygiene** on the same files: dead `arr` buffer (ruff F841) removed from the
+  PaddleOCR adapter, and industrial-service's requirements-test.txt no longer pins
+  `pgserver>=2.0.0` (no Linux wheels exist; its live-Postgres tests already skip when
+  the package is absent — install it locally to run them).
+- `docs/20_DECISION_LOG.md`: added **DEC-024** (this increment's decisions).
+
+**Verification:** OCR suite 26/26; full document-pipeline 84/84; ruff
+`--select F821,F841,E9` clean. Live HTTP run of the scanned→OCR→INDEXING pipeline on
+:8080 — upload → detection (EXTRACTING) → page-processing (OCR, 2 pages) →
 text-reconstruction (100 chars) → complete-ocr (INDEXING hand-off) → GET confirms state;
 unauthenticated request correctly 401 AUTH_REQUIRED.
 
@@ -756,3 +779,7 @@ check-sop-compliance) await Character 2's agent workflows.
 
 **Next:** knowledge-graph-backed equipment lookup to replace the in-process
 conflict-target registry; `docs/api/` formalization (Character 1).
+
+INDEXING, where knowledge-fabric takes over once that service is built upstream. Not
+deployed; PaddleOCR adapter and Postgres/pgvector seams remain explicit stubs until
+Characters 1/5 land.
