@@ -712,3 +712,47 @@ contracts), Character 4 (industrial-service deployed alongside), Character 3
 
 **Next:** document-pipeline ingest wiring (same pattern), then
 `/internal/detect-conflicts` from the evidence contradiction path.
+
+### [Character 3 - Knowledge & Documents] 2026-09-16 (wiring completion)
+
+**Built/changed (second increment - completes every /internal wiring item named in either changelog):**
+- LIVE two-service verification: evidence-service (:8091) + industrial-service (:8005,
+  real FastAPI app over an in-process pool shim - no PostgreSQL on this machine) -
+  enriched ingest verified end-to-end over real HTTP: case-1 `exact_same_unit`,
+  case-2 `exact_other_unit` (human confirmation surfaced verbatim), case-3 `no_match`,
+  finding flags surfaced (`supported=false` when evidence_id provenance fields are
+  absent - surfaced, not gated), and 503 `DEPENDENCY_UNAVAILABLE` fail-closed against
+  a dead dependency (no row persisted, correlation_id present).
+- `services/industrial-service/app/conflict_detection.py` - INTEROP FIX: `_dates_overlap`
+  crashed on the ISO date STRINGS `/internal/detect-conflicts` actually delivers
+  (`claims: list[dict]` is never pydantic-parsed). New `_as_date` normalizes ISO date
+  and ISO datetime strings (e.g. `2024-01-01T00:00:00Z`); 2 pinning tests added.
+- `services/evidence-service` - op 09 contradiction pass wired: builds industrial/14
+  claim dicts from resolvable evidence rows (parameter=section_reference, value=chunk
+  text, authority + validity windows from the source-chain store) and calls
+  `/internal/detect-conflicts`; participants UPGRADE to `verification_status=contradicted`
+  (upgrade only - `supported` never downgraded, `contradicted` never downgraded);
+  detector outage SKIPS the pass (fail-open detection, never a fabricated status);
+  op 01 records task->equipment associations from resolve-tag results (in-process
+  registry stub until the KG governed_by lookup lands, DEC-023 seam); op 01 also gained
+  the `conflict_check` pass-through enrichment; gateway gained `detect_conflicts`
+  with list-typed response validation.
+- `services/document-pipeline` - the SAME enrichment pattern wired into
+  `upload_validation` (vendored client per DEC-023 no-shared-code, RegistryError
+  raised so execute() keeps the exactly-one-audit invariant): resolve-tag +
+  validate-finding BEFORE persistence, fail closed, AFTER the sha256 dedup
+  short-circuit (duplicates never call the dependency); config keys
+  `DP_INDUSTRIAL_BASE_URL` / `DP_INDUSTRIAL_TIMEOUT_SECONDS`.
+- Tests: evidence 106->115 (`test_contradiction_wiring.py`), document-pipeline 84->93
+  (`test_industrial_wiring.py`), industrial 181->183 (interop pins). Repo regression
+  **542/542** (evidence 115, document-pipeline 93, knowledge-fabric 56,
+  industrial-service 183, model-router 70, inference-gateway 25); ruff clean (CI scope).
+- `docs/23_SERVICE_MAP_AS_BUILT.md` + evidence-service README updated; decision
+  recorded as **DEC-028**.
+
+**Status:** all cross-service wiring named in either changelog is LIVE. Remaining
+internal-only endpoints (compare-documents, verify-calculation, validate-answer,
+check-sop-compliance) await Character 2's agent workflows.
+
+**Next:** knowledge-graph-backed equipment lookup to replace the in-process
+conflict-target registry; `docs/api/` formalization (Character 1).

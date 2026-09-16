@@ -19,7 +19,7 @@ Character 3 (Knowledge & Documents) owns this service, per `TEAM.md`.
 | `source_chain` | `06_source_chain.md` | walk Source → Version → Page/Section → Chunk, following supersession |
 | `evidence_graph` | `07_evidence_graph.md` | claims/evidence/sources graph for a task |
 | `confidence` | `08_confidence.md` | four qualitative axes — **never** a single 0–100% number (§3a anti-pattern) |
-| `unsupported_claim_detection` | `09_unsupported_claim_detection.md` | claims without Evidence rows; sets `verification_status` (never touches `contradicted`) |
+| `unsupported_claim_detection` | `09_unsupported_claim_detection.md` | claims without Evidence rows; sets `verification_status` (upgrade only: unverified→supported→contradicted via industrial `/internal/detect-conflicts`) |
 | `evidence_failures` | `10_evidence_failures.md` | structured diagnosis (broken chain, superseded source, missing page/coords, pending verification) |
 
 Read paths: `GET /api/v1/evidence-and-provenance/<op>/{id}` (evidence_id,
@@ -28,10 +28,11 @@ claim_id, or task_id depending on the op) plus unauthenticated `GET /healthz`.
 ## Ingest enrichment (live cross-service wiring)
 
 Op 01 (`evidence_system`) doubles as the ingest path: when a payload carries the
-optional `equipment_tag` (+ `within_unit_id`, `plant_id`) and/or `finding`
-extensions, evidence-service calls industrial-service's
-`/internal/resolve-tag` and `/internal/validate-finding` (`industrial_gateway.py`)
-**before** persisting the Evidence row:
+optional `equipment_tag` (+ `within_unit_id`, `plant_id`), `finding`, or
+`conflict_check` extensions, evidence-service calls industrial-service's
+`/internal/resolve-tag`, `/internal/validate-finding`, and
+`/internal/detect-conflicts` (`industrial_gateway.py`) **before** persisting
+the Evidence row:
 
 - enrichment failure (transport, timeout, non-2xx) fails closed —
   `DEPENDENCY_UNAVAILABLE`, no row persisted; a 403 from the dependency
@@ -40,6 +41,24 @@ extensions, evidence-service calls industrial-service's
   (`requires_human_confirmation`) — governed_by edges are never persisted here;
 - `finding_validation` flags (`supported`, `ocr_warning`) are surfaced, not gated;
 - payloads without the extensions never touch the dependency.
+
+### Contradiction pass (op 09 → `/internal/detect-conflicts`)
+
+When op 01 resolved a task's evidence to an equipment (case-1 or
+human-confirmed case-2), op 09 (`unsupported_claim_detection`) additionally
+runs industrial's deterministic conflict detector over that task's resolvable
+evidence rows: parameter = section reference, value = chunk text, authority +
+validity windows from the source-chain store. Every row whose source document
+participates in a `ConflictRecord` is upgraded to `verification_status:
+contradicted` — an upgrade only (`supported` is never downgraded; nothing
+downgrades `contradicted`). If the detector is unavailable the pass is
+**skipped, not fabricated** (fail-open for detection, never for persistence):
+no status is invented and the next op-09 run catches up. The detector itself
+never auto-resolves; human review resolves (industrial/14).
+
+The equipment→task association is an in-process registry stub today (DEC-023);
+the real lookup joins the knowledge graph's `governed_by` edges once
+PostgreSQL/KG land.
 
 Config: `EV_INDUSTRIAL_BASE_URL` (default `http://127.0.0.1:8005`),
 `EV_INDUSTRIAL_TIMEOUT_SECONDS` (default 5).
@@ -79,6 +98,7 @@ python -m pytest tests/ -q
 
 Coverage maps to the feature docs' Test requirements (§24) and Acceptance
 criteria (§25): unit tests per Failure-modes row, integration tests per success
-path, permission tests per role, the exactly-one-audit-event invariant, and the
+path, permission tests per role, the exactly-one-audit-event invariant, the
 industrial enrichment wiring (header/body contract, error translation,
-fail-closed persistence, retry, HTTP path). **106 tests.**
+fail-closed persistence, retry, HTTP path), and the op-09 contradiction pass
+(contradicted upgrade, never-downgrade, fail-open detection). **115 tests.**

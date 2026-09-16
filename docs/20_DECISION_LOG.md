@@ -449,3 +449,27 @@ requested; industrial-service becomes a hard dependency for enriched ingests onl
 document-pipeline should adopt the same pattern for its own ingest
 (`docs/23_SERVICE_MAP_AS_BUILT.md` wiring section updated); the /internal contracts
 await Character 1's formalization in `docs/api/`.
+
+### DEC-028 - Contradiction pass + document-pipeline ingest enrichment complete the /internal wiring
+
+**Date:** 2026-09-16
+**Status:** Accepted
+**Context:** Three cross-service wiring items were named across changelogs: evidence
+ingest -> resolve-tag/validate-finding (shipped in DEC-027), the evidence contradiction
+path -> detect-conflicts, and document-pipeline ingest -> resolve-tag/validate-finding.
+The live two-service demo then exposed that `/internal/detect-conflicts` crashes on the
+ISO date strings the HTTP boundary actually delivers.
+**Decision:** (1) industrial's detector normalizes ISO date/datetime strings at its
+boundary (`_as_date`) - the HTTP contract is raw JSON, not pydantic-parsed dates.
+(2) evidence-service op 09 runs the detector over resolvable evidence rows of tasks
+whose op-01 ingest resolved an equipment; ConflictRecord participants upgrade to
+`contradicted` (upgrade only). Detection failure is fail-OPEN (skip the pass, never
+fabricate a status) - deliberately asymmetric with enrichment's fail-CLOSED posture:
+a missed detection leaves evidence merely unverified, a fabricated contradiction would
+corrupt the record. (3) document-pipeline adopts the same enrichment pattern in
+upload_validation (vendored client per DEC-023 no-shared-code), placed after the sha256
+dedup short-circuit so duplicate uploads never hit the dependency.
+**Consequences:** all three named wiring items are live over real HTTP (verified with
+both services running); the task->equipment association in evidence-service is an
+in-process registry stub until the KG governed_by lookup lands; /internal endpoints
+remain informally contracted until Character 1's `docs/api/`.

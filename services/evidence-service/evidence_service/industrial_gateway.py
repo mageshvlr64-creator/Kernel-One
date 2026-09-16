@@ -34,7 +34,7 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from .errors import RegistryError
 
@@ -74,8 +74,23 @@ class IndustrialGatewayClient:
         """POST /internal/validate-finding — inspection-finding validation."""
         return self._post("/internal/validate-finding", finding)
 
+    def detect_conflicts(self, equipment_id: str,
+                         claims: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """POST /internal/detect-conflicts — contradiction detection.
+
+        The caller pre-fetches the claims (industrial/14: retrieval before
+        detection); the endpoint applies the deterministic classification and
+        returns ConflictRecord objects with status='unresolved' — it never
+        auto-resolves, and the caller owns the consequences (evidence-service
+        maps them to verification_status='contradicted').
+        """
+        return self._post("/internal/detect-conflicts",
+                          {"equipment_id": str(equipment_id), "claims": claims},
+                          expect_list=True)
+
     # -------------------------------------------------------------- internals
-    def _post(self, path: str, body: Dict[str, Any]) -> Dict[str, Any]:
+    def _post(self, path: str, body: Dict[str, Any],
+              expect_list: bool = False) -> Any:
         headers = {"X-Roles": self.roles_header}
         try:
             if self._opener is not None:
@@ -95,12 +110,14 @@ class IndustrialGatewayClient:
                 "POLICY_DENIED",
                 operator_detail=f"industrial-service {path} rejected the "
                                 f"{self.roles_header} role header")
-        if not 200 <= status < 300 or not isinstance(payload, dict):
+        expected = list if expect_list else dict
+        if not 200 <= status < 300 or not isinstance(payload, expected):
+            shape = "a JSON array" if expect_list else "a JSON object"
             raise RegistryError(
                 "DEPENDENCY_UNAVAILABLE",
                 operator_detail=f"industrial-service {path} returned HTTP "
-                                f"{status}" + ("" if isinstance(payload, dict)
-                                               else " with a non-object body"))
+                                f"{status}" + ("" if isinstance(payload, expected)
+                                               else f" with a non-{shape} body"))
         return payload
 
     def _post_http(self, path: str, body: Dict[str, Any],

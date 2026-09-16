@@ -699,6 +699,10 @@ async def get_governing_documents(
 # ---------------------------------------------------------------------------
 
 
+# NOTE: both /internal endpoints consumed by Character 3's callers accept
+# claims/windows as raw JSON, so date-like values arrive as ISO STRINGS over
+# HTTP. conflict_detection._as_date normalizes them (interop fix, 2026-09-16).
+
 class ResolveTagRequest(_BaseModel):
     tag_number: str
     within_unit_id: uuid.UUID

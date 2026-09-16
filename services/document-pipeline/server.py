@@ -8,6 +8,11 @@ DEC-023 until their canonical integrations land:
 - documents store: InMemoryDocumentStore (non-durable)     <- PostgreSQL later
 - audit sink: InMemoryAuditSink (ordered, hash-chained)    <- audit-service later
 - auth: DEV_ACTOR_TOKENS bearer stub                        <- identity-service later
+- industrial enrichment (upload_validation optional): LIVE client to
+  industrial-service /internal/resolve-tag + /internal/validate-finding —
+  real HTTP calls, fired only when an upload payload carries the optional
+  equipment_tag/finding extensions (Character-3 wiring named in the
+  industrial changelog)
 
 Usage:  python server.py [--host HOST] [--port PORT]
 """

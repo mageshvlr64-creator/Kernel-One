@@ -23,7 +23,12 @@ Ops (slug → feature file):
 - confidence (08)                  four-axis qualitative representation (never
                                    a single 0–100% number — §3a)
 - unsupported_claim_detection (09) claims without Evidence rows (domain/13:
-                                   an agent MUST NOT emit a claim without one)
+                                   an agent MUST NOT emit a claim without one); also runs
+                                   the cross-source contradiction pass via industrial
+                                   /internal/detect-conflicts when op 01 ingested
+                                   evidence for an equipment (industrial/14 case 2) —
+                                   conflicting rows become 'contradicted' (upgrade only;
+                                   never downgraded by anything)
 - evidence_failures (10)           structured diagnosis of evidence problems
 
 Evidence carries no state machine of its own: the canonical Document machine
@@ -137,6 +142,50 @@ def _chunk_view(service: "EvidenceService", chunk_id: str) -> Dict[str, Any]:
     return view
 
 
+def _contradicted_document_ids(service: "EvidenceService", equipment_id: str,
+                               rows: List[Evidence]) -> set:
+    """Evidence documents contradicting each other for one equipment.
+
+    Builds industrial/14's claim dicts from the evidence rows and runs the
+    deterministic detector. Claim shape: the parameter is the section reference
+    (two documents asserting what the same section says), the value is the
+    chunk text (the content being asserted), and authority/validity windows
+    come from the source-chain store — the same facts ops 06/08 read. Rows
+    without a section reference, chunk text, or chain facts cannot assert
+    anything and are skipped. Returns the set of source document ids that
+    participate in at least one ConflictRecord (status 'unresolved' — the
+    detector never auto-resolves; evidence-service owns the consequence).
+    """
+    claims: List[Dict[str, Any]] = []
+    for ev in rows:
+        if not ev.section_reference:
+            continue
+        chunk = service.retrieval.get(ev.chunk_id)
+        if not chunk or not chunk.get("text"):
+            continue
+        row = service.chains.version_row(ev.source_document_id, ev.document_version)
+        if row is None:
+            continue
+        claims.append({
+            "document_id": ev.source_document_id,
+            "document_name": f"document {ev.source_document_id} "
+                             f"v{ev.document_version}",
+            "authority": row.get("authority") or "unknown",
+            "effective_from": row.get("effective_from"),
+            "effective_until": row.get("effective_until"),
+            "parameter": ev.section_reference,
+            "value": chunk.get("text"),
+        })
+    if len(claims) < 2:
+        return set()
+    conflicts = service.industrial.detect_conflicts(equipment_id, claims)
+    out: set = set()
+    for conflict in conflicts:
+        out.add(str(conflict.get("source_a_document_id")))
+        out.add(str(conflict.get("source_b_document_id")))
+    return out
+
+
 def _enrich_from_industrial(service: "EvidenceService",
                             payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Cross-service enrichment for ingest (op 01) — industrial-service.
@@ -153,7 +202,8 @@ def _enrich_from_industrial(service: "EvidenceService",
     unit = payload.get("within_unit_id")
     plant = payload.get("plant_id")
     finding = payload.get("finding")
-    if tag is None and finding is None:
+    check = payload.get("conflict_check")
+    if tag is None and finding is None and check is None:
         return None
     out: Dict[str, Any] = {}
     if tag is not None:
@@ -176,6 +226,19 @@ def _enrich_from_industrial(service: "EvidenceService",
                 details=[{"field": "finding", "issue": "must be an object"}],
                 operator_detail="finding enrichment requires a JSON object")
         out["finding_validation"] = service.industrial.validate_finding(finding)
+    check = payload.get("conflict_check")
+    if check is not None:
+        if not isinstance(check, dict) or not is_uuid(check.get("equipment_id")) \
+                or not isinstance(check.get("claims"), list):
+            raise RegistryError(
+                "INVALID_REQUEST",
+                details=[{"field": "conflict_check",
+                          "issue": "must be an object with equipment_id (uuid) "
+                                   "and claims (list)"}],
+                operator_detail="conflict_check enrichment requires equipment_id "
+                                "and claims")
+        out["conflicts"] = service.industrial.detect_conflicts(
+            check["equipment_id"], check["claims"])
     return out
 
 
@@ -209,6 +272,14 @@ def handle_evidence_system(service: "EvidenceService", ctx: Context,
     result = {"evidence": ev.to_dict(), "evidence_id": ev.id}
     if enrichment is not None:
         result["industrial_enrichment"] = enrichment
+        # Record which equipment this task's evidence was resolved against so
+        # op 09 can run the contradiction pass later (industrial/14 case 2).
+        # STUB: in-process registry; the real lookup joins the knowledge graph's
+        # governed_by edges once PostgreSQL/KG land (DEC-023 seam).
+        resolution = enrichment.get("equipment_resolution")
+        if isinstance(resolution, dict) and resolution.get("matched_equipment_id"):
+            service.conflict_targets.setdefault(ev.task_id, set()).add(
+                str(resolution["matched_equipment_id"]))
     return result
 
 
@@ -504,6 +575,31 @@ def handle_unsupported_claim_detection(service: "EvidenceService", ctx: Context,
                 service.links.set_verification_status(eid, "supported")
                 verification_updates += 1
 
+    # Cross-source contradiction pass (industrial/14 case 2, via
+    # /internal/detect-conflicts): when op 01 ingested evidence for an
+    # equipment, the deterministic detector arbitrates cross-document
+    # disagreement over the same section. Every Evidence row whose source
+    # document participates in a ConflictRecord becomes 'contradicted' — an
+    # UPGRADE only: the supported-loop above touches 'unverified' rows, and
+    # nothing in this service ever downgrades 'contradicted' (industrial/14's
+    # output). Detector unavailable: skip the pass — detection failure must
+    # never fabricate a status; the next op-09 run catches up.
+    verification_contradictions = 0
+    evidence_rows = service.links.for_task(task_id)
+    for equipment_id in sorted(service.conflict_targets.get(task_id, set())):
+        try:
+            contradicted_docs = _contradicted_document_ids(service, equipment_id,
+                                                           evidence_rows)
+        except RegistryError as err:
+            if err.code not in ("DEPENDENCY_UNAVAILABLE", "RAG_INDEX_UNAVAILABLE"):
+                raise
+            continue
+        for ev in evidence_rows:
+            if (ev.source_document_id in contradicted_docs
+                    and ev.verification_status != "contradicted"):
+                service.links.set_verification_status(ev.id, "contradicted")
+                verification_contradictions += 1
+
     total = len(claims)
     ratio = len(unsupported) / total
     flagged = ratio >= service.settings.unsupported_flag_ratio
@@ -513,7 +609,8 @@ def handle_unsupported_claim_detection(service: "EvidenceService", ctx: Context,
             "unsupported_claims": unsupported,
             "unsupported_ratio": round(ratio, 6),
             "flagged": flagged,
-            "verification_status_updates": verification_updates}
+            "verification_status_updates": verification_updates,
+            "verification_contradictions": verification_contradictions}
 
 
 # ------------------------------------------------------------------ 10 evidence_failures
@@ -600,6 +697,10 @@ class EvidenceService:
         self.industrial = industrial
         self.invocations: Dict[str, dict] = {}   # audit_event_id -> invocation summary
         self._idempotency: Dict[str, OpResult] = {}
+        # task_id -> equipment ids whose evidence op 01 resolved for it. Read by
+        # op 09's contradiction pass (industrial/14 case 2). STUB: in-process
+        # registry; replaced by the knowledge-graph governed_by lookup later.
+        self.conflict_targets: Dict[str, set] = {}
 
     # ---- central dispatcher -------------------------------------------------------
     def invoke(self, op: str, actor: Actor, payload: Optional[Dict[str, Any]],
