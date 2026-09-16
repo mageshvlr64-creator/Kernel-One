@@ -31,6 +31,7 @@ jobs:
           - inference-gateway
           - industrial-service
           - knowledge-fabric
+          - evidence-service
     defaults:
       run:
         working-directory: services/${{ matrix.service }}

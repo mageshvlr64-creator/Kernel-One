@@ -614,3 +614,55 @@ unauthenticated request correctly 401 AUTH_REQUIRED.
 **Status:** Scanned PDFs now flow upload → EXTRACTING → OCR (flagged pages persist) →
 INDEXING, where knowledge-fabric takes over. Not deployed; PaddleOCR adapter and
 Postgres/pgvector seams remain explicit stubs until Characters 1/5 land.
+
+### [Character 3 — Knowledge & Documents] 2026-09-16
+
+**Built/changed:**
+- `services/evidence-service/` — build-order **#17** (Phase 6, feature group 14): all ten
+  ops of `features/14_evidence_and_provenance/` (evidence_system, claim_extraction,
+  claim_to_source_mapping, page_level_citations, coordinate_level_citations, source_chain,
+  evidence_graph, confidence, unsupported_claim_detection, evidence_failures) exposed as
+  `POST /api/v1/evidence-and-provenance/<op>` + `GET .../<op>/{id}` and as in-process entry
+  points (`service.invoke` — one implementation, feature §12)
+- Canonical conformance: Evidence fields per `domain/13` + `schemas/09` (schema-gated
+  before any logic; caller-supplied `verification_status` ignored on create), citations
+  per `schemas/10`, registry-verbatim errors/envelopes, permission matrix
+  (`Document:execute`, role denial → TOOL_NOT_ALLOWED before classification layer),
+  exactly-one `evidence_and_provenance.<op>` audit event per invocation incl. denials,
+  idempotency-key replay (§30) that still audits exactly once
+- Domain guardrails: op 09 writes `verification_status` (unverified→supported) but never
+  downgrades `contradicted` (industrial/14's output); confidence op returns ONLY the four
+  qualitative axes of §3a + a labeled ranking-signal debug view — no combined 0-100%
+  number (master prompt §12 anti-pattern); coordinate citations fail closed when the
+  chunk carries no bbox; chain walks follow supersession and detect cycles
+  (RESOURCE_CONFLICT) and broken chains (RAG_INDEX_UNAVAILABLE)
+- Explicit stubs (DEC-023 strategy): evidence_links store, source-chain facts view,
+  retrieval view (chunks), audit sink, dev-token auth — all constructor-injected seams
+- Test suite: **87 pytest tests** (op behavior, unsupported-claim policy, contracts incl.
+  exactly-one-audit-event per op and hash-chain integrity, permission matrix per role,
+  HTTP API over a live in-process server) — all passing; full repo regression **503/503**
+  (evidence 87, document-pipeline 84, knowledge-fabric 56, model-router 70,
+  inference-gateway 25, industrial-service 181); ruff F821/F841/E9 clean
+- `.github/workflows/ci.yml` — evidence-service added to the test matrix
+- Live HTTP run on :8091 — healthz, 401 AUTH_REQUIRED unauthenticated, full Evidence
+  create round-trip with envelope conformance
+- `docs/23_SERVICE_MAP_AS_BUILT.md` — NEW as-built service map + pipeline flow page
+  (services built so far, the document→OCR→INDEXING→READY→evidence flow, shared
+  conformance contract, open stub seams); indexed in `18_DOCUMENTATION_INDEX.md`
+- `docs/20_DECISION_LOG.md`: added **DEC-026** (evidence-service stub seams; the as-built
+  page) — decision-log touch noted here as a shared-contract file
+
+**Status:** Evidence & Provenance works end-to-end locally: claims extracted from an
+answer, Evidence rows created and mapped, verification status derived, citations resolved
+to page/coordinates where the data supports it, source chains walked through supersession,
+and evidence gaps diagnosed — with one audit event per call and full envelope/error
+conformance. Not deployed; store/chain/retrieval/audit/auth seams are explicit stubs
+until Characters 1/5 land their layers.
+
+**Blocked on / depends on:** Character 1 (`docs/api/` contracts for the evidence routes;
+PostgreSQL migration for evidence_links; pgvector), Character 5 (audit-service,
+identity-service), Character 4 (wiring `/internal/detect-conflicts` into the contradiction
+path — caller-side, per TEAM.md).
+
+**Next:** wire evidence-service into the agent answer path once agent-kernel (#11)
+exists; otherwise the V1 remaining track is Character 5's governance services.

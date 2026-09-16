@@ -399,3 +399,29 @@ an implicit one.
 **Status:** Decision Required · **Owner:** Security lead
 Not currently scoped for V1 or explicitly deferred to V2 — needs an explicit call once a
 target deployment's compliance requirements are known.
+
+### DEC-026 — As-built service map page; evidence-service stub seams
+**Date:** 2026-09-16 · **Status:** Accepted · **Owner:** Character 3 (Knowledge & Documents)
+**Context:** Build-order #17 (feature group 14) plus the need for a living map of what is
+actually built. Two decisions:
+
+1. **Evidence-service increment** mirrors DEC-023/DEC-024: stdlib HTTP, canonical
+registry/matrix/audit conformance, dev-token auth, constructor-injected stubs. Evidence
+field contract per domain/13 + schemas/09: caller-supplied `verification_status` is ignored
+on create (rows start `unverified`); only op 09 writes it, and it never downgrades
+`contradicted` (industrial/14's output). `confidence` is exposed only as a labeled ranking
+signal plus the four qualitative axes of features/14 §3a — no combined 0-100% number is
+computed (master prompt §12 anti-pattern). Citations render per schemas/10; coordinate
+citations fail closed with INVALID_REQUEST when the source chunk carries no bbox, and
+resolution fails closed with RAG_INDEX_UNAVAILABLE when the chunk is absent from the
+retrieval view (knowledge-fabric seam). Idempotency keys replay the original result
+without re-execution while still emitting exactly one audit event per invocation.
+2. **New root doc `23_SERVICE_MAP_AS_BUILT.md`** — an as-built snapshot (service map,
+pipeline flow, conformance contract, open seams) distinct from the target spec and the
+build order, updated in the same change as service work per developer rule 2. Verified
+this session: 503 repo tests passing, ruff clean, evidence-service live over HTTP.
+
+**Consequences:** every service README and this page must move together; the snapshot
+date/test counts are re-stated on each service-affecting change. Cross-character wiring
+(pipeline→industrial resolve-tag, evidence→industrial detect-conflicts) remains owned by
+the caller's character per TEAM.md.
