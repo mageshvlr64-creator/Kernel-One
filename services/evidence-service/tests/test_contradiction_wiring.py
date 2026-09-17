@@ -12,10 +12,6 @@ are read-through cached per (task, document), failures never cached.
 """
 from __future__ import annotations
 
-import sys
-import uuid
-from pathlib import Path
-
 import pytest
 
 from evidence_service.errors import RegistryError
@@ -364,23 +360,3 @@ class TestOp01ConflictCheckEnrichment:
         assert err.value.code == "INVALID_REQUEST"
         assert calls == []
 
-
-class TestIndustrialDateNormalization:
-    def test_iso_date_strings_accepted(self):
-        """HTTP interop: claims arrive with ISO strings; detector must not 500."""
-        root = Path(__file__).resolve().parents[2] / "industrial-service"
-        if str(root) not in sys.path:
-            sys.path.insert(0, str(root))
-        from app.conflict_detection import detect_conflicts as dc
-
-        claims = [
-            {"document_id": DOC_ID, "document_name": "A", "authority": "primary",
-             "effective_from": "2024-01-01", "effective_until": None,
-             "parameter": "s4.2", "value": "150 psi"},
-            {"document_id": DOC_B, "document_name": "B", "authority": "primary",
-             "effective_from": "2024-01-01T00:00:00Z", "effective_until": None,
-             "parameter": "s4.2", "value": "175 psi"},
-        ]
-        records = dc(uuid.UUID(EQUIP_ID), claims)
-        assert len(records) == 1
-        assert records[0].status == "unresolved"

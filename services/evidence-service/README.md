@@ -106,4 +106,4 @@ path, permission tests per role, the exactly-one-audit-event invariant, the
 industrial enrichment wiring (header/body contract, error translation,
 fail-closed persistence, retry, HTTP path), and the op-09 contradiction pass
 (KG-scoped, contradicted upgrade, never-downgrade, fail-open detection,
-caching). **123 tests.**
+caching). **122 tests.**

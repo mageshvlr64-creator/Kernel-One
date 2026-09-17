@@ -34,7 +34,7 @@ on dependency outage, `contradicted` upgrade through the detector).
 | `inference-gateway/` | 1 — Foundation & Inference | 03 inference gateway (one provider path) | #7 | 25 | provider adapters (vLLM/Ollama/llama.cpp shapes), retry + fallback walk |
 | `document-pipeline/` | 3 — Knowledge & Documents | 10 document ingestion, 11 OCR | #14, #15 | 93 | upload→parse→OCR→INDEXING; scanned-PDF path live over HTTP; upload calls industrial `/internal/resolve-tag` + `/internal/validate-finding` (fail-closed enrichment, after sha256 dedup) |
 | `knowledge-fabric/` | 3 — Knowledge & Documents | 13 knowledge fabric | #16 | 56 | chunk → embed → index → hybrid search → context assembly |
-| `evidence-service/` | 3 — Knowledge & Documents | 14 evidence and provenance | #17 | 123 | Evidence rows, claims, citations, source chains, confidence axes, unsupported-claim detection; ingest enrichment + op-09 contradiction pass scoped by the real KG lookup (both live, fail-closed/fail-open respectively) |
+| `evidence-service/` | 3 — Knowledge & Documents | 14 evidence and provenance | #17 | 122 | Evidence rows, claims, citations, source chains, confidence axes, unsupported-claim detection; ingest enrichment + op-09 contradiction pass scoped by the real KG lookup (both live, fail-closed/fail-open respectively) |
 | `industrial-service/` | 4 — Industrial Intelligence | industrial/* (assets, comparison, conflicts, calculations, SOP) | parallel track | 181 | 7 `/internal/*` endpoints, all fail closed on permissions |
 
 Not yet built (no `services/` directory, per build order #3–#5, #9–#13, #18+):
@@ -159,8 +159,8 @@ services land:
 | industrial-service | 8005 | `uvicorn app.main:app --port 8005` | `pytest tests/` in `services/industrial-service` |
 
 CI (`.github/workflows/ci.yml`) lints all services with ruff (F821/F841/E9) and
-runs each service's suite in its own matrix job. Current repo total: **550
-passing tests** (123 + 93 + 56 + 183 + 70 + 25), ruff clean.
+runs each service's suite in its own matrix job. Current repo total: **549
+passing tests** (122 + 93 + 56 + 183 + 70 + 25), ruff clean.
 
 ## 6. Open seams (what is deliberately not real yet)
 
