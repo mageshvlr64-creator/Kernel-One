@@ -30,6 +30,13 @@ class Settings:
     log_level: str = "info"
     # Service-local dev directory for the object-storage STUB (not a production key).
     storage_dir: Path = field(default_factory=lambda: Path(__file__).resolve().parent.parent / ".local" / "object-storage")
+    # Cross-service enrichment (Character-3 side of the industrial-service
+    # boundary): upload_validation calls /internal/resolve-tag and
+    # /internal/validate-finding when the payload carries the optional
+    # equipment_tag/finding extensions. Service-local keys follow DEC-023's
+    # posture for the not-yet-canonical service seams (docs/16 owns canonical keys).
+    industrial_base_url: str = "http://127.0.0.1:8005"
+    industrial_timeout_seconds: float = 5.0
 
 
 def load_settings(environ: dict | None = None) -> Settings:
@@ -70,4 +77,8 @@ def load_settings(environ: dict | None = None) -> Settings:
         network_mode=network_mode,
         max_upload_size_bytes=max_upload,
         log_level=log_level,
+        industrial_base_url=env.get("DP_INDUSTRIAL_BASE_URL",
+                                    "http://127.0.0.1:8005"),
+        industrial_timeout_seconds=float(
+            env.get("DP_INDUSTRIAL_TIMEOUT_SECONDS", "5.0")),
     )

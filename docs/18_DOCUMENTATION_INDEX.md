@@ -32,7 +32,9 @@ entity state machines, referenced by `runtime/04..09_*_state_machine.md` pointer
 `22_REFACTOR_AUDIT_REPORT.md` (the 2026-09-04 identifier-correction and consistency audit —
 see `20_DECISION_LOG.md` DEC-018/DEC-019), `MASTER_PROMPT_COMPLIANCE_AUDIT.md` and
 `DETAILED_FINDINGS_AND_REMEDIATION_PLAN.md` (the 63-section compliance audit and per-item
-remediation plan that DEC-020/DEC-021 implement).
+remediation plan that DEC-020/DEC-021 implement), and `23_SERVICE_MAP_AS_BUILT.md` (the
+as-built service map and pipeline flow — what is actually implemented versus the build
+order; created 2026-09-16, see `20_DECISION_LOG.md` DEC-026).
 
 ## New non-root files added during the compliance remediation pass (DEC-020)
 

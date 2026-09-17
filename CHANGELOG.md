@@ -550,6 +550,43 @@ third-party DeprecationWarnings are upstream packages' to fix.
 ### [Character 3 — Knowledge & Documents] 2026-09-15 (session 3)
 
 **Built/changed:**
+- `services/knowledge-fabric/` — build-order **#15** (Phase 6): all fifteen feature ops of
+  `features/13_knowledge_fabric/` (document_store, document_normalization, chunking,
+  embeddings, keyword_index, vector_index, metadata_index, hybrid_search, reranking,
+  document_hierarchy, permission_filtering, context_assembly, knowledge_overview,
+  retrieval_quality, retrieval_failures), exposed as `POST
+  /api/v1/knowledge-fabric/<op>` + `GET /api/v1/knowledge-fabric/<op>/{document_id}` and
+  as in-process entry points (`service.invoke` — one implementation, feature §12)
+- Canonical conformance: DocumentChunk schema (768-dim embedding, bbox, ocr_confidence —
+  `schemas/08`), chunk window 200–800 tokens (`domain/07`), Document state machine guard
+  limited to this service's owned transitions (INDEXING→READY with `document.indexed`,
+  INDEXING→FAILED), permission matrix per `reference/05`, exactly-one invocation audit
+  event per call incl. denials, registry-verbatim errors/envelopes
+- Explicit stubs (DEC-023/DEC-024): DocumentSource (document-pipeline view), ChunkIndex
+  (in-memory cosine; pgvector HNSW later), hash-based 768-dim embeddings
+  (model-inference seam later), audit sink, dev-token auth
+- Test suite: **56 pytest tests** (indexing pipeline, retrieval + per-chunk permission
+  filtering, contracts incl. exactly-one-audit-event and matrix-per-role, HTTP API over a
+  live in-process server) — all passing; full repo regression 390/390 green
+- `docs/20_DECISION_LOG.md`: added **DEC-024** (stub embeddings; per-chunk policy
+  baseline for corpus reads)
+
+**Status:** A document left INDEXING by document-pipeline can be normalized, chunked,
+embedded, keyword/vector/metadata indexed, and moved to READY — then searched with
+hybrid keyword+vector scoring under per-chunk classification/workspace filtering, reranked,
+assembled into token-budgeted context, and diagnosed on empty results. Not deployed;
+stubs behind every external seam until Characters 1/5 land their layers.
+
+**Next:** OCR integration (feature group 11) feeds INDEXING docs from scanned PDFs into
+this pipeline; pgvector swap-in behind ChunkIndex when the platform layer lands.
+
+### [Character 3 — Knowledge & Documents] 2026-09-15 (session 4)
+
+**Built/changed:**
+- **OCR pipeline — build-order #15** (`features/11_ocr`, 9 ops): implemented inside
+  `document-pipeline` per `15_CODEBASE_TARGET_STRUCTURE.md` (feature 11 belongs to that
+  service; a standalone `services/ocr` was considered and rejected — see DEC-025).
+
 - **OCR pipeline — build-order #15** (`features/11_ocr`, 9 ops): implemented inside
   `document-pipeline` per `15_CODEBASE_TARGET_STRUCTURE.md` (feature 11 belongs to that
   service; a standalone `services/ocr` was considered and rejected — see DEC-024).
@@ -558,6 +595,24 @@ third-party DeprecationWarnings are upstream packages' to fix.
   low-confidence flagging per `failures/22`), text reconstruction, coordinate mapping,
   confidence report, failure report, language handling, engine selection, and
   `complete_ocr` → **OCR→INDEXING** with the canonical `document.ocr_completed` event —
+  the hand-off into knowledge-fabric (#16).
+- Engine seam per `integrations/08`: lazy `PaddleOcrEngine` fails closed with
+  DEPENDENCY_UNAVAILABLE when absent; deterministic stub transcribes **real rendered
+  PNGs** (pixel-digest pseudo-regions) so stub and real engine share one code path.
+- **Policy layering fix** (cross-cutting, shared module): role-denied actors now get
+  TOOL_NOT_ALLOWED before the classification layer instead of a misattributed
+  FILE_CLASSIFICATION_DENIED — matches every existing test's expectation and the
+  registry's code definitions.
+- **Audit-contract hardening**: unhandled engine crashes inside an OCR op are mapped to
+  DEPENDENCY_UNAVAILABLE with exactly one error audit event, instead of escaping bare.
+- `docs/20_DECISION_LOG.md`: added **DEC-025** (+ errata noting the canonical build order
+  is OCR=#15, knowledge-fabric=#16; session 3's changelog said #15 for knowledge-fabric).
+
+**Verification:** OCR suite 26/26; full document-pipeline 84/84; whole-repo regression
+**416/416** (document-pipeline 84, knowledge-fabric 56, model-router 70,
+inference-gateway 25, industrial-service 181). Live HTTP run of the scanned→OCR→INDEXING
+pipeline on :8080 — upload → detection (EXTRACTING) → page-processing (OCR, 2 pages) →
+
   the hand-off into knowledge-fabric (#16, not yet built upstream).
 - Engine seam per `integrations/08`: lazy `PaddleOcrEngine` fails closed with
   DEPENDENCY_UNAVAILABLE when absent; deterministic stub transcribes **real rendered
@@ -580,6 +635,213 @@ text-reconstruction (100 chars) → complete-ocr (INDEXING hand-off) → GET con
 unauthenticated request correctly 401 AUTH_REQUIRED.
 
 **Status:** Scanned PDFs now flow upload → EXTRACTING → OCR (flagged pages persist) →
+INDEXING, where knowledge-fabric takes over. Not deployed; PaddleOCR adapter and
+Postgres/pgvector seams remain explicit stubs until Characters 1/5 land.
+
+### [Character 3 — Knowledge & Documents] 2026-09-16
+
+**Built/changed:**
+- `services/evidence-service/` — build-order **#17** (Phase 6, feature group 14): all ten
+  ops of `features/14_evidence_and_provenance/` (evidence_system, claim_extraction,
+  claim_to_source_mapping, page_level_citations, coordinate_level_citations, source_chain,
+  evidence_graph, confidence, unsupported_claim_detection, evidence_failures) exposed as
+  `POST /api/v1/evidence-and-provenance/<op>` + `GET .../<op>/{id}` and as in-process entry
+  points (`service.invoke` — one implementation, feature §12)
+- Canonical conformance: Evidence fields per `domain/13` + `schemas/09` (schema-gated
+  before any logic; caller-supplied `verification_status` ignored on create), citations
+  per `schemas/10`, registry-verbatim errors/envelopes, permission matrix
+  (`Document:execute`, role denial → TOOL_NOT_ALLOWED before classification layer),
+  exactly-one `evidence_and_provenance.<op>` audit event per invocation incl. denials,
+  idempotency-key replay (§30) that still audits exactly once
+- Domain guardrails: op 09 writes `verification_status` (unverified→supported) but never
+  downgrades `contradicted` (industrial/14's output); confidence op returns ONLY the four
+  qualitative axes of §3a + a labeled ranking-signal debug view — no combined 0-100%
+  number (master prompt §12 anti-pattern); coordinate citations fail closed when the
+  chunk carries no bbox; chain walks follow supersession and detect cycles
+  (RESOURCE_CONFLICT) and broken chains (RAG_INDEX_UNAVAILABLE)
+- Explicit stubs (DEC-023 strategy): evidence_links store, source-chain facts view,
+  retrieval view (chunks), audit sink, dev-token auth — all constructor-injected seams
+- Test suite: **87 pytest tests** (op behavior, unsupported-claim policy, contracts incl.
+  exactly-one-audit-event per op and hash-chain integrity, permission matrix per role,
+  HTTP API over a live in-process server) — all passing; full repo regression **503/503**
+  (evidence 87, document-pipeline 84, knowledge-fabric 56, model-router 70,
+  inference-gateway 25, industrial-service 181); ruff F821/F841/E9 clean
+- `.github/workflows/ci.yml` — evidence-service added to the test matrix
+- Live HTTP run on :8091 — healthz, 401 AUTH_REQUIRED unauthenticated, full Evidence
+  create round-trip with envelope conformance
+- `docs/23_SERVICE_MAP_AS_BUILT.md` — NEW as-built service map + pipeline flow page
+  (services built so far, the document→OCR→INDEXING→READY→evidence flow, shared
+  conformance contract, open stub seams); indexed in `18_DOCUMENTATION_INDEX.md`
+- `docs/20_DECISION_LOG.md`: added **DEC-026** (evidence-service stub seams; the as-built
+  page) — decision-log touch noted here as a shared-contract file
+
+**Status:** Evidence & Provenance works end-to-end locally: claims extracted from an
+answer, Evidence rows created and mapped, verification status derived, citations resolved
+to page/coordinates where the data supports it, source chains walked through supersession,
+and evidence gaps diagnosed — with one audit event per call and full envelope/error
+conformance. Not deployed; store/chain/retrieval/audit/auth seams are explicit stubs
+until Characters 1/5 land their layers.
+
+**Blocked on / depends on:** Character 1 (`docs/api/` contracts for the evidence routes;
+PostgreSQL migration for evidence_links; pgvector), Character 5 (audit-service,
+identity-service), Character 4 (wiring `/internal/detect-conflicts` into the contradiction
+path — caller-side, per TEAM.md).
+
+**Next:** wire evidence-service into the agent answer path once agent-kernel (#11)
+exists; otherwise the V1 remaining track is Character 5's governance services.
+
+### [Character 3 - Knowledge & Documents] 2026-09-16
+
+**Built/changed (cross-service wiring - the industrial changelog's pending Character-3 item):**
+- `services/evidence-service/evidence_service/industrial_gateway.py` - NEW: client for
+  industrial-service `/internal/resolve-tag` + `/internal/validate-finding`
+  (`X-Roles: Equipment:read`, stdlib transport, injectable opener seam for tests).
+  Note: the endpoints live on industrial-service (:8005), not inference-gateway -
+  inference-gateway is the LLM routing path.
+- `evidence_service/ops.py` - op 01 `evidence_system` (the ingest path) now enriches
+  BEFORE persisting when a payload carries the optional `equipment_tag`
+  (+ `within_unit_id`, `plant_id`) / `finding` extensions: fail closed on any
+  dependency failure (`DEPENDENCY_UNAVAILABLE`, retryable per runtime/11
+  interactive-read), 403 from the dependency maps to `POLICY_DENIED`; ambiguous
+  (case-2) resolutions surfaced verbatim for human confirmation - governed_by edges
+  are never persisted here; `finding_validation` flags surfaced, not gated; payloads
+  without the extensions never touch the dependency.
+- `evidence_service/config.py` - `EV_INDUSTRIAL_BASE_URL` (default
+  `http://127.0.0.1:8005`) + `EV_INDUSTRIAL_TIMEOUT_SECONDS` (default 5).
+- `server.py` - builds the live client from settings.
+- Tests: `tests/test_industrial_wiring.py` - NEW, **19 tests** (header/body contract,
+  canonical error translation, fail-closed no-persist on dependency failure, exactly-one
+  audit event on success AND error paths, transient-failure retry under the canonical
+  policy, HTTP-path 403 translation, no-dependency-call for plain payloads).
+  evidence-service now 106 tests; repo regression **522/522**
+  (evidence 106, document-pipeline 84, knowledge-fabric 56, model-router 70,
+  inference-gateway 25, industrial-service 181); ruff F821/F841/E9 clean.
+- `docs/23_SERVICE_MAP_AS_BUILT.md` - pipeline diagram now marks the live callers;
+  test totals updated (522); industrial-service port recorded.
+- `services/evidence-service/README.md` - new "Ingest enrichment" section + seams row.
+
+**Verification:** evidence-service 106/106, full repo 522/522, ruff clean under CI's
+exact scope (`ruff check services/ --select F821,F841,E9`). Client transport verified
+via stub opener + one HTTP-level test (urllib path, 403 translation); no live
+industrial-service was running, so no socket-level cross-service run was performed.
+
+**Status:** First live inter-service call in the platform: evidence-service ingest can
+enrich Evidence rows with equipment resolution + finding validation from
+industrial-service, failing closed when the dependency is down. Not deployed.
+
+**Blocked on / depends on:** Character 1 (`docs/api/` formalization of the /internal
+contracts), Character 4 (industrial-service deployed alongside), Character 3
+(document-pipeline's own ingest wiring + the detect-conflicts contradiction path).
+
+**Next:** document-pipeline ingest wiring (same pattern), then
+`/internal/detect-conflicts` from the evidence contradiction path.
+
+### [Character 3 - Knowledge & Documents] 2026-09-16 (wiring completion)
+
+**Built/changed (second increment - completes every /internal wiring item named in either changelog):**
+- LIVE two-service verification: evidence-service (:8091) + industrial-service (:8005,
+  real FastAPI app over an in-process pool shim - no PostgreSQL on this machine) -
+  enriched ingest verified end-to-end over real HTTP: case-1 `exact_same_unit`,
+  case-2 `exact_other_unit` (human confirmation surfaced verbatim), case-3 `no_match`,
+  finding flags surfaced (`supported=false` when evidence_id provenance fields are
+  absent - surfaced, not gated), and 503 `DEPENDENCY_UNAVAILABLE` fail-closed against
+  a dead dependency (no row persisted, correlation_id present).
+- `services/industrial-service/app/conflict_detection.py` - INTEROP FIX: `_dates_overlap`
+  crashed on the ISO date STRINGS `/internal/detect-conflicts` actually delivers
+  (`claims: list[dict]` is never pydantic-parsed). New `_as_date` normalizes ISO date
+  and ISO datetime strings (e.g. `2024-01-01T00:00:00Z`); 2 pinning tests added.
+- `services/evidence-service` - op 09 contradiction pass wired: builds industrial/14
+  claim dicts from resolvable evidence rows (parameter=section_reference, value=chunk
+  text, authority + validity windows from the source-chain store) and calls
+  `/internal/detect-conflicts`; participants UPGRADE to `verification_status=contradicted`
+  (upgrade only - `supported` never downgraded, `contradicted` never downgraded);
+  detector outage SKIPS the pass (fail-open detection, never a fabricated status);
+  op 01 records task->equipment associations from resolve-tag results (in-process
+  registry stub until the KG governed_by lookup lands, DEC-023 seam); op 01 also gained
+  the `conflict_check` pass-through enrichment; gateway gained `detect_conflicts`
+  with list-typed response validation.
+- `services/document-pipeline` - the SAME enrichment pattern wired into
+  `upload_validation` (vendored client per DEC-023 no-shared-code, RegistryError
+  raised so execute() keeps the exactly-one-audit invariant): resolve-tag +
+  validate-finding BEFORE persistence, fail closed, AFTER the sha256 dedup
+  short-circuit (duplicates never call the dependency); config keys
+  `DP_INDUSTRIAL_BASE_URL` / `DP_INDUSTRIAL_TIMEOUT_SECONDS`.
+- Tests: evidence 106->115 (`test_contradiction_wiring.py`), document-pipeline 84->93
+  (`test_industrial_wiring.py`), industrial 181->183 (interop pins). Repo regression
+  **542/542** (evidence 115, document-pipeline 93, knowledge-fabric 56,
+  industrial-service 183, model-router 70, inference-gateway 25); ruff clean (CI scope).
+- `docs/23_SERVICE_MAP_AS_BUILT.md` + evidence-service README updated; decision
+  recorded as **DEC-028**.
+
+**Status:** all cross-service wiring named in either changelog is LIVE. Remaining
+internal-only endpoints (compare-documents, verify-calculation, validate-answer,
+check-sop-compliance) await Character 2's agent workflows.
+
+**Next:** knowledge-graph-backed equipment lookup to replace the in-process
+conflict-target registry; `docs/api/` formalization (Character 1).
+
 INDEXING, where knowledge-fabric takes over once that service is built upstream. Not
 deployed; PaddleOCR adapter and Postgres/pgvector seams remain explicit stubs until
 Characters 1/5 land.
+
+### [Character 3 - Knowledge & Documents] 2026-09-16 (KG-backed contradiction scoping)
+
+**Built/changed:**
+- `evidence_service/ops.py` - the op-01 task->equipment in-process registry is GONE.
+  Op 09's contradiction pass now scopes itself with the REAL knowledge-graph lookup:
+  for each evidence source document it calls industrial-service
+  `GET /documents/{document_id}/equipment` (the equipment_governing_documents table -
+  which equipment a document governs is the graph's fact, not the caller's), then runs
+  `/internal/detect-conflicts` per governed equipment. Documents governing no equipment
+  skip the detector entirely. This also covers documents ingested by ANY path (enriched
+  or not) - the old registry only knew about enriched ingests.
+- `evidence_service/industrial_gateway.py` - new `equipment_for_document()` (GET, no
+  body, `X-Roles: Equipment:read`, equipment_ids-array validation, 403 ->
+  POLICY_DENIED, transport failures -> DEPENDENCY_UNAVAILABLE) over the shared
+  `_request` transport (GET/POST unified; opener seam unchanged).
+- Caching: KG lookups are read-through cached per (task_id, document_id) - a governed_by
+  fact cannot change under a repeated op-09 run - and failures are NEVER cached, so a
+  later run catches up. Detector calls are NOT cached (their inputs can change).
+- Failure posture unchanged where it matters: a KG-lookup or detector outage SKIPS that
+  document (fail-open detection, never a fabricated status; POLICY_DENIED on the scope
+  lookup skips too); the `contradicted` upgrade remains upgrade-only.
+- Tests: contradiction suite rewritten for the KG flow + 8 new cases (KG contract/parsing,
+  malformed body, 403, transport failure, no-equipment skip, lookup outage skip, policy
+  denial skip, per-(task,document) caching, op-01 registry removal pin). evidence-service
+  115 -> 123; repo regression **550/550** (evidence 123, document-pipeline 93,
+  knowledge-fabric 56, industrial-service 183, model-router 70, inference-gateway 25);
+  ruff clean (CI scope).
+- `docs/23_SERVICE_MAP_AS_BUILT.md` + evidence-service README updated; decision
+  recorded as **DEC-029**.
+
+**Status:** the contradiction pass no longer carries any caller-side memory of ingest
+time; scoping is entirely the knowledge graph's fact. Not deployed.
+
+### [Character 3 - Knowledge & Documents] 2026-09-16 (root pytest guard + repo-wide runner)
+
+**Built/changed:**
+- `pytest.ini` + `conftest.py` (repo root) - running pytest from the repo root used to
+  die with 22 collection errors: all six services ship a same-named `tests` package
+  whose conftest.py prepends its own service root to sys.path, so one process across
+  services mixes the packages up (ImportPathMismatchError). A bare root run now prints
+  the remedy once and exits non-zero; pointing pytest at ONE service's suite works from
+  the root or in-dir (CI-style); requesting two or more services in one process is
+  refused up front with the same explanation. Remove this guard together with any
+  future root-level suite (docs/15 reserves tests/unit, integration, security, e2e).
+- `scripts/run_tests.py` - repo-wide runner reproducing CI's per-service isolation
+  (same `python -m pytest tests/ -q` invocation from each service dir), with per-suite
+  summaries, subset selection, --fail-fast, and non-zero exit on any failure.
+
+**Status:** the repo-level "pytest is broken" failure mode is gone. Verified: bare root
+run = clean remedy, zero collection errors; single-service runs pass (evidence 123);
+multi-service run refused with the remedy; `python scripts/run_tests.py` = **550/550**
+across all six suites, exit 0. Ruff clean (CI scope).
+
+**Next:** none pending from this - per-service invocation was already CI's shape; the
+guard only makes local mistakes loud and cheap.
+
+- **Preflight script + test docs (Character 3).** Added `scripts/preflight.py`, a developer preflight that runs CI's exact ruff gate (`ruff check services/ --select F821,F841,E9`) and then only the per-service test suites affected by uncommitted changes (staged, unstaged, and untracked files): service-file changes select that service's suite, files outside any single service (`conftest.py`, `pytest.ini`, `scripts/`) force all suites, docs-only changes skip the suites, and `--dry-run` shows the selection without running. Documented the per-service pytest rule and both runners in the root README's new "Running the tests" section. Git and ruff subprocess calls are bounded with one retry because this workstation's OneDrive-backed checkout intermittently wedges child processes.
+
+- **Per-service CI summary on PRs (Character 3).** Each CI leg (lint + all six test suites) now uploads its output and outcome as a `test-result-*` artifact, and a new `test-summary` job — running `always()` on pull requests only — downloads them and posts one updating PR comment (marker-anchored, so re-runs edit in place instead of piling up) built by `scripts/ci_test_summary.py`: a lint row plus one row per service in CI matrix order with the parsed pytest tail (`N passed in Ts`), and explicit `cancelled` / missing-artifact states so a crashed leg shows as "no result" instead of silently disappearing. Legs run with `set -o pipefail` so the tee-based capture preserves failures.
+
+- **Cross-service test import removed; evidence-service fixed on CI (Character 3).** The evidence suite pinned industrial's ISO-date interop fix by importing `app.conflict_detection` directly (sys.path hack into ../industrial-service). That made CI's evidence leg fail: it has no requirements.txt, so `app.models` pulled pydantic/asyncpg that were never installed (passed locally only via user site-packages). The pin already lives in industrial's own suite (test_iso_date_strings_do_not_crash_and_still_detect, test_as_date_accepts_date_and_iso_string), so the redundant test was deleted and test counts updated (122/549). Reproduced CI's bare environment locally with python -s before and after; repo runner green.

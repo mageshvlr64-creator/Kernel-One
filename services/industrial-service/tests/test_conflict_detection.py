@@ -340,3 +340,31 @@ class TestFormatConflictOutput:
         output = format_conflict_output(record)
         assert "2020-01-01–2024-02-29" in output
         assert "2024-03-01–present" in output
+
+
+class TestHttpInteropDates:
+    """The /internal/detect-conflicts route accepts claims as raw JSON dicts,
+    so effective_from/effective_until arrive as ISO STRINGS over HTTP. The
+    detector must normalize them instead of crashing on str <= date."""
+
+    def test_iso_date_strings_do_not_crash_and_still_detect(self):
+        claims = [
+            {"document_id": str(DOC_A_ID), "document_name": "SOP-204 Rev.6",
+             "authority": "primary", "effective_from": "2020-01-01",
+             "effective_until": None, "parameter": "Filter replacement interval",
+             "value": "30 days"},
+            {"document_id": str(DOC_B_ID), "document_name": "SOP-204 Rev.7",
+             "authority": "primary", "effective_from": "2020-02-01T00:00:00Z",
+             "effective_until": None, "parameter": "filter replacement interval",
+             "value": "45 days"},
+        ]
+        records = detect_conflicts(EQUIPMENT_ID, claims)
+        assert len(records) == 1
+        assert records[0].status == "unresolved"
+
+    def test_as_date_accepts_date_and_iso_string(self):
+        from app.conflict_detection import _as_date
+        assert _as_date(None) is None
+        assert _as_date(date(2024, 1, 1)) == date(2024, 1, 1)
+        assert _as_date("2024-01-01") == date(2024, 1, 1)
+        assert _as_date("2024-01-01T00:00:00Z") == date(2024, 1, 1)

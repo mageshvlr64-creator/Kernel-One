@@ -305,6 +305,39 @@ module's docstring so replacement is mechanical.
 exists — rejected because it serializes all six characters behind one unspecified choice and
 the spec's own build order has document ingestion in Phase 5, ahead of any such decision.
 
+### DEC-024 — Knowledge-fabric first increment: stub embeddings, per-chunk policy baseline
+**Date:** 2026-09-15 · **Status:** Accepted · **Owner:** Character 3 (Knowledge & Documents)
+**Context:** `services/knowledge-fabric/` (build-order #15) implements feature group 13 on
+the same seams as document-pipeline (DEC-023). Two choices needed an entry:
+
+1. **Embeddings.** The canonical embedding model is pinned via model management
+   (`features/01`), whose selection machinery does not exist yet. Until it does, the
+   service uses a deterministic hash-based 768-dim stub (`storage.embed_text`) with real
+   similarity semantics (shared tokens → higher cosine), injected via the `embedder`
+   constructor seam. Dimension stays 768 per `schemas/08` / `domain/07` so swapping in the
+   real provider cannot break the chunk schema.
+2. **Retrieval policy baseline.** Corpus-level read ops (hybrid_search, reranking,
+   context_assembly, quality/failures) authorize the role/action row against a PUBLIC
+   classification baseline, then apply classification + workspace filtering **per chunk**
+   at scoring time. Document-scoped ops (chunking, embeddings, indexes) authorize against
+   the actual document. This matches `domain/07`'s Notes ("never queried without that
+   filter") — the per-chunk filter is the security boundary, not a corpus-level denial —
+   and the canonical matrix's Auditor row (Document:read ❌) still denies corpus reads
+   outright via the role row.
+
+**Decision:** Both as described. DocumentChunk field validation, the INDEXING→READY
+transition (event `document.indexed`, owner knowledge_fabric), and the 200–800-token
+window (approximated at 4 chars/token, env-tunable) follow the canonical docs verbatim.
+**Rejected:** Authorizing corpus reads against the caller's clearance — rejected because
+it duplicates the per-chunk filter as a corpus-level gate and would deny Restricted User
+searches the matrix explicitly grants (Document:read ✅ up to own clearance).
+
+*Errata (DEC-025 session):* the build-order number cited above was wrong — `09_BUILD_ORDER.md`
+places **OCR at #15 and knowledge-fabric at #16**. The knowledge-fabric entry predates that
+service's build slot being renumbered; content of the decision is unaffected.
+
+### DEC-025 — OCR pipeline first increment: inside document-pipeline, stub engine with real-image transcription
+
 ### DEC-024 — OCR pipeline first increment: inside document-pipeline, stub engine with real-image transcription
 **Date:** 2026-09-15 · **Status:** Accepted · **Owner:** Character 3 (Knowledge & Documents)
 **Context:** Build-order #15 (feature group 11) — the OCR pipeline feeding scanned PDFs into
@@ -318,6 +351,8 @@ server, sharing the store, audit sink, policy layer, and state machine. Owns the
 EXTRACTING→OCR and OCR→INDEXING transitions (event `document.ocr_completed`).
 2. **Engine.** `PaddleOcrEngine` per `integrations/08` is lazy-imported and fails closed
 with DEPENDENCY_UNAVAILABLE when absent (feature §14 — no silent stub fallback). The test
+gine is deterministic **on real rendered PNGs** (pymupdf 150 DPI): pseudo-regions derive
+
 engine is deterministic **on real rendered PNGs** (pymupdf 150 DPI): pseudo-regions derive
 from a bounded pixel-digest hash, so the stub exercises the identical code path the real
 engine will. An early marker-payload special case was removed — scanned candidates have
@@ -368,3 +403,96 @@ an implicit one.
 **Status:** Decision Required · **Owner:** Security lead
 Not currently scoped for V1 or explicitly deferred to V2 — needs an explicit call once a
 target deployment's compliance requirements are known.
+
+### DEC-026 — As-built service map page; evidence-service stub seams
+**Date:** 2026-09-16 · **Status:** Accepted · **Owner:** Character 3 (Knowledge & Documents)
+**Context:** Build-order #17 (feature group 14) plus the need for a living map of what is
+actually built. Two decisions:
+
+1. **Evidence-service increment** mirrors DEC-023/DEC-024: stdlib HTTP, canonical
+registry/matrix/audit conformance, dev-token auth, constructor-injected stubs. Evidence
+field contract per domain/13 + schemas/09: caller-supplied `verification_status` is ignored
+on create (rows start `unverified`); only op 09 writes it, and it never downgrades
+`contradicted` (industrial/14's output). `confidence` is exposed only as a labeled ranking
+signal plus the four qualitative axes of features/14 §3a — no combined 0-100% number is
+computed (master prompt §12 anti-pattern). Citations render per schemas/10; coordinate
+citations fail closed with INVALID_REQUEST when the source chunk carries no bbox, and
+resolution fails closed with RAG_INDEX_UNAVAILABLE when the chunk is absent from the
+retrieval view (knowledge-fabric seam). Idempotency keys replay the original result
+without re-execution while still emitting exactly one audit event per invocation.
+2. **New root doc `23_SERVICE_MAP_AS_BUILT.md`** — an as-built snapshot (service map,
+pipeline flow, conformance contract, open seams) distinct from the target spec and the
+build order, updated in the same change as service work per developer rule 2. Verified
+this session: 503 repo tests passing, ruff clean, evidence-service live over HTTP.
+
+**Consequences:** every service README and this page must move together; the snapshot
+date/test counts are re-stated on each service-affecting change. Cross-character wiring
+(pipeline→industrial resolve-tag, evidence→industrial detect-conflicts) remains owned by
+the caller's character per TEAM.md.
+
+### DEC-027 - Evidence-service calls industrial-service /internal endpoints at ingest
+
+**Date:** 2026-09-16
+**Status:** Accepted
+**Context:** The industrial-service changelog names Character 3 as the caller of record
+for `/internal/resolve-tag` + `/internal/validate-finding` during ingest; no service had
+shipped the caller side yet.
+**Decision:** evidence-service op 01 (`evidence_system`) enriches BEFORE persisting via a
+stdlib HTTP client (`industrial_gateway.py`): optional `equipment_tag`/`finding` payload
+extensions trigger `/internal/resolve-tag` + `/internal/validate-finding`
+(`X-Roles: Equipment:read`); any dependency failure raises `DEPENDENCY_UNAVAILABLE`
+(retryable per runtime/11 interactive-read) and persists nothing (fail closed); a 403
+from the dependency maps to `POLICY_DENIED`; case-2 (ambiguous) resolutions are surfaced
+verbatim for human confirmation - evidence-service never persists governed_by edges;
+finding flags are surfaced, not gated. Payloads without the extensions never touch the
+dependency. `EV_INDUSTRIAL_BASE_URL` / `EV_INDUSTRIAL_TIMEOUT_SECONDS` configure the
+endpoint. Also: correction of record - the endpoints live on industrial-service (:8005),
+not inference-gateway (which is the LLM routing path).
+**Consequences:** ingest latency now includes up to two HTTP calls when enrichment is
+requested; industrial-service becomes a hard dependency for enriched ingests only;
+document-pipeline should adopt the same pattern for its own ingest
+(`docs/23_SERVICE_MAP_AS_BUILT.md` wiring section updated); the /internal contracts
+await Character 1's formalization in `docs/api/`.
+
+### DEC-028 - Contradiction pass + document-pipeline ingest enrichment complete the /internal wiring
+
+**Date:** 2026-09-16
+**Status:** Accepted
+**Context:** Three cross-service wiring items were named across changelogs: evidence
+ingest -> resolve-tag/validate-finding (shipped in DEC-027), the evidence contradiction
+path -> detect-conflicts, and document-pipeline ingest -> resolve-tag/validate-finding.
+The live two-service demo then exposed that `/internal/detect-conflicts` crashes on the
+ISO date strings the HTTP boundary actually delivers.
+**Decision:** (1) industrial's detector normalizes ISO date/datetime strings at its
+boundary (`_as_date`) - the HTTP contract is raw JSON, not pydantic-parsed dates.
+(2) evidence-service op 09 runs the detector over resolvable evidence rows of tasks
+whose op-01 ingest resolved an equipment; ConflictRecord participants upgrade to
+`contradicted` (upgrade only). Detection failure is fail-OPEN (skip the pass, never
+fabricate a status) - deliberately asymmetric with enrichment's fail-CLOSED posture:
+a missed detection leaves evidence merely unverified, a fabricated contradiction would
+corrupt the record. (3) document-pipeline adopts the same enrichment pattern in
+upload_validation (vendored client per DEC-023 no-shared-code), placed after the sha256
+dedup short-circuit so duplicate uploads never hit the dependency.
+**Consequences:** all three named wiring items are live over real HTTP (verified with
+both services running); the task->equipment association in evidence-service is an
+in-process registry stub until the KG governed_by lookup lands; /internal endpoints
+remain informally contracted until Character 1's `docs/api/`.
+
+### DEC-029 - Contradiction-pass scoping moves to the real knowledge graph lookup
+
+**Date:** 2026-09-16
+**Status:** Accepted
+**Context:** DEC-028 shipped the contradiction pass with a task->equipment in-process
+registry fed by op-01 resolve-tag enrichment. That stub had two defects: it remembered
+ingest-time associations in process memory (lost on restart, blind to documents ingested
+by any other path), and it duplicated a fact the knowledge graph already owns.
+**Decision:** op 09 scopes the contradiction pass per source document via industrial
+GET /documents/{document_id}/equipment (equipment_governing_documents), then runs the
+detector per governed equipment. No caller-side registry remains. Lookups are read-through
+cached per (task, document); failures are never cached. Dependency failures (transport,
+5xx, POLICY_DENIED) skip the document - consistent with DEC-028's fail-open posture for
+detection. Detector calls are not cached.
+**Consequences:** the pass now covers all documents with governed_by edges regardless of
+ingest path; restarts lose nothing; op-01 payloads shrink back to pure enrichment. The
+lookup adds one HTTP GET per (task, document) per cold run; the /internal + KG contracts
+remain informally specified until Character 1's docs/api/ land.

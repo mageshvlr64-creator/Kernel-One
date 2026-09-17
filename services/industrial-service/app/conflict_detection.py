@@ -20,7 +20,7 @@ What this module does NOT do:
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Optional
 
 from app.comparison import _normalize_parameter
@@ -43,6 +43,27 @@ AUTHORITY_RANK: dict[str, int] = {
 EQUALLY_AUTHORITATIVE_RANK = AUTHORITY_RANK["primary"]
 
 
+def _as_date(value: Any) -> Optional[date]:
+    """Normalize a validity-window value that may arrive as an ISO string.
+
+    The /internal/detect-conflicts route accepts claims as raw JSON dicts, so
+    effective_from/effective_until reach this module as ISO date STRINGS over
+    HTTP (pydantic never parses them — the request model uses list[dict]).
+    Tolerating both forms keeps the pure function honest for callers that pass
+    date objects (unit tests, in-process use) and for HTTP callers alike.
+    """
+    if value is None or isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            # Full ISO datetime strings (e.g. "2024-01-01T00:00:00Z") are legal
+            # effective_from values too — take their date part.
+            return datetime.fromisoformat(value).date()
+    raise TypeError(f"effective date must be a date or ISO string, got {type(value).__name__}")
+
+
 def _dates_overlap(
     from_a: Optional[date],
     until_a: Optional[date],
@@ -59,6 +80,8 @@ def _dates_overlap(
          live conflict, it's ordinary history."
     """
     today = date.today()
+    from_a, until_a = _as_date(from_a), _as_date(until_a)
+    from_b, until_b = _as_date(from_b), _as_date(until_b)
     # Treat None effective_until as "open-ended" (still in force today)
     end_a = until_a if until_a is not None else today
     end_b = until_b if until_b is not None else today

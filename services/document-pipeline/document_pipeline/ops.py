@@ -105,11 +105,21 @@ class DocumentIngestionService:
     """Owns the dependencies; handlers below are pure orchestration over it."""
 
     def __init__(self, store: InMemoryDocumentStore, storage: ObjectStorage,
-                 audit_sink: audit_mod.AuditSink, settings: Settings) -> None:
+                 audit_sink: audit_mod.AuditSink, settings: Settings,
+                 industrial=None) -> None:
         self.store = store
         self.storage = storage
         self.audit = audit_sink
         self.settings = settings
+        # Cross-service enrichment client (industrial-service /internal endpoints,
+        # the Character-3 ingest wiring named in the industrial changelog). Lazy
+        # import: industrial_gateway imports ops for type-adjacent defaults.
+        if industrial is None:
+            from .industrial_gateway import IndustrialGatewayClient
+            industrial = IndustrialGatewayClient(
+                base_url=settings.industrial_base_url,
+                timeout_seconds=settings.industrial_timeout_seconds)
+        self.industrial = industrial
         # Extraction cache: parsed pages per document id. Stub for the persistence the
         # knowledge fabric (group 13) will read from PostgreSQL later (DEC-023).
         self.extractions: Dict[str, pdf_mod.ParseOutcome] = {}
@@ -329,6 +339,13 @@ def handle_upload_validation(service: DocumentIngestionService, ctx: Context,
                 doc=existing, extra={"deduplicated": True},
                 reason="duplicate content deduplicated by sha256 (runtime/15)")
 
+    # Cross-service enrichment (industrial-service /internal endpoints) AFTER the
+    # dedup short-circuit and BEFORE persistence, fail closed: any enrichment
+    # failure raises (the object-storage put below then never runs), so a
+    # dependency outage never stores an unenriched Document. Payloads without
+    # the optional equipment_tag/finding extensions never touch the dependency.
+    enrichment = service.industrial.enrich(payload)
+
     doc_id = new_document_id()
     doc = Document(
         id=doc_id,
@@ -366,7 +383,9 @@ def handle_upload_validation(service: DocumentIngestionService, ctx: Context,
     except ResourceConflict as exc:
         raise RegistryError("RESOURCE_CONFLICT", operator_detail=str(exc)) from exc
     service._emit(transition_event)
-    return HandlerOutcome(doc=doc, extra={})
+    return HandlerOutcome(doc=doc,
+                          extra=({"industrial_enrichment": enrichment}
+                                 if enrichment is not None else {}))
 
 
 # ---------------------------------------------------------------------------

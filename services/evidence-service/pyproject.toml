@@ -1,0 +1,10 @@
+[project]
+name = "evidence-service"
+version = "0.1.0"
+description = "Evidence & Provenance service — claims, citations, source chains, confidence (feature group 14)"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

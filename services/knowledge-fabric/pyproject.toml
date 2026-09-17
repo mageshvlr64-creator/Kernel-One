@@ -1,0 +1,10 @@
+[project]
+name = "knowledge-fabric"
+version = "0.1.0"
+description = "Knowledge Fabric service — indexing, retrieval, and reranking for RAG (feature group 13)"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
