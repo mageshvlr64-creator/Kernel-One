@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import socket
+import time
+import urllib.parse
 import threading
 import urllib.error
 import urllib.request
@@ -114,3 +117,53 @@ class TestHttpApi:
         s, b = request_json("POST", url + "/api/v1/knowledge-fabric/chunking",
                             {"document_id": doc_id}, "dev-token-auditor")
         assert s == 403 and b["error"]["code"] == "TOOL_NOT_ALLOWED"
+
+
+class TestDeniedPostDrainsBody:
+    """Regression: a denied POST must not close the connection while the client
+    is still sending its body. POST handlers authenticate before draining the
+    body, so a denial was written and the socket closed with unread body bytes
+    pending - a client mid-body then hit an aborted connection (WinError 10053
+    on Windows), a load-dependent flake. The raw-socket client below sends
+    headers plus half the body, pauses, then finishes: with the drain in place
+    the server waits for the rest and the denial arrives cleanly."""
+
+    PATH = "/api/v1/knowledge-fabric/hybrid_search"
+    BODY = {"query": "pump alignment"}
+
+    def test_denied_post_mid_body_still_gets_clean_response(self, server_url):
+        url, _ = server_url
+        base = url
+        payload = json.dumps(self.BODY).encode("utf-8")
+        parsed = urllib.parse.urlsplit(base)
+        crlf = bytes((13, 10))
+        sock = socket.create_connection((parsed.hostname, parsed.port), timeout=10)
+        try:
+            head = crlf.join([
+                ("POST " + self.PATH + " HTTP/1.1").encode("ascii"),
+                ("Host: " + parsed.hostname + ":" + str(parsed.port)).encode("ascii"),
+                ("Content-Type: application/json").encode("ascii"),
+                ("Authorization: Bearer dev-token-nobody").encode("ascii"),
+                ("Content-Length: " + str(len(payload))).encode("ascii"),
+                ("Connection: close").encode("ascii"),
+                b"",
+            ])
+            sock.sendall(head + payload[: len(payload) // 2])
+            time.sleep(1.5)  # server decides the denial while we are mid-body
+            try:
+                sock.sendall(payload[len(payload) // 2:])
+                sock.shutdown(socket.SHUT_WR)
+            except OSError as exc:
+                raise AssertionError(
+                    "connection aborted while still sending the body: " + repr(exc))
+            response = b""
+            while True:
+                chunk = sock.recv(65536)
+                if not chunk:
+                    break
+                response += chunk
+        finally:
+            sock.close()
+        status_line = response.split(crlf, 1)[0]
+        assert b" 401 " in status_line
+        assert b"AUTH_REQUIRED" in response
