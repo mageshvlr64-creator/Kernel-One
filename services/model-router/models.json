@@ -23,6 +23,18 @@
       "is_available": true
     },
     {
+      "id": "deepseek-r1-distill-32b",
+      "display_name": "DeepSeek R1 Distill 32B",
+      "provider": "vllm",
+      "total_parameters_billions": 32.0,
+      "active_parameters_billions": 3.5,
+      "quantization": "AWQ-INT4",
+      "context_window": 64000,
+      "capabilities": ["coding", "tool_calling", "structured_output"],
+      "max_classification": "RESTRICTED",
+      "is_available": true
+    },
+    {
       "id": "llava-7b",
       "display_name": "LLaVA 7B (Vision)",
       "provider": "ollama",
