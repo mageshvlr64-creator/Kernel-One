@@ -1,0 +1,4 @@
+# document-pipeline runtime dependencies.
+# pymupdf is the only third-party runtime dependency (document_pipeline/pdf.py);
+# everything else the package imports is the Python standard library.
+pymupdf>=1.24.0
