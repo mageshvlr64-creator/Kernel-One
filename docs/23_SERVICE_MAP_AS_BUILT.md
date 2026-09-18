@@ -31,7 +31,7 @@ on dependency outage, `contradicted` upgrade through the detector).
 | Service (`services/`) | Character | Feature groups implemented | Build order | Tests | Notes |
 |---|---|---|---|---|---|
 | `model-router/` | 1 — Foundation & Inference | 01 model management, 02 model router | #6/#8 | 102 | registry (strict, fails fast on malformed catalog), selection + fallback chain, per-model circuit breaker; health polling → availability → breaker chain e2e-tested |
-| `inference-gateway/` | 1 — Foundation & Inference | 03 inference gateway (one provider path) | #7 | 25 | provider adapters (vLLM/Ollama/llama.cpp shapes), retry + fallback walk |
+| `inference-gateway/` | 1 — Foundation & Inference | 03 inference gateway (one provider path) | #7 | 36 | provider adapters (vLLM/Ollama/llama.cpp shapes), retry + fallback walk |
 | `document-pipeline/` | 3 — Knowledge & Documents | 10 document ingestion, 11 OCR | #14, #15 | 94 | upload→parse→OCR→INDEXING; scanned-PDF path live over HTTP; upload calls industrial `/internal/resolve-tag` + `/internal/validate-finding` (fail-closed enrichment, after sha256 dedup) |
 | `knowledge-fabric/` | 3 — Knowledge & Documents | 13 knowledge fabric | #16 | 57 | chunk → embed → index → hybrid search → context assembly |
 | `evidence-service/` | 3 — Knowledge & Documents | 14 evidence and provenance | #17 | 122 | Evidence rows, claims, citations, source chains, confidence axes, unsupported-claim detection; ingest enrichment + op-09 contradiction pass scoped by the real KG lookup (both live, fail-closed/fail-open respectively) |
@@ -159,8 +159,8 @@ services land:
 | industrial-service | 8005 | `uvicorn app.main:app --port 8005` | `pytest tests/` in `services/industrial-service` |
 
 CI (`.github/workflows/ci.yml`) lints all services with ruff (F821/F841/E9) and
-runs each service's suite in its own matrix job. Current repo total: **601
-passing tests** (123 + 94 + 57 + 183 + 119 + 25), ruff clean.
+runs each service's suite in its own matrix job. Current repo total: **612
+passing tests** (123 + 94 + 57 + 183 + 119 + 36), ruff clean.
 
 ## 6. Open seams (what is deliberately not real yet)
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Callable, Optional
 
 from .models import CircuitState
 
@@ -46,10 +46,15 @@ class CircuitBreaker:
         failure_threshold: int = 5,
         window_seconds: float = 60.0,
         half_open_probe_seconds: float = 15.0,
+        clock: Optional[Callable[[], float]] = None,
     ) -> None:
         self._failure_threshold = failure_threshold
         self._window_seconds = window_seconds
         self._half_open_probe_seconds = half_open_probe_seconds
+        # Injectable clock (default time.monotonic) so time-dependent
+        # behavior — window expiry, half-open probe delay — is tested
+        # by advancing a fake clock instead of sleeping real time.
+        self._clock: Callable[[], float] = clock if clock is not None else time.monotonic
         self._breakers: dict[str, _ModelBreaker] = {}
 
     # ------------------------------------------------------------------
@@ -59,7 +64,7 @@ class CircuitBreaker:
     def allow_request(self, model_id: str) -> bool:
         """Return True if a request to *model_id* should proceed."""
         breaker = self._get(model_id)
-        now = time.monotonic()
+        now = self._clock()
 
         if breaker.state == CircuitState.CLOSED:
             return True
@@ -92,7 +97,7 @@ class CircuitBreaker:
         runtime/11_retry_policy.md), not on N failures ever.
         """
         breaker = self._get(model_id)
-        now = time.monotonic()
+        now = self._clock()
 
         if breaker.state == CircuitState.HALF_OPEN:
             # Probe failed — re-open
