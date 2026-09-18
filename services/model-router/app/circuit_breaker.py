@@ -74,22 +74,32 @@ class CircuitBreaker:
         breaker.state = CircuitState.CLOSED
 
     def record_failure(self, model_id: str) -> None:
-        """Record a failed call — may trip the breaker to OPEN."""
+        """Record a failed call — may trip the breaker to OPEN.
+
+        Counts consecutive failures within the sliding window: a failure that
+        arrives after ``window_seconds`` of quiet resets the counter first,
+        so the breaker opens on N failures *in* the window (per
+        runtime/11_retry_policy.md), not on N failures ever.
+        """
         breaker = self._get(model_id)
         now = time.monotonic()
-        breaker.last_failure_time = now
 
         if breaker.state == CircuitState.HALF_OPEN:
             # Probe failed — re-open
+            breaker.last_failure_time = now
             breaker.state = CircuitState.OPEN
             breaker.opened_at = now
             return
 
         # CLOSED — accumulate failures
-        # Reset counter if the window has elapsed
-        if now - breaker.last_failure_time > self._window_seconds:
+        # Reset counter if the previous failure is outside the window
+        if (
+            breaker.last_failure_time > 0.0
+            and now - breaker.last_failure_time > self._window_seconds
+        ):
             breaker.failure_count = 0
 
+        breaker.last_failure_time = now
         breaker.failure_count += 1
         if breaker.failure_count >= self._failure_threshold:
             breaker.state = CircuitState.OPEN

@@ -30,7 +30,7 @@ on dependency outage, `contradicted` upgrade through the detector).
 
 | Service (`services/`) | Character | Feature groups implemented | Build order | Tests | Notes |
 |---|---|---|---|---|---|
-| `model-router/` | 1 — Foundation & Inference | 01 model management, 02 model router | #6/#8 | 70 | registry, selection + fallback chain, per-model circuit breaker |
+| `model-router/` | 1 — Foundation & Inference | 01 model management, 02 model router | #6/#8 | 102 | registry (strict, fails fast on malformed catalog), selection + fallback chain, per-model circuit breaker; health polling → availability → breaker chain e2e-tested |
 | `inference-gateway/` | 1 — Foundation & Inference | 03 inference gateway (one provider path) | #7 | 25 | provider adapters (vLLM/Ollama/llama.cpp shapes), retry + fallback walk |
 | `document-pipeline/` | 3 — Knowledge & Documents | 10 document ingestion, 11 OCR | #14, #15 | 94 | upload→parse→OCR→INDEXING; scanned-PDF path live over HTTP; upload calls industrial `/internal/resolve-tag` + `/internal/validate-finding` (fail-closed enrichment, after sha256 dedup) |
 | `knowledge-fabric/` | 3 — Knowledge & Documents | 13 knowledge fabric | #16 | 57 | chunk → embed → index → hybrid search → context assembly |
