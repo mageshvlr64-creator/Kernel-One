@@ -28,7 +28,10 @@ class _ModelBreaker:
     # host monotonic() may read below the window itself, which would make a
     # real timestamp indistinguishable from "never" (CI-caught bug).
     last_failure_time: Optional[float] = None
-    opened_at: float = 0.0
+    # None = never opened. Same sentinel convention as last_failure_time:
+    # a small monotonic reading on a freshly booted host must never be
+    # mistaken for "already open".
+    opened_at: Optional[float] = None
 
 
 class CircuitBreaker:
@@ -63,7 +66,10 @@ class CircuitBreaker:
 
         if breaker.state == CircuitState.OPEN:
             # Transition to HALF_OPEN after the probe window elapses
-            if now - breaker.opened_at >= self._half_open_probe_seconds:
+            if (
+                breaker.opened_at is not None
+                and now - breaker.opened_at >= self._half_open_probe_seconds
+            ):
                 breaker.state = CircuitState.HALF_OPEN
                 return True
             return False

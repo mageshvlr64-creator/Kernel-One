@@ -16,7 +16,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Awaitable, Callable, Optional
 
 import httpx
 
@@ -50,12 +50,22 @@ class ModelRegistry:
     3. ``stop_health_polling()`` — cancel background task
     """
 
-    def __init__(self, config: ModelRouterConfig) -> None:
+    def __init__(
+        self,
+        config: ModelRouterConfig,
+        sleep: Optional[Callable[[float], Awaitable[None]]] = None,
+    ) -> None:
         self._config = config
         self._models: dict[str, Model] = {}
         self._health: dict[str, ModelHealth] = {}
         self._poll_task: Optional[asyncio.Task[None]] = None
         self._http_client: Optional[httpx.AsyncClient] = None
+        # Injectable sleep for the poll loop: production uses asyncio.sleep;
+        # tests supply a fake so loop timing (interval honored, one health
+        # check per round) is verified without real delays.
+        self._sleep: Callable[[float], Awaitable[None]] = (
+            sleep if sleep is not None else asyncio.sleep
+        )
 
     # ------------------------------------------------------------------
     # Load
@@ -227,7 +237,7 @@ class ModelRegistry:
     async def _poll_loop(self) -> None:
         """Periodically check health of every registered model."""
         while True:
-            await asyncio.sleep(self._config.health_poll_interval_seconds)
+            await self._sleep(self._config.health_poll_interval_seconds)
             await self._check_all_health()
 
     async def _check_all_health(self) -> None:
