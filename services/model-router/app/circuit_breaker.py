@@ -23,7 +23,11 @@ class _ModelBreaker:
 
     state: CircuitState = CircuitState.CLOSED
     failure_count: int = 0
-    last_failure_time: float = 0.0
+    # None = never failed. A monotonic-clock timestamp of 0.0 (or any small
+    # value) cannot act as the "no failure yet" sentinel: on a freshly booted
+    # host monotonic() may read below the window itself, which would make a
+    # real timestamp indistinguishable from "never" (CI-caught bug).
+    last_failure_time: Optional[float] = None
     opened_at: float = 0.0
 
 
@@ -94,7 +98,7 @@ class CircuitBreaker:
         # CLOSED — accumulate failures
         # Reset counter if the previous failure is outside the window
         if (
-            breaker.last_failure_time > 0.0
+            breaker.last_failure_time is not None
             and now - breaker.last_failure_time > self._window_seconds
         ):
             breaker.failure_count = 0
