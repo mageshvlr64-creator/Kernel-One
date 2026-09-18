@@ -240,14 +240,15 @@ class TestVisionTimeoutBudget:
             inference_timeout_vision_seconds=9.0,
             max_retries=0,
         )
-        gw = InferenceGateway(config, FakeRouterClient(), audit_repo=None)
         captured = {}
 
         async def fake_wait_for(coro, timeout):
             captured["timeout"] = timeout
             return await coro
 
-        monkeypatch.setattr("app.gateway.asyncio.wait_for", fake_wait_for)
+        gw = InferenceGateway(
+            config, FakeRouterClient(), audit_repo=None, wait_for=fake_wait_for
+        )
 
         adapter = BudgetProbeAdapter({})
         gw._adapter_for = lambda model_id: adapter  # type: ignore[method-assign]

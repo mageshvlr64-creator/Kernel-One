@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Callable, Optional
 
 from .models import CircuitState
 
@@ -23,8 +23,15 @@ class _ModelBreaker:
 
     state: CircuitState = CircuitState.CLOSED
     failure_count: int = 0
-    last_failure_time: float = 0.0
-    opened_at: float = 0.0
+    # None = never failed. A monotonic-clock timestamp of 0.0 (or any small
+    # value) cannot act as the "no failure yet" sentinel: on a freshly booted
+    # host monotonic() may read below the window itself, which would make a
+    # real timestamp indistinguishable from "never" (CI-caught bug).
+    last_failure_time: Optional[float] = None
+    # None = never opened. Same sentinel convention as last_failure_time:
+    # a small monotonic reading on a freshly booted host must never be
+    # mistaken for "already open".
+    opened_at: Optional[float] = None
 
 
 class CircuitBreaker:
@@ -39,10 +46,15 @@ class CircuitBreaker:
         failure_threshold: int = 5,
         window_seconds: float = 60.0,
         half_open_probe_seconds: float = 15.0,
+        clock: Optional[Callable[[], float]] = None,
     ) -> None:
         self._failure_threshold = failure_threshold
         self._window_seconds = window_seconds
         self._half_open_probe_seconds = half_open_probe_seconds
+        # Injectable clock (default time.monotonic) so time-dependent
+        # behavior — window expiry, half-open probe delay — is tested
+        # by advancing a fake clock instead of sleeping real time.
+        self._clock: Callable[[], float] = clock if clock is not None else time.monotonic
         self._breakers: dict[str, _ModelBreaker] = {}
 
     # ------------------------------------------------------------------
@@ -52,14 +64,17 @@ class CircuitBreaker:
     def allow_request(self, model_id: str) -> bool:
         """Return True if a request to *model_id* should proceed."""
         breaker = self._get(model_id)
-        now = time.monotonic()
+        now = self._clock()
 
         if breaker.state == CircuitState.CLOSED:
             return True
 
         if breaker.state == CircuitState.OPEN:
             # Transition to HALF_OPEN after the probe window elapses
-            if now - breaker.opened_at >= self._half_open_probe_seconds:
+            if (
+                breaker.opened_at is not None
+                and now - breaker.opened_at >= self._half_open_probe_seconds
+            ):
                 breaker.state = CircuitState.HALF_OPEN
                 return True
             return False
@@ -74,22 +89,32 @@ class CircuitBreaker:
         breaker.state = CircuitState.CLOSED
 
     def record_failure(self, model_id: str) -> None:
-        """Record a failed call — may trip the breaker to OPEN."""
+        """Record a failed call — may trip the breaker to OPEN.
+
+        Counts consecutive failures within the sliding window: a failure that
+        arrives after ``window_seconds`` of quiet resets the counter first,
+        so the breaker opens on N failures *in* the window (per
+        runtime/11_retry_policy.md), not on N failures ever.
+        """
         breaker = self._get(model_id)
-        now = time.monotonic()
-        breaker.last_failure_time = now
+        now = self._clock()
 
         if breaker.state == CircuitState.HALF_OPEN:
             # Probe failed — re-open
+            breaker.last_failure_time = now
             breaker.state = CircuitState.OPEN
             breaker.opened_at = now
             return
 
         # CLOSED — accumulate failures
-        # Reset counter if the window has elapsed
-        if now - breaker.last_failure_time > self._window_seconds:
+        # Reset counter if the previous failure is outside the window
+        if (
+            breaker.last_failure_time is not None
+            and now - breaker.last_failure_time > self._window_seconds
+        ):
             breaker.failure_count = 0
 
+        breaker.last_failure_time = now
         breaker.failure_count += 1
         if breaker.failure_count >= self._failure_threshold:
             breaker.state = CircuitState.OPEN

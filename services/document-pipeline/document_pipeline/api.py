@@ -25,7 +25,7 @@ import json
 import re
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Dict, Optional, Tuple
+from typing import IO, Any, Dict, Optional, Tuple
 
 from .domain import Document
 from .errors import RegistryError
@@ -321,6 +321,7 @@ def make_handler(api: Api):
 
         def _read_json(self) -> Dict[str, Any]:
             length = int(self.headers.get("Content-Length") or 0)
+            self._body_consumed = length
             if length <= 0:
                 return {}
             if length > MAX_BODY_BYTES:
@@ -350,7 +351,31 @@ def make_handler(api: Api):
             self.send_header("Content-Length", "0")
             self.end_headers()
 
+        def _drain_unread_body(self) -> None:
+            """Consume an unread request body before writing a denial response.
+
+            POST handlers authenticate before reading the body, so a denial
+            (401/403/400) would otherwise be written while the client is still
+            sending body bytes. Closing with unread input makes Windows abort
+            the connection (WinError 10053 / ConnectionAbortedError) instead of
+            delivering the error — a load-dependent flake. Only bytes not
+            already consumed by the body reader are drained.
+            """
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            remaining = length - getattr(self, "_body_consumed", 0)
+            stream: IO[bytes] = self.rfile
+            while remaining > 0:
+                block = stream.read(min(remaining, 65536))
+                if not block:
+                    # Peer hung up before the whole body arrived; stop draining.
+                    break
+                remaining -= len(block)
+
         def _deny(self, err: RegistryError) -> None:
+            self._drain_unread_body()
             # AUTH_REQUIRED is an audited code (registry); actor_id='system' is the schema's
             # provision for events without an authenticated actor.
             correlation = str(uuid.uuid4())

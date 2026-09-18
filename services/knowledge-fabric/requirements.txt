@@ -1,0 +1,3 @@
+# knowledge-fabric runtime dependencies: none — the package is standard-library
+# only (stdlib HTTP server, in-process index). This file exists so CI and
+# operators get an explicit, verified answer instead of guessing.

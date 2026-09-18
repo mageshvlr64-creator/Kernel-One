@@ -25,7 +25,7 @@ from typing import Optional
 
 import asyncpg
 from fastapi import FastAPI, Header, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .config import ModelRouterConfig
 from .circuit_breaker import CircuitBreaker
@@ -39,7 +39,7 @@ from .models import (
     ModelSelectionResponse,
     Provider,
 )
-from .registry import ModelRegistry
+from .registry import ModelRegistry, RegistryConfigError
 from .router import ModelRouter
 
 logger = logging.getLogger(__name__)
@@ -68,8 +68,18 @@ async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     global _db_pool, _repo
 
-    # Load model registry from config file
-    await _registry.load()
+    # Load model registry from config file. A malformed catalog is a boot
+    # failure, not a warning: the service must not come up half-configured.
+    try:
+        await _registry.load()
+    except RegistryConfigError as exc:
+        logger.critical(
+            "MODEL ROUTER BOOT FAILURE — model registry %s is invalid, "
+            "refusing to start:\n%s",
+            _config.model_registry_path,
+            exc,
+        )
+        raise SystemExit(f"model-router: invalid model registry: {exc}") from exc
 
     # Connect to database (if configured)
     if _config.database_url:
@@ -126,15 +136,19 @@ class AvailabilityRequest(BaseModel):
 
 
 class ModelCreateRequest(BaseModel):
-    """Body for POST /api/v1/models (register or update)."""
+    """Body for POST /api/v1/models (register or update).
+
+    Field constraints mirror app.models.Model so invalid registrations are
+    rejected by request validation (422) instead of failing later.
+    """
 
     id: str
     display_name: Optional[str] = None
     provider: Provider
-    total_parameters_billions: float
-    active_parameters_billions: Optional[float] = None
+    total_parameters_billions: float = Field(ge=0)
+    active_parameters_billions: Optional[float] = Field(default=None, ge=0)
     quantization: Optional[str] = None
-    context_window: int
+    context_window: int = Field(ge=1)
     capabilities: list[str] = []
     max_classification: DataClassification
     is_available: bool = True
@@ -240,6 +254,15 @@ async def create_model(
 
     from .models import Capability as Cap
 
+    try:
+        capabilities = [Cap(c) for c in body.capabilities]
+    except ValueError as exc:
+        # Unknown capability tag: a client error (422), never a 500.
+        raise HTTPException(
+            status_code=422,
+            detail=f"INVALID_REQUEST: unknown capability in 'capabilities': {exc}",
+        ) from exc
+
     model = Model(
         id=body.id,
         display_name=body.display_name,
@@ -248,7 +271,7 @@ async def create_model(
         active_parameters_billions=body.active_parameters_billions,
         quantization=body.quantization,
         context_window=body.context_window,
-        capabilities=[Cap(c) for c in body.capabilities],
+        capabilities=capabilities,
         max_classification=body.max_classification,
         is_available=body.is_available,
     )

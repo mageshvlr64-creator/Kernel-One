@@ -16,7 +16,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Awaitable, Callable, Optional
 
 import httpx
 
@@ -32,6 +32,15 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 
+class RegistryConfigError(RuntimeError):
+    """MODEL_REGISTRY_PATH contents are malformed — fail fast at boot.
+
+    Deliberately not a registry-API error code: this is a configuration
+    failure raised before the service can serve traffic, not a request
+    failure with a wire representation.
+    """
+
+
 class ModelRegistry:
     """In-memory model registry with background health polling.
 
@@ -41,12 +50,22 @@ class ModelRegistry:
     3. ``stop_health_polling()`` — cancel background task
     """
 
-    def __init__(self, config: ModelRouterConfig) -> None:
+    def __init__(
+        self,
+        config: ModelRouterConfig,
+        sleep: Optional[Callable[[float], Awaitable[None]]] = None,
+    ) -> None:
         self._config = config
         self._models: dict[str, Model] = {}
         self._health: dict[str, ModelHealth] = {}
         self._poll_task: Optional[asyncio.Task[None]] = None
         self._http_client: Optional[httpx.AsyncClient] = None
+        # Injectable sleep for the poll loop: production uses asyncio.sleep;
+        # tests supply a fake so loop timing (interval honored, one health
+        # check per round) is verified without real delays.
+        self._sleep: Callable[[float], Awaitable[None]] = (
+            sleep if sleep is not None else asyncio.sleep
+        )
 
     # ------------------------------------------------------------------
     # Load
@@ -63,8 +82,16 @@ class ModelRegistry:
           ]
         }
 
-        If the path is empty or missing, start with an empty registry
-        (the admin can add models via the API later).
+        Tolerated modes (documented start-empty behavior):
+        - MODEL_REGISTRY_PATH unset -> start empty
+        - file absent               -> start empty
+
+        Everything else is strict and atomic: invalid JSON, a non-object
+        root, a missing or non-list "models" key, any malformed entry, or
+        a duplicate model id raise RegistryConfigError so the service
+        fails fast at boot instead of silently running with a partial
+        catalog. The registry is only mutated after every entry has
+        validated, so a failed load never leaves a half-loaded state.
         """
         path = self._config.model_registry_path
         if not path:
@@ -78,15 +105,38 @@ class ModelRegistry:
             logger.warning("Registry file %s not found — starting empty", path)
             return
 
-        data = json.loads(p.read_text(encoding="utf-8"))
-        for raw in data.get("models", []):
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise RegistryConfigError(
+                f"registry file {p} is not valid JSON: {exc}") from exc
+        if not isinstance(data, dict):
+            raise RegistryConfigError(
+                f"registry file {p} must contain a JSON object")
+        raw_models = data.get("models")
+        if not isinstance(raw_models, list):
+            raise RegistryConfigError(
+                f"registry file {p} must have a \"models\" array")
+
+        loaded: dict[str, Model] = {}
+        seen: dict[str, int] = {}
+        for index, raw in enumerate(raw_models):
+            label = raw.get("id") if isinstance(raw, dict) else raw
             try:
                 model = Model(**raw)
-                self._models[model.id] = model
             except Exception as exc:
-                logger.error("Failed to load model %r: %s", raw.get("id"), exc)
+                raise RegistryConfigError(
+                    f"registry file {p}, models[{index}] ({label!r}): {exc}"
+                ) from exc
+            if model.id in seen:
+                raise RegistryConfigError(
+                    f"registry file {p}, models[{index}]: duplicate model id "
+                    f"{model.id!r} (first seen at models[{seen[model.id]}])")
+            seen[model.id] = index
+            loaded[model.id] = model
 
-        logger.info("Loaded %d models from registry", len(self._models))
+        self._models.update(loaded)
+        logger.info("Loaded %d models from registry", len(loaded))
 
     # ------------------------------------------------------------------
     # Queries
@@ -187,7 +237,7 @@ class ModelRegistry:
     async def _poll_loop(self) -> None:
         """Periodically check health of every registered model."""
         while True:
-            await asyncio.sleep(self._config.health_poll_interval_seconds)
+            await self._sleep(self._config.health_poll_interval_seconds)
             await self._check_all_health()
 
     async def _check_all_health(self) -> None:

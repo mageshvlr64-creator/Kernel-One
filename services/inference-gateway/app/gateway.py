@@ -16,7 +16,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Optional
+from typing import Any, Awaitable, Callable, Optional
 
 from .adapter_base import BaseAdapter, ProviderError
 from .adapters import ADAPTERS
@@ -42,10 +42,24 @@ class InferenceGateway:
         config: GatewayConfig,
         router_client: RouterClient,
         audit_repo=None,
+        sleep: Optional[Callable[[float], Awaitable[None]]] = None,
+        wait_for: Optional[Callable[..., Awaitable[Any]]] = None,
     ) -> None:
         self._config = config
         self._router = router_client
         self._audit_repo = audit_repo
+        # Injectable sleep for retry backoff (default asyncio.sleep): tests
+        # record backoff scheduling without real delays, the same seam the
+        # model-router's poll loop uses.
+        self._sleep: Callable[[float], Awaitable[None]] = (
+            sleep if sleep is not None else asyncio.sleep
+        )
+        # Injectable wait_for for the per-request timeout budget (default
+        # asyncio.wait_for): tests capture which budget each request kind
+        # receives and simulate expiry instantly.
+        self._wait_for: Callable[..., Awaitable[Any]] = (
+            wait_for if wait_for is not None else asyncio.wait_for
+        )
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -109,7 +123,7 @@ class InferenceGateway:
                         model_id, attempt + 1, exc.error_code, retriable,
                     )
                     if retriable and has_retry_left:
-                        await asyncio.sleep(self._config.retry_backoff_seconds)
+                        await self._sleep(self._config.retry_backoff_seconds)
                         continue
                     break  # move to next candidate
 
@@ -139,7 +153,7 @@ class InferenceGateway:
             else self._config.inference_timeout_text_seconds
         )
         try:
-            return await asyncio.wait_for(
+            return await self._wait_for(
                 adapter.generate(model_id, request), timeout=budget
             )
         except asyncio.TimeoutError as exc:
