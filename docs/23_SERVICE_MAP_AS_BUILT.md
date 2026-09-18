@@ -159,8 +159,8 @@ services land:
 | industrial-service | 8005 | `uvicorn app.main:app --port 8005` | `pytest tests/` in `services/industrial-service` |
 
 CI (`.github/workflows/ci.yml`) lints all services with ruff (F821/F841/E9) and
-runs each service's suite in its own matrix job. Current repo total: **584
-passing tests** (123 + 94 + 57 + 183 + 102 + 25), ruff clean.
+runs each service's suite in its own matrix job. Current repo total: **598
+passing tests** (123 + 94 + 57 + 183 + 116 + 25), ruff clean.
 
 ## 6. Open seams (what is deliberately not real yet)
 

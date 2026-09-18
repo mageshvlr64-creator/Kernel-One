@@ -95,3 +95,43 @@ class TestCircuitBreakerReset:
         cb.reset("model-a")
         assert cb.get_state("model-a") == CircuitState.CLOSED
         assert cb.allow_request("model-a") is True
+
+
+class TestCircuitBreakerFreshBoot:
+    """Regression tests for the monotonic-clock sentinel bug caught on CI.
+
+    time.monotonic() reads seconds since boot, so on a freshly provisioned
+    host a real timestamp can sit below the failure window, and backdating
+    past the window crosses zero into negative territory. The pre-fix code
+    used ``last_failure_time > 0.0`` as the never-failed sentinel, which
+    misclassified such a negative timestamp as never-failed and skipped the
+    window reset (CI: breaker stuck OPEN). ``None`` now means never-failed;
+    these tests pin that behavior under a small clock reading.
+    """
+
+    def test_never_failed_uses_none_sentinel(self):
+        cb = _make_breaker()
+        assert cb.get_state("model-a") == CircuitState.CLOSED  # materializes state
+        assert cb._breakers["model-a"].last_failure_time is None
+        cb.record_failure("model-a")
+        assert cb._breakers["model-a"].last_failure_time is not None
+
+    def test_window_reset_fires_with_small_monotonic_readings(self):
+        # Simulate a host ~30s past boot: patching the clock makes the 31s-
+        # backdated failure land before boot (negative). The old ``> 0.0``
+        # guard skipped the reset and tripped the breaker here; the fixed
+        # code must forgive the out-of-window failures regardless of sign.
+        cb = _make_breaker(failure_threshold=3, window_seconds=10.0)
+        cb.record_failure("model-a")
+        cb.record_failure("model-a")
+        assert cb.get_state("model-a") == CircuitState.CLOSED
+
+        cb._breakers["model-a"].last_failure_time = 30.0 - 31.0
+        with patch("app.circuit_breaker.time.monotonic", return_value=30.0):
+            cb.record_failure("model-a")
+        assert cb.get_state("model-a") == CircuitState.CLOSED
+
+        with patch("app.circuit_breaker.time.monotonic", return_value=30.5):
+            cb.record_failure("model-a")
+            cb.record_failure("model-a")
+        assert cb.get_state("model-a") == CircuitState.OPEN
